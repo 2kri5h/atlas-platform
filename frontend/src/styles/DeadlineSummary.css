@@ -1,0 +1,819 @@
+/* ── Deadline Tracker Summary Sidebar & Card Styles ── */
+
+.dt-summary-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  min-width: 300px;
+  background-color: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+  height: fit-content;
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+}
+
+.dt-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.dt-summary-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dt-header-icon {
+  color: var(--primary-color, #3b82f6);
+}
+
+.dt-summary-header-title h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main, #1e293b);
+}
+
+.dt-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dt-refresh-btn:hover:not(:disabled) {
+  background-color: var(--bg-hover, #f1f5f9);
+  color: var(--text-main, #1e293b);
+}
+
+.spinning {
+  animation: dt-spin 1s linear infinite;
+}
+
+@keyframes dt-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Metrics Bar ── */
+.dt-metrics-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background-color: var(--bg-secondary, #f8fafc);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 12px 0;
+}
+
+.dt-metric-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dt-metric-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main, #0f172a);
+  line-height: 1.2;
+}
+
+.dt-metric-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dt-metric-divider {
+  width: 1px;
+  height: 24px;
+  background-color: var(--border-color, #e2e8f0);
+}
+
+/* ── Error & States ── */
+.dt-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--danger-bg, #fef2f2);
+  color: var(--danger-text, #991b1b);
+  border: 1px solid var(--danger-border, #fecaca);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.dt-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 4px;
+  max-height: 600px;
+}
+
+.dt-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-muted, #64748b);
+  gap: 8px;
+}
+
+.dt-empty-icon {
+  color: var(--success-color, #22c55e);
+  margin-bottom: 4px;
+}
+
+.dt-empty-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-main, #1e293b);
+}
+
+.dt-empty-subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* ── Deadline Card (Uses CSS variables --dept-bg, --dept-border, --dept-text) ── */
+.dt-card {
+  position: relative;
+  background-color: var(--dept-bg, #f4f5f9);
+  border: 1px solid var(--dept-border, #7986ae);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.dt-card:hover {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+.dt-card-accent-strip {
+  height: 4px;
+  width: 100%;
+  background-color: var(--dept-accent-strip, var(--dept-border, #7986ae));
+}
+
+.dt-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px;
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+}
+
+.dt-card-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dt-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dt-card-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--dept-text, #3a4a77);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dt-deadline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dt-deadline-badge.overdue {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.dt-deadline-badge.today {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.dt-deadline-badge.soon {
+  background-color: #ffedd5;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}
+
+.dt-deadline-badge.upcoming {
+  background-color: var(--dept-badge-bg, #dde1f0);
+  color: var(--dept-text, #3a4a77);
+}
+
+.dt-card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--dept-text, #475569);
+  opacity: 0.9;
+}
+
+.dt-label-tag {
+  background-color: rgba(255, 255, 255, 0.6);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.dt-meta-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dt-subtask-count {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.dt-expand-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  flex-shrink: 0;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: var(--dept-text, #475569);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.dt-expand-toggle-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* ── Progress Bar ── */
+.dt-progress-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 10px 12px;
+}
+
+.dt-progress-track {
+  flex: 1;
+  height: 6px;
+  background-color: rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dt-progress-fill {
+  height: 100%;
+  background-color: var(--dept-border, var(--primary-color, #3b82f6));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.dt-progress-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--dept-text, #475569);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ── Card Body & Subtasks List ── */
+.dt-card-body {
+  padding: 8px 12px 12px 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.dt-subtasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.dt-subtasks-empty {
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* ── Subtask Item Component ── */
+.dt-subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.7);
+  transition: background-color 0.15s ease;
+}
+
+.dt-subtask-item:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.dt-subtask-item.completed .dt-subtask-title {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.dt-subtask-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  flex-shrink: 0;
+  background-color: #ffffff;
+  border: 1.5px solid var(--dept-border, #94a3b8);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  color: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.dt-subtask-checkbox.checked {
+  background-color: var(--dept-border, #3b82f6);
+  border-color: var(--dept-border, #3b82f6);
+}
+
+.dt-check-icon {
+  stroke-width: 3;
+}
+
+.dt-subtask-title {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--dept-text, #1e293b);
+  cursor: pointer;
+  word-break: break-word;
+}
+
+.dt-subtask-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  flex-shrink: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0.7;
+  transition: all 0.15s ease;
+}
+
+.dt-subtask-item:hover .dt-subtask-delete-btn {
+  opacity: 1;
+}
+
+.dt-subtask-delete-btn:hover {
+  color: #ef4444;
+  background-color: #fee2e2;
+}
+
+/* ── Add Subtask Form ── */
+.dt-add-subtask-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.dt-add-input {
+  flex: 1;
+  padding: 8px 10px;
+  min-height: 44px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.dt-add-input:focus {
+  outline: none;
+  border-color: var(--dept-border, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.dt-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  background-color: var(--dept-border, #3b82f6);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.dt-add-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.dt-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Responsive adjustments for small mobile viewports (<375px) ── */
+@media (max-width: 375px) {
+  .dt-summary-sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .dt-card-header {
+    padding: 10px;
+  }
+
+  .dt-add-btn span {
+    display: none;
+  }
+}
+
+/* ── Custom Deadline Buttons & Modal Styles ────────────────────────────── */
+.dt-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dt-add-deadline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--primary, #3b82f6);
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.25);
+}
+
+.dt-add-deadline-btn:hover {
+  background: color-mix(in srgb, var(--primary, #3b82f6) 90%, black);
+  transform: translateY(-1px);
+}
+
+.dt-create-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: var(--primary, #3b82f6);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.dt-create-cta-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+/* Modal Overlay */
+.cd-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 99999 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.cd-modal-container {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: cd-modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cd-modal-pop {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.cd-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  background: var(--background, #f8fafc);
+}
+
+.cd-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary, #0f172a);
+}
+
+.cd-modal-title-row h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.cd-modal-header-icon {
+  color: var(--primary, #3b82f6);
+}
+
+.cd-modal-close-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.cd-modal-close-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-primary, #0f172a);
+}
+
+.cd-modal-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.cd-modal-form {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cd-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.flex-1 { flex: 1; }
+
+.cd-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cd-form-label {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--text-secondary, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cd-form-input,
+.cd-form-select {
+  width: 100%;
+  padding: 8.5px 12px;
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  background: var(--surface, #ffffff);
+  color: var(--text-primary, #0f172a);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.cd-form-input:focus,
+.cd-form-select:focus {
+  outline: none;
+  border-color: var(--primary, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Subtask builder inside modal */
+.cd-subtask-builder {
+  background: var(--background, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cd-subtask-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--text-secondary, #475569);
+}
+
+.cd-subtask-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cd-subtask-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface, #ffffff);
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #e2e8f0);
+  font-size: 0.82rem;
+}
+
+.cd-subtask-del-btn {
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.cd-subtask-add-row {
+  display: flex;
+  gap: 6px;
+}
+
+.cd-subtask-input {
+  font-size: 0.82rem;
+  padding: 6px 10px;
+}
+
+.cd-add-subtask-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.cd-add-subtask-btn:hover {
+  background: var(--primary, #3b82f6);
+  color: #ffffff;
+  border-color: var(--primary, #3b82f6);
+}
+
+/* Modal action footer */
+.cd-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.cd-btn-ghost {
+  padding: 8px 16px;
+  border: 1px solid var(--border, #cbd5e1);
+  background: transparent;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cd-btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary, #0f172a);
+}
+
+.cd-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: none;
+  background: var(--primary, #3b82f6);
+  color: #ffffff;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.cd-btn-primary:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.cd-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
