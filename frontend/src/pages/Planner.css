@@ -694,18 +694,21 @@
 
 /* ── Timeline (Day/Week) ────────────────────────────────────────────────────── */
 .timeline-container {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 /* Column headers */
 .timeline-header {
   display: flex;
-  min-width: 720px;
+  width: 100%;
+  box-sizing: border-box;
   border-bottom: 1px solid var(--border);
   background: var(--background);
   position: sticky;
@@ -715,12 +718,18 @@
 
 .time-gutter-header {
   width: 52px;
+  min-width: 52px;
+  max-width: 52px;
   flex-shrink: 0;
+  flex-grow: 0;
+  box-sizing: border-box;
   border-right: 1px solid var(--border);
 }
 
 .col-header {
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 10px 6px 8px;
   display: flex;
   flex-direction: column;
@@ -769,14 +778,19 @@
 .timeline-body {
   display: flex;
   position: relative;
-  min-width: 720px;
+  width: 100%;
+  box-sizing: border-box;
   overflow: visible;
 }
 
 /* Time gutter */
 .time-gutter {
   width: 52px;
+  min-width: 52px;
+  max-width: 52px;
   flex-shrink: 0;
+  flex-grow: 0;
+  box-sizing: border-box;
   border-right: 1px solid var(--border);
   background: var(--background);
   position: relative;
@@ -798,7 +812,10 @@
 
 /* Day column */
 .day-col {
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   position: relative;
   border-right: 1px solid var(--border);
   overflow: visible;
@@ -1115,6 +1132,8 @@
 /* Lunch Block */
 .timeline-lunch-block {
   position: absolute;
+  left: 52px;
+  width: calc(100% - 52px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3009,19 +3028,22 @@ input:checked+.slider::before {
   background: color-mix(in srgb, #ef4444 10%, transparent);
 }
 
-/* ── Planner Main Content Layout & Deadline Tracker Sidebar ── */
+/* ── Planner Main Content Layout & Grid Container ── */
 .planner-main-content-layout {
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 20px;
+  flex-direction: column;
+  align-items: stretch;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
 .planner-grid-container {
-  flex: 1;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
+  flex: 1 1 100%;
+  box-sizing: border-box;
 }
 
 .planner-deadline-sidebar {

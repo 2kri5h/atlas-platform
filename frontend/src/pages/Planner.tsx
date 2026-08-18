@@ -1337,8 +1337,6 @@ function Planner() {
                       style={{
                         top: topOffset,
                         height: blockH,
-                        left: 52,
-                        width: 'calc(100% - 52px)',
                       }}
                     >
                       <div className="lunch-label">LUNCH</div>
