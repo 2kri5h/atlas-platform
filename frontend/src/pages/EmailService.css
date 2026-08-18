@@ -1,0 +1,271 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   EmailService.css – IITB Webmail / IMAP Sync Responsive Styling
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.email-service-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.email-setup-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.email-setup-card h3 {
+  margin-bottom: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.email-setup-card p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.email-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.email-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.email-tab-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.email-tab-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.email-tab-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.email-tab-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.email-feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.email-feed-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.email-feed-card:hover {
+  border-color: var(--primary-border);
+  transform: translateY(-1px);
+}
+
+.email-feed-card.interactive {
+  cursor: pointer;
+}
+
+.email-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.email-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.email-card-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.email-card-summary {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Event Add Modal / Bottom Sheet */
+.email-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.email-modal-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.email-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.email-modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.email-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+@media (max-width: 768px) {
+  .email-service-page {
+    overflow-x: hidden;
+    gap: 16px;
+  }
+
+  .email-setup-card {
+    padding: 16px 14px;
+  }
+
+  .email-setup-card h3 {
+    font-size: 16px;
+  }
+
+  .email-form-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .email-actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .email-actions-bar button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .email-tab-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+
+  .email-tab-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+
+  .email-feed-card {
+    padding: 14px 12px;
+  }
+
+  .email-card-title {
+    font-size: 14px;
+  }
+
+  .email-card-meta {
+    font-size: 11px;
+  }
+
+  .email-card-summary {
+    font-size: 12px;
+  }
+
+  .email-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .email-modal-panel {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+    padding: 20px 16px;
+  }
+
+  .email-modal-title {
+    font-size: 15px;
+  }
+
+  .email-modal-footer {
+    flex-direction: column;
+  }
+
+  .email-modal-footer button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .email-feed-card {
+    padding: 12px 10px;
+  }
+
+  .email-setup-card {
+    padding: 14px 12px;
+  }
+}

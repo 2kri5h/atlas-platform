@@ -378,3 +378,93 @@
   font-size: 0.9rem;
   color: var(--text-muted);
 }
+
+/* ── Mobile Phone Media Queries (<= 768px) ── */
+@media (max-width: 768px) {
+  .deadlines-page {
+    overflow-x: hidden;
+  }
+
+  .deadlines-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .deadlines-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .deadlines-create-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .deadlines-title {
+    font-size: 1.4rem;
+  }
+
+  .deadlines-metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .metric-card {
+    padding: 14px 12px;
+  }
+
+  .deadlines-list-container {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .kanban-board-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .kanban-column {
+    min-height: auto;
+  }
+
+  .kanban-card {
+    padding: 12px;
+  }
+
+  .deadlines-state-container {
+    padding: 40px 16px;
+  }
+
+  .deadlines-state-container h3 {
+    font-size: 1rem;
+  }
+
+  .deadlines-state-container p {
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .deadlines-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .deadlines-title {
+    font-size: 1.2rem;
+  }
+
+  .deadlines-icon-badge {
+    width: 42px;
+    height: 42px;
+  }
+
+  .deadlines-header-actions {
+    flex-direction: column;
+  }
+
+  .deadlines-header-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}

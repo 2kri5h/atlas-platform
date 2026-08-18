@@ -122,3 +122,64 @@
   font-size: 12px;
   font-weight: 600;
 }
+
+@media (max-width: 768px) {
+  .events-page {
+    overflow-x: hidden;
+  }
+
+  .events-page .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .events-page .page-header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tab-header {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    gap: 6px;
+  }
+
+  .tab-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 12px;
+    padding: 7px 14px;
+  }
+
+  .event-card {
+    padding: 14px 12px;
+  }
+
+  .event-card h3 {
+    font-size: 15px;
+  }
+
+  .event-meta {
+    gap: 8px;
+    font-size: 11px;
+    flex-wrap: wrap;
+  }
+
+  .event-card p {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .event-card {
+    padding: 12px 10px;
+  }
+
+  .tab-btn {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}

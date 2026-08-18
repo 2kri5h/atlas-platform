@@ -311,3 +311,70 @@
   from { opacity: 0; transform: translateY(20px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+@media (max-width: 768px) {
+  .journeys-page {
+    overflow-x: hidden;
+  }
+
+  .journeys-page .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .journeys-page .page-header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .journeys-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .journey-card {
+    padding: 14px 12px;
+  }
+
+  .journey-card h3 {
+    font-size: 16px;
+  }
+
+  .journey-card p {
+    font-size: 13px;
+  }
+
+  .journey-modal {
+    width: 100%;
+    max-width: 100%;
+    height: 90vh;
+    border-radius: 20px 20px 0 0;
+    margin-top: auto;
+  }
+
+  .journey-modal-body {
+    padding: 14px 12px;
+  }
+
+  .full-story-content {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .journey-modal-footer {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .journey-card {
+    padding: 12px 10px;
+  }
+
+  .journey-modal {
+    height: 95vh;
+  }
+}

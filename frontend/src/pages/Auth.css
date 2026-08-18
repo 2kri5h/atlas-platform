@@ -91,7 +91,65 @@
 }
 
 @media (max-width: 600px) {
+  .auth-page {
+    padding: 16px 12px;
+    align-items: flex-start;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .auth-card {
+    padding: 24px 16px;
+    border-radius: 14px;
+    margin: auto 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  .auth-card h1 {
+    font-size: 24px;
+  }
+
+  .auth-subtitle {
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
   .form-row {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  .form-group label {
+    font-size: 13px;
+  }
+
+  .form-group input,
+  .form-group select {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .auth-card button {
+    padding: 12px;
+    font-size: 15px;
+  }
+
+  .auth-footer {
+    margin-top: 18px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 400px) {
+  .auth-card {
+    padding: 20px 12px;
+  }
+
+  .auth-card h1 {
+    font-size: 21px;
   }
 }

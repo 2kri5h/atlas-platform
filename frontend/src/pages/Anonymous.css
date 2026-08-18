@@ -182,3 +182,84 @@
 .reply-form input {
   flex: 1;
 }
+
+@media (max-width: 768px) {
+  .anonymous-page {
+    overflow-x: hidden;
+  }
+
+  .anonymous-page .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .anonymous-page .page-header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .post-card {
+    padding: 14px 12px;
+  }
+
+  .post-card h3 {
+    font-size: 15px;
+  }
+
+  .post-card p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .post-footer {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .post-footer button {
+    font-size: 12px;
+  }
+
+  .reply-form {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .reply-form input {
+    width: 100%;
+  }
+
+  .reply-form button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .reply-item {
+    padding: 10px;
+  }
+
+  .reply-item p {
+    font-size: 13px;
+  }
+
+  .reply-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .post-card {
+    padding: 12px 10px;
+  }
+
+  .post-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .post-footer button {
+    justify-content: center;
+  }
+}

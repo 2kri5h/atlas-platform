@@ -472,8 +472,18 @@ type EditScope = 'all' | 'instance'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 function Planner() {
-  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week')
+  // Auto-detect mobile and default to day view
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>(isMobile ? 'day' : 'week')
   const [currentDate, setCurrentDate] = useState(new Date())
+
+  const [now, setNow] = useState(new Date())
+
+  // Keep now indicator updated every 60 seconds
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000)
+    return () => clearInterval(timer)
+  }, [])
 
   // ── Shared data layer ──────────────────────────────────────────────────────
   const { events, loading, fetchEvents, fetchCapacity, invalidate } = usePlannerData()
@@ -919,6 +929,35 @@ function Planner() {
         </div>
       </div>
 
+      {/* ── Mobile Day Selector Strip (Visible on mobile/tablet) ── */}
+      {viewMode !== 'month' && (
+        <div className="mobile-day-strip">
+          {weekDays.map((d, i) => {
+            const dStr = formatYYYYMMDD(d)
+            const isSelected = viewMode === 'day' && formatYYYYMMDD(currentDate) === dStr
+            const isToday = dStr === TODAY_STR
+            const dayEvtsCount = events.filter(e => e.date === dStr).length
+            return (
+              <button
+                key={i}
+                type="button"
+                className={`mobile-day-pill${isSelected ? ' active' : ''}${isToday ? ' today' : ''}`}
+                onClick={() => {
+                  setCurrentDate(d)
+                  setViewMode('day')
+                }}
+              >
+                <span className="mdp-name">{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                <span className="mdp-num">{d.getDate()}</span>
+                {dayEvtsCount > 0 && (
+                  <span className={`mdp-count-chip${isSelected ? ' on-active' : ''}`}>{dayEvtsCount}</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {/* ── Upcoming Deadlines Strip ── */}
       {(deadlines.length > 0 || showDeadlines) && (
         <div className="deadlines-panel">
@@ -1245,9 +1284,9 @@ function Planner() {
             </div>
           ) : (
             /* ── Day / Week grid ── */
-            <div className="timeline-container">
+            <div className={`timeline-container ${viewMode === 'day' ? 'is-day-view' : 'is-week-view'}`}>
               {/* Column headers */}
-              <div className="timeline-header">
+              <div className={`timeline-header ${viewMode === 'day' ? 'is-day-view' : 'is-week-view'}`}>
                 <div className="time-gutter-header" />
                 {activeDays.map((day, i) => {
                   const dayStr = formatYYYYMMDD(day)
@@ -1265,7 +1304,7 @@ function Planner() {
                 })}
               </div>
 
-              <div className="timeline-body" style={{ height: totalGridHeight }}>
+              <div className={`timeline-body ${viewMode === 'day' ? 'is-day-view' : 'is-week-view'}`} style={{ height: totalGridHeight }}>
                 {/* Time gutter */}
                 <div className="time-gutter">
                   {HOURS.map((h, i) => (
@@ -1442,6 +1481,35 @@ function Planner() {
                           </div>
                         )
                       })}
+
+                      {/* ── Live Current Time Indicator (Red line on Today) ── */}
+                      {dayStr === TODAY_STR && (() => {
+                        const nowFloat = now.getHours() + now.getMinutes() / 60
+                        if (nowFloat < 0 || nowFloat > 24) return null
+                        const nowTop = offsetForHour(Math.floor(nowFloat), rowHeights)
+                          + (nowFloat - Math.floor(nowFloat)) * rowHeights[Math.min(Math.floor(nowFloat), 23)]
+                        return (
+                          <div className="timeline-now-line" style={{ top: nowTop }}>
+                            <div className="now-time-tag">
+                              {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}
+                            </div>
+                            <div className="now-circle" />
+                            <div className="now-horizontal-bar" />
+                          </div>
+                        )
+                      })()}
+
+                      {/* ── Empty Day Prompt (Day View) ── */}
+                      {viewMode === 'day' && positioned.length === 0 && (
+                        <div className="day-empty-banner" onClick={() => openCreate(dayStr, 9)}>
+                          <CalendarIcon size={20} className="deb-icon" />
+                          <div className="deb-text">
+                            <strong>No events scheduled for this day</strong>
+                            <span>Click any hour cell or click here to schedule a class or task</span>
+                          </div>
+                          <span className="deb-action-btn"><Plus size={13} /> Add Event</span>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -1769,6 +1837,17 @@ function Planner() {
           </div>
         </div>
       )}
+
+      {/* ── Mobile Floating Action Button (FAB) ── */}
+      <button
+        type="button"
+        className="mobile-planner-fab"
+        onClick={() => openCreate()}
+        title="Add New Event"
+        aria-label="Add Event"
+      >
+        <Plus size={24} />
+      </button>
     </div>
   )
 }

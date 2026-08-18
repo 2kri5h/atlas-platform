@@ -513,3 +513,89 @@
   background: var(--surface-hover);
   color: var(--text-primary);
 }
+
+/* ── Mobile Phone Media Queries (<= 768px) ── */
+@media (max-width: 768px) {
+  .resources-page {
+    overflow-x: hidden;
+  }
+
+  .resources-page .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .resources-page .page-header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .form-card {
+    padding: 16px 14px;
+    margin-bottom: 18px;
+  }
+
+  .form-card h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .filter-bar button {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .resources-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+    padding: 20px 16px;
+  }
+
+  .modal-header h3 {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 480px) {
+  .filter-bar button {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+}
