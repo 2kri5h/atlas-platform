@@ -4,6 +4,7 @@ import { BookOpen, Calendar, Map, CheckSquare, MessageCircle, Bot, TrendingUp, C
 import api from '../utils/api'
 import { Student, BurnoutScore, BurnoutHistoryPoint, Task } from '../utils/api'
 import { formatDate } from '../utils/helpers'
+import { FAQSection } from '../components/FAQSection'
 import './Dashboard.css'
 
 function Dashboard() {
@@ -119,6 +120,28 @@ function Dashboard() {
       <div className="page-header">
         <h1>Welcome back, {student?.name?.split(' ')[0] || 'Student'}!</h1>
         <p>Here's what's happening with your productivity journey</p>
+      </div>
+
+      <div className="dashboard-hero-cta">
+        <div className="dashboard-hero-content">
+          <div className="dashboard-promise-pill">
+            <span className="pulse-dot"></span>
+            <span>⚡ Instant AI Mentorship • 🔄 Real-time IITB Sync Active</span>
+          </div>
+          <h2>Plan Smarter, Study Calmer</h2>
+          <p>Manage your weekly course slots, track assignments, prevent burnout, and learn from graduating IITB seniors.</p>
+        </div>
+        <div className="dashboard-hero-buttons">
+          <Link to="/planner" className="primary-btn hero-cta-btn">
+            <Calendar size={15} /> Weekly Timetable
+          </Link>
+          <Link to="/deadlines" className="secondary-btn hero-cta-btn">
+            <CheckSquare size={15} /> Deadlines Board
+          </Link>
+          <Link to="/ai" className="secondary-btn hero-cta-btn">
+            <Bot size={15} /> Ask AI Mentor
+          </Link>
+        </div>
       </div>
 
       <div className="stats-grid">
@@ -248,6 +271,9 @@ function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* ── 5 IIT Bombay FAQs & Knowledge Center ── */}
+      <FAQSection />
     </div>
   )
 }

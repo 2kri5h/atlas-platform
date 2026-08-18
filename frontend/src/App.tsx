@@ -13,6 +13,7 @@ import Anonymous from './pages/Anonymous'
 import AIAssistant from './pages/AIAssistant'
 import Profile from './pages/Profile'
 import EmailService from './pages/EmailService'
+import NotFound from './pages/NotFound'
 import api from './utils/api'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -70,6 +71,7 @@ function App() {
           <Route path="ai" element={<AIAssistant />} />
           <Route path="profile" element={<Profile />} />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )

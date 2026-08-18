@@ -4,6 +4,7 @@ import {
   LayoutDashboard, BookOpen, Calendar, Map, CheckSquare,
   Bell, MessageCircle, Bot, User, LogOut, Mail, Menu, X, MoreHorizontal
 } from 'lucide-react'
+import { Breadcrumbs } from './Breadcrumbs'
 import './Layout.css'
 
 const navItems = [
@@ -36,9 +37,24 @@ function Layout() {
 
   const isFullWidth = FULL_WIDTH_ROUTES.some(r => location.pathname.startsWith(r))
 
-  // Close mobile drawer when route changes
+  // Close mobile drawer and update unique page title when route changes
   useEffect(() => {
     setMobileMenuOpen(false)
+
+    const titles: Record<string, string> = {
+      '/': 'Dashboard — ATLAS IIT Bombay',
+      '/planner': 'Timetable & Weekly Planner — ATLAS',
+      '/deadlines': 'Deadlines & Tasks Manager — ATLAS',
+      '/ai': 'AI Assistant & Study Mentor — ATLAS',
+      '/emails': 'Webmail & Events Sync — ATLAS',
+      '/resources': 'Resource Library & Notes — ATLAS',
+      '/events': 'Campus Events & Workshops — ATLAS',
+      '/journeys': 'Senior Placement Journeys — ATLAS',
+      '/anonymous': 'Anonymous Student Portal — ATLAS',
+      '/profile': 'Profile & Preferences — ATLAS',
+    }
+    const currentTitle = titles[location.pathname] || 'ATLAS — IIT Bombay Student Productivity'
+    document.title = currentTitle
   }, [location.pathname])
 
   // Prevent background scroll when mobile drawer is open
@@ -147,6 +163,7 @@ function Layout() {
           <Outlet />
         ) : (
           <div className="container">
+            <Breadcrumbs />
             <Outlet />
           </div>
         )}
