@@ -140,28 +140,14 @@ function Register() {
               placeholder="e.g., placements, research internships"
             />
           </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Weak Subjects</label>
-              <input
-                type="text"
-                value={form.weak_subjects}
-                onChange={(e) => setForm({ ...form, weak_subjects: e.target.value })}
-                placeholder="e.g., Algorithms, OS"
-              />
-            </div>
-            <div className="form-group">
-              <label>CPI *</label>
-              <input
-                type="number"
-                required
-                value={form.cpi}
-                onChange={(e) => setForm({ ...form, cpi: Number(e.target.value) })}
-                min={0}
-                max={10}
-                step={0.01}
-              />
-            </div>
+          <div className="form-group">
+            <label>Weak Subjects</label>
+            <input
+              type="text"
+              value={form.weak_subjects}
+              onChange={(e) => setForm({ ...form, weak_subjects: e.target.value })}
+              placeholder="e.g., Algorithms, OS"
+            />
           </div>
           <div className="form-row">
             <div className="form-group">

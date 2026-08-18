@@ -485,6 +485,13 @@ function Planner() {
     return () => clearInterval(timer)
   }, [])
 
+  // Auto-switch to Day view on mobile screen load/orientation change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setViewMode('day')
+    }
+  }, [])
+
   // ── Shared data layer ──────────────────────────────────────────────────────
   const { events, loading, fetchEvents, fetchCapacity, invalidate } = usePlannerData()
 
