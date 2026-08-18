@@ -193,6 +193,7 @@ export interface PlannerEvent {
   is_recurring: boolean
   recurrence_day?: number
   is_completed: boolean
+  status?: string
   user_comment?: string
   deadline_date?: string
   deadline_label?: string
@@ -300,5 +301,12 @@ export interface EmailRecord {
   category: string
   importance: string
   summary: string
+  body?: string
+  received_at?: string
+  date_received?: string
+  date?: string
+  created_at?: string
+  timestamp?: string
+  email_date?: string
   events: EmailEvent[]
 }

@@ -17,6 +17,22 @@ import { DeadlineCard } from '../components/DeadlineCard'
 import { CreateDeadlineModal } from '../components/CreateDeadlineModal'
 import './Deadlines.css'
 
+// Helper function to safely parse dates without timezone drift
+function parseDeadlineDaysDiff(deadline: any, todayMidnight: number): number | null {
+  const rawDate = deadline.deadline_date || deadline.due_date || deadline.date
+  if (!rawDate) return null
+
+  // Extract YYYY-MM-DD cleanly
+  const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : ''
+  const parts = dateStr.split('-')
+  if (parts.length !== 3) return null
+
+  const targetDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10))
+  const targetMidnight = targetDate.getTime()
+
+  return Math.round((targetMidnight - todayMidnight) / (1000 * 60 * 60 * 24))
+}
+
 export default function Deadlines() {
   const {
     deadlines,
@@ -26,6 +42,7 @@ export default function Deadlines() {
     toggleSubtask,
     deleteSubtask,
     createCustomDeadline,
+    toggleDeadlineComplete,
   } = useDeadlineData()
 
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
@@ -37,7 +54,7 @@ export default function Deadlines() {
   // Calculate metrics
   const metrics = useMemo(() => {
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
 
     let overdue = 0
     let dueSoon = 0
@@ -46,20 +63,24 @@ export default function Deadlines() {
     let completedSubtasks = 0
 
     deadlines.forEach(d => {
-      const dl = d.deadline_date ? new Date(d.deadline_date + 'T00:00:00') : null
-      if (dl) {
-        const diffMs = dl.getTime() - today.getTime()
-        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
-        if (diffDays < 0) overdue++
-        else if (diffDays <= 3) dueSoon++
-        else upcoming++
-      } else {
-        upcoming++
+      const subtasks = d.subtasks || []
+      const isDone = d.is_completed || d.status === 'COMPLETED' || (subtasks.length > 0 && subtasks.every(s => s.is_completed))
+
+      if (!isDone) {
+        const diffDays = parseDeadlineDaysDiff(d, todayMidnight)
+        if (diffDays === null) {
+          upcoming++
+        } else if (diffDays < 0) {
+          overdue++
+        } else if (diffDays <= 3) {
+          dueSoon++
+        } else {
+          upcoming++
+        }
       }
 
-      const st = d.subtasks || []
-      totalSubtasks += st.length
-      completedSubtasks += st.filter(s => s.is_completed).length
+      totalSubtasks += subtasks.length
+      completedSubtasks += subtasks.filter(s => s.is_completed).length
     })
 
     const completionRate = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 100
@@ -81,7 +102,7 @@ export default function Deadlines() {
       // Search
       const matchesSearch =
         !searchQuery.trim() ||
-        d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (d.title && d.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (d.deadline_label && d.deadline_label.toLowerCase().includes(searchQuery.toLowerCase()))
 
       // Category
@@ -97,7 +118,7 @@ export default function Deadlines() {
   // Categorized for Kanban Board
   const kanbanColumns = useMemo(() => {
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
 
     const overdue: typeof deadlines = []
     const dueSoon: typeof deadlines = []
@@ -107,18 +128,19 @@ export default function Deadlines() {
     filteredDeadlines.forEach(d => {
       const subtasks = d.subtasks || []
       const allSubtasksDone = subtasks.length > 0 && subtasks.every(s => s.is_completed)
-      if (allSubtasksDone || d.is_completed) {
+      
+      if (allSubtasksDone || d.is_completed || d.status === 'COMPLETED') {
         completed.push(d)
         return
       }
 
-      const dl = d.deadline_date ? new Date(d.deadline_date + 'T00:00:00') : null
-      if (dl) {
-        const diffMs = dl.getTime() - today.getTime()
-        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
-        if (diffDays < 0) overdue.push(d)
-        else if (diffDays <= 3) dueSoon.push(d)
-        else upcoming.push(d)
+      const diffDays = parseDeadlineDaysDiff(d, todayMidnight)
+      if (diffDays === null) {
+        upcoming.push(d)
+      } else if (diffDays < 0) {
+        overdue.push(d)
+      } else if (diffDays >= 0 && diffDays <= 3) {
+        dueSoon.push(d)
       } else {
         upcoming.push(d)
       }
@@ -325,6 +347,7 @@ export default function Deadlines() {
                       onAddSubtask={addSubtask}
                       onToggleSubtask={toggleSubtask}
                       onDeleteSubtask={deleteSubtask}
+                      onToggleComplete={toggleDeadlineComplete}
                     />
                   ))
                 )}

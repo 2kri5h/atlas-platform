@@ -3,7 +3,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 20px;
 }
 
 /* ── Header Section ── */
@@ -18,15 +18,16 @@
 .deadlines-header-title-block {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .deadlines-icon-badge {
-  width: 50px;
-  height: 50px;
-  border-radius: var(--radius-md);
-  background: var(--primary-light);
-  color: var(--primary);
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -35,106 +36,106 @@
 
 .deadlines-title {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 .deadlines-subtitle {
   margin: 2px 0 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
 }
 
 .deadlines-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .deadlines-create-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 18px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  padding: 8px 16px;
+  background: var(--text-primary);
   color: #ffffff;
   border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-xs);
 }
 
 .deadlines-create-btn:hover {
+  background: #27272a;
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
 }
 
 .deadlines-refresh-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .deadlines-refresh-btn:hover:not(:disabled) {
   background: var(--surface-hover);
   color: var(--text-primary);
-  border-color: #cbd5e1;
+  border-color: #d4d4d8;
 }
 
 /* ── Metrics Summary Bar ── */
 .deadlines-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 .metrics-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 18px 22px;
+  gap: 14px;
+  padding: 14px 18px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
 }
 
 .metrics-icon-wrap {
-  width: 46px;
-  height: 46px;
-  border-radius: var(--radius-md);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.metrics-icon-wrap.blue { background: var(--primary-light); color: var(--primary); }
-.metrics-icon-wrap.red { background: var(--danger-light); color: var(--danger); }
-.metrics-icon-wrap.orange { background: var(--warning-light); color: var(--warning-hover); }
-.metrics-icon-wrap.green { background: var(--success-light); color: var(--success); }
+.metrics-icon-wrap.blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
+.metrics-icon-wrap.red { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+.metrics-icon-wrap.orange { background: #fffbeb; color: #d97706; border: 1px solid #fef3c7; }
+.metrics-icon-wrap.green { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
 
 .metrics-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .metrics-label {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -142,11 +143,12 @@
 }
 
 .metrics-value {
-  font-size: 1.6rem;
-  font-weight: 700;
-  font-family: 'Outfit', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 750;
+  font-family: 'Outfit', -apple-system, sans-serif;
   color: var(--text-primary);
   line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .metrics-value.red-text { color: var(--danger); }
@@ -158,19 +160,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
   flex-wrap: wrap;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
 }
 
 .search-input-wrap {
   position: relative;
   flex: 1;
-  min-width: 240px;
+  min-width: 220px;
 }
 
 .search-icon {
@@ -183,20 +185,20 @@
 
 .deadlines-search-input {
   width: 100%;
-  padding: 9px 12px 9px 38px;
+  padding: 8px 12px 8px 36px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  background: var(--background);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface-subtle);
   color: var(--text-primary);
   box-sizing: border-box;
 }
 
 .deadlines-search-input:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--border-focus);
   background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .toolbar-filter-group {

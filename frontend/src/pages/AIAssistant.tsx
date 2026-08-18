@@ -309,13 +309,13 @@ function AIAssistant() {
                 </p>
               )}
             </header>
-            <div className="chat-messages">
+            <div className="chat-messages" id="ai-chat-messages">
               {messages.length === 0 && hasChat && (
                 <div className="chat-empty-state">
                   <p>Start a conversation by asking a question.</p>
                 </div>
               )}
-              <div>
+              <div className="messages-list">
                 {messages.map((msg, idx) => (
                   <div key={idx} className={`message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`}>
                     <div className="message-content">
@@ -328,7 +328,7 @@ function AIAssistant() {
                     </div>
                   </div>
                 ))}
-                <div ref={scrollRef} style={{ height: 0 }} />
+                <div ref={scrollRef} style={{ height: 1 }} />
               </div>
             </div>
             <form className="chat-form" onSubmit={(e) => {

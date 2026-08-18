@@ -6,21 +6,21 @@
 
 /* ── Desktop Sidebar ───────────────────────────────────────────────────────── */
 .sidebar {
-  width: 250px;
-  background: #ffffff;
+  width: 240px;
+  background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   position: fixed;
   height: 100vh;
   z-index: 100;
-  box-shadow: 2px 0 12px rgba(15, 23, 42, 0.03);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 1px 0 0 0 var(--border);
+  transition: transform var(--transition-normal);
 }
 
 .sidebar-header {
-  padding: 24px 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -29,7 +29,7 @@
 .sidebar-branding {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .sidebar-close-btn {
@@ -40,7 +40,7 @@
   cursor: pointer;
   padding: 6px;
   border-radius: var(--radius-sm);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .sidebar-close-btn:hover {
@@ -49,50 +49,65 @@
 }
 
 .logo {
-  font-size: 26px;
-  font-weight: 700;
-  font-family: 'Outfit', sans-serif;
-  background: linear-gradient(135deg, #4f46e5, #06b6d4);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -0.03em;
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'Outfit', -apple-system, sans-serif;
+  color: var(--text-primary);
+  letter-spacing: -0.035em;
   line-height: 1.1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.logo::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
 }
 
 .logo-sub {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
+  letter-spacing: 0.09em;
+  color: var(--text-tertiary);
 }
 
 .nav {
   flex: 1;
-  padding: 16px 12px;
+  padding: 14px 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
   overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
+  gap: 11px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
   width: 100%;
   cursor: pointer;
   text-align: left;
   position: relative;
+}
+
+.nav-item svg {
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
 }
 
 .nav-item:hover {
@@ -100,40 +115,40 @@
   color: var(--text-primary);
 }
 
-.nav-item.active {
-  background: var(--primary-light);
-  color: var(--primary);
-  font-weight: 600;
-  border-color: var(--primary-border);
+.nav-item:hover svg {
+  color: var(--text-primary);
 }
 
-.nav-item.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 4px;
-  background: var(--primary);
-  border-radius: 0 4px 4px 0;
+.nav-item.active {
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.nav-item.active svg {
+  color: var(--primary);
 }
 
 .sidebar-footer {
-  padding: 14px 12px;
-  border-top: 1px solid var(--border);
+  padding: 12px 10px;
+  border-top: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  background: #ffffff;
+  gap: 3px;
+  background: var(--surface);
 }
 
 .logout-btn {
-  color: var(--danger);
+  color: var(--text-secondary);
 }
 
 .logout-btn:hover {
   background: var(--danger-light);
-  color: var(--danger-hover);
+  color: var(--danger);
+}
+
+.logout-btn:hover svg {
+  color: var(--danger);
 }
 
 /* ── Main Content Container ────────────────────────────────────────────────── */

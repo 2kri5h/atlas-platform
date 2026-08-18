@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronUp, Plus, Calendar, AlertCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, Calendar, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { DeadlineWithSubtasks } from '../utils/api'
 import { getDepartmentColor } from '../utils/colorPalette'
 import { SubtaskCheckbox } from './SubtaskCheckbox'
@@ -10,6 +10,7 @@ interface DeadlineCardProps {
   onAddSubtask: (deadlineId: number, title: string) => Promise<void>
   onToggleSubtask: (deadlineId: number, subtaskId: number) => Promise<void>
   onDeleteSubtask: (deadlineId: number, subtaskId: number) => Promise<void>
+  onToggleComplete?: (deadlineId: number, isCompleted: boolean) => Promise<void>
 }
 
 export const DeadlineCard: React.FC<DeadlineCardProps> = ({
@@ -17,6 +18,7 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
   onAddSubtask,
   onToggleSubtask,
   onDeleteSubtask,
+  onToggleComplete,
 }) => {
   const [expanded, setExpanded] = useState<boolean>(true)
   const [newTitle, setNewTitle] = useState<string>('')
@@ -25,13 +27,23 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
   const subtasks = deadline.subtasks || []
   const totalSubtasks = subtasks.length
   const completedSubtasks = subtasks.filter(s => s.is_completed).length
-  const progressPct = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0
+  const allSubtasksDone = totalSubtasks > 0 && completedSubtasks === totalSubtasks
+  const isCompleted = deadline.is_completed || deadline.status === 'COMPLETED' || allSubtasksDone
+
+  const progressPct = isCompleted 
+    ? 100 
+    : totalSubtasks > 0 
+      ? Math.round((completedSubtasks / totalSubtasks) * 100) 
+      : 0
 
   // Calculate relative days left for deadline
   let deadlineBadgeText = ''
   let deadlineStatusClass = 'upcoming'
 
-  if (deadline.deadline_date) {
+  if (isCompleted) {
+    deadlineBadgeText = 'Completed'
+    deadlineStatusClass = 'completed'
+  } else if (deadline.deadline_date) {
     const dlDate = new Date(deadline.deadline_date)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -71,11 +83,18 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
     }
   }
 
+  const handleToggleComplete = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (onToggleComplete) {
+      await onToggleComplete(deadline.id, isCompleted)
+    }
+  }
+
   const deptStyle = getDepartmentColor(deadline.title)
 
   return (
     <div
-      className={`dt-card ${expanded ? 'expanded' : ''}`}
+      className={`dt-card ${expanded ? 'expanded' : ''} ${isCompleted ? 'dt-card-done' : ''}`}
       style={deptStyle as React.CSSProperties}
     >
       <div className="dt-card-accent-strip" />
@@ -84,10 +103,11 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
       <div className="dt-card-header" onClick={() => setExpanded(prev => !prev)}>
         <div className="dt-card-header-main">
           <div className="dt-card-title-row">
-            <h3 className="dt-card-title">{deadline.title}</h3>
+            <h3 className={`dt-card-title ${isCompleted ? 'completed-text' : ''}`}>{deadline.title}</h3>
             {deadlineBadgeText && (
               <span className={`dt-deadline-badge ${deadlineStatusClass}`}>
                 {deadlineStatusClass === 'overdue' && <AlertCircle size={11} />}
+                {deadlineStatusClass === 'completed' && <CheckCircle2 size={11} />}
                 {deadlineBadgeText}
               </span>
             )}
@@ -114,13 +134,35 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          className="dt-expand-toggle-btn"
-          aria-label={expanded ? 'Collapse details' : 'Expand details'}
-        >
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {onToggleComplete && (
+            <button
+              type="button"
+              onClick={handleToggleComplete}
+              title={isCompleted ? 'Mark as incomplete' : 'Mark as completed'}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                color: isCompleted ? '#16a34a' : '#94a3b8',
+                transition: 'color 0.2s',
+              }}
+            >
+              <CheckCircle2 size={18} />
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="dt-expand-toggle-btn"
+            aria-label={expanded ? 'Collapse details' : 'Expand details'}
+          >
+            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        </div>
       </div>
 
       {/* Progress Bar */}
@@ -128,7 +170,7 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
         <div className="dt-progress-track">
           <div
             className="dt-progress-fill"
-            style={{ width: `${progressPct}%` }}
+            style={{ width: `${progressPct}%`, backgroundColor: isCompleted ? '#22c55e' : undefined }}
           />
         </div>
         <span className="dt-progress-text">{progressPct}%</span>

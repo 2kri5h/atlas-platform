@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { DeadlineWithSubtasks, DeadlineSubtask, deadlineAPI } from '../utils/api'
+import api, { DeadlineWithSubtasks, DeadlineSubtask, deadlineAPI } from '../utils/api'
 
 export function useDeadlineData() {
   const [deadlines, setDeadlines] = useState<DeadlineWithSubtasks[]>([])
@@ -186,21 +186,56 @@ export function useDeadlineData() {
   }
 
   const createCustomDeadline = async (payload: {
-    title: string;
-    deadline_date: string;
-    deadline_label?: string;
-    category?: 'CLASS' | 'EXAM' | 'PERSONAL' | 'SLEEP' | 'RECREATION' | 'OTHER';
-    tag?: 'CRITICAL' | 'IMPORTANT' | 'OPTIONAL';
-    subtasks?: string[];
+    title: string
+    deadline_date: string
+    deadline_label?: string
+    category?: 'CLASS' | 'EXAM' | 'PERSONAL' | 'SLEEP' | 'RECREATION' | 'OTHER'
+    tag?: 'CRITICAL' | 'IMPORTANT' | 'OPTIONAL'
+    subtasks?: string[]
   }) => {
     try {
       const created = await deadlineAPI.createCustomDeadline(payload)
-      setDeadlines(prev => [...prev, created].sort((a, b) => (a.deadline_date || '').localeCompare(b.deadline_date || '')))
+      setDeadlines(prev =>
+        [...prev, created].sort((a, b) =>
+          (a.deadline_date || '').localeCompare(b.deadline_date || '')
+        )
+      )
       return created
     } catch (err: any) {
       console.error('Failed to create custom deadline:', err)
       setError(err?.response?.data?.detail || 'Failed to create custom deadline')
       throw err
+    }
+  }
+
+  const toggleDeadlineComplete = async (deadlineId: string | number, currentStatus = false) => {
+    const newStatus = !currentStatus
+
+    // Optimistic UI update
+    setDeadlines(prev =>
+      prev.map(d =>
+        d.id === Number(deadlineId)
+          ? { ...d, is_completed: newStatus, status: newStatus ? 'COMPLETED' : 'PENDING' }
+          : d
+      )
+    )
+
+    try {
+      await api.patch(`/events/${deadlineId}`, {
+        is_completed: newStatus,
+        status: newStatus ? 'COMPLETED' : 'PENDING',
+      })
+    } catch (err: any) {
+      console.error('Failed to update deadline status:', err)
+      alert('Failed to update status: ' + (err.response?.data?.detail || err.message))
+      // Rollback
+      setDeadlines(prev =>
+        prev.map(d =>
+          d.id === Number(deadlineId)
+            ? { ...d, is_completed: currentStatus, status: currentStatus ? 'COMPLETED' : 'PENDING' }
+            : d
+        )
+      )
     }
   }
 
@@ -213,5 +248,6 @@ export function useDeadlineData() {
     toggleSubtask,
     deleteSubtask,
     createCustomDeadline,
+    toggleDeadlineComplete,
   }
 }

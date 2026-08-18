@@ -5,202 +5,233 @@
 }
 
 :root {
-  /* Brand & Core Palette */
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-light: #eef2ff;
-  --primary-border: #c7d2fe;
+  /* ── Nordic Minimalist Core Palette ── */
+  --primary: #2563eb;         /* Crisp Royal Blue */
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;   /* Calm blue tint */
+  --primary-border: #bfdbfe;
 
-  --secondary: #0d9488;
-  --secondary-hover: #0f766e;
-  --secondary-light: #ccfbf1;
+  --secondary: #0f172a;       /* Deep Obsidian */
+  --secondary-hover: #1e293b;
+  --secondary-light: #f1f5f9;
+
+  --accent: #3b82f6;
+  --accent-light: #f0f9ff;
 
   --danger: #ef4444;
   --danger-hover: #dc2626;
   --danger-light: #fef2f2;
+  --danger-border: #fecaca;
 
   --warning: #f59e0b;
   --warning-hover: #d97706;
   --warning-light: #fffbeb;
+  --warning-border: #fde68a;
 
   --success: #10b981;
+  --success-hover: #059669;
   --success-light: #ecfdf5;
+  --success-border: #a7f3d0;
 
-  /* Surfaces & Backgrounds */
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --surface-hover: #f1f5f9;
+  /* ── Nordic Canvas & Surfaces ── */
+  --background: #fbfbfa;      /* Notion-style warm neutral off-white */
+  --surface: #ffffff;         /* Pure crisp white card surface */
+  --surface-hover: #f4f4f5;   /* Subtle zinc hover */
   --surface-elevated: #ffffff;
+  --surface-subtle: #f8f8f7;
 
-  /* Typography Colors */
-  --text-primary: #0f172a;   /* Slate 900 - Crisp, clear, high contrast */
-  --text-secondary: #475569; /* Slate 600 - High contrast secondary */
-  --text-muted: #64748b;     /* Slate 500 */
+  /* ── High-Legibility Typography ── */
+  --text-primary: #18181b;     /* Deep Zinc 900 */
+  --text-secondary: #52525b;   /* Zinc 600 - High legibility */
+  --text-muted: #71717a;       /* Zinc 500 */
+  --text-tertiary: #a1a1aa;    /* Zinc 400 */
   --text-inverse: #ffffff;
 
-  /* Borders & Shadows */
-  --border: #e2e8f0;         /* Slate 200 */
-  --border-light: #f1f5f9;
-  --border-focus: #818cf8;
+  /* ── Hairline Borders & Ambient Shadows ── */
+  --border: #e4e4e7;           /* Zinc 200 - Clean 1px border */
+  --border-light: #f4f4f5;     /* Zinc 100 */
+  --border-focus: #3b82f6;
 
-  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
-  --shadow-hover: 0 12px 20px -3px rgba(79, 70, 229, 0.12), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.07), 0 4px 10px -2px rgba(0, 0, 0, 0.03);
+  --shadow-hover: 0 8px 20px -3px rgba(37, 99, 235, 0.08), 0 3px 6px -2px rgba(0, 0, 0, 0.03);
 
+  /* ── Apple-style Smooth Geometry ── */
+  --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
+  --radius-xl: 18px;
   --radius-full: 9999px;
+
+  /* ── Transitions ── */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.15s var(--ease-spring);
+  --transition-normal: 0.2s var(--ease-spring);
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
   background: var(--background);
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  font-weight: 700;
 }
 
 a {
   color: var(--primary);
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: color var(--transition-fast);
 }
 
 a:hover {
   color: var(--primary-hover);
 }
 
+/* ── Minimalist Buttons ── */
 button {
   cursor: pointer;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 550;
+  font-family: inherit;
+  transition: all var(--transition-normal);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  letter-spacing: -0.01em;
 }
 
 button:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
 }
 
-button.primary {
-  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
-  color: white;
+button.primary, .primary-btn {
+  background: var(--text-primary);
+  color: #ffffff;
+  box-shadow: var(--shadow-xs);
+}
+
+button.primary:hover, .primary-btn:hover {
+  background: #27272a;
+  transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
-button.primary:hover {
-  background: linear-gradient(135deg, #4338ca, #3730a3);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+button.primary:active, .primary-btn:active {
+  transform: translateY(0);
 }
 
-button.secondary {
+button.secondary, .secondary-btn {
   background: var(--surface);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
 }
 
-button.secondary:hover {
+button.secondary:hover, .secondary-btn:hover {
   background: var(--surface-hover);
-  border-color: #cbd5e1;
+  border-color: #d4d4d8;
 }
 
-button.danger {
+button.danger, .danger-btn {
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+}
+
+button.danger:hover, .danger-btn:hover {
   background: var(--danger);
-  color: white;
+  color: #ffffff;
 }
 
-button.danger:hover {
-  background: var(--danger-hover);
-}
-
+/* ── Notion-style Clean Inputs ── */
 input, textarea, select {
   width: 100%;
-  padding: 10px 14px;
+  padding: 9px 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  font-family: 'Inter', sans-serif;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-family: inherit;
   color: var(--text-primary);
   background: var(--surface);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 input:focus, textarea:focus, select:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 input::placeholder, textarea::placeholder {
-  color: var(--text-muted);
+  color: var(--text-tertiary);
 }
 
+/* ── Pure White Notion Cards ── */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  border-radius: var(--radius-md);
+  padding: 22px;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
 }
 
 .card-hover:hover {
-  box-shadow: var(--shadow-hover);
-  border-color: var(--primary-border);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: #d4d4d8;
+  transform: translateY(-1px);
 }
 
+/* ── Minimalist Badges ── */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: var(--radius-full);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 
-.badge.sde { background: #e0e7ff; color: #3730a3; }
-.badge.ai_ml { background: #d1fae5; color: #065f46; }
-.badge.finance { background: #fef3c7; color: #92400e; }
-.badge.core { background: #e2e8f0; color: #1e293b; }
-.badge.research { background: #f3e8ff; color: #6b21a8; }
-.badge.consulting { background: #fce7f3; color: #9d174d; }
+.badge.sde { background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
+.badge.ai_ml { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
+.badge.finance { background: #fffbeb; color: #b45309; border: 1px solid #fef3c7; }
+.badge.core { background: #f4f4f5; color: #3f3f46; border: 1px solid #e4e4e7; }
+.badge.research { background: #faf5ff; color: #7e22ce; border: 1px solid #f3e8ff; }
+.badge.consulting { background: #fdf2f8; color: #be185d; border: 1px solid #fce7f3; }
 
-/* Custom Scrollbars */
+/* ── Refined Minimal Scrollbars ── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #d4d4d8;
+  border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a1a1aa;
 }
 
 /* ── Mobile Global Enhancements ── */

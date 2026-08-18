@@ -81,7 +81,7 @@ function Dashboard() {
 
   const quickLinks = [
     { to: '/resources', icon: BookOpen, label: 'Browse Resources', desc: 'Find curated learning materials' },
-    { to: '/events', icon: Calendar, label: 'Upcoming Events', desc: 'Workshops, talks, and sessions' },
+    { to: '/emails?tab=events', icon: Calendar, label: 'Upcoming Events', desc: 'Workshops, talks, and sessions' },
     { to: '/journeys', icon: Map, label: 'Senior Journeys', desc: 'Learn from past experiences' },
     { to: '/anonymous', icon: MessageCircle, label: 'Anonymous Portal', desc: 'Ask questions privately' },
     { to: '/ai', icon: Bot, label: 'AI Assistant', desc: 'Get personalized guidance' },
