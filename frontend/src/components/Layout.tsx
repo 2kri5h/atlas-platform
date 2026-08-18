@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
-  LayoutDashboard, BookOpen, Calendar, Map, CheckSquare,
+  LayoutDashboard, BookOpen, Map, CheckSquare,
   Bell, MessageCircle, Bot, User, LogOut, Mail, Menu, X, MoreHorizontal
 } from 'lucide-react'
 import { Breadcrumbs } from './Breadcrumbs'
@@ -10,7 +10,7 @@ import './Layout.css'
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/resources', icon: BookOpen, label: 'Resources' },
-  { to: '/events', icon: Calendar, label: 'Events' },
+  //{ to: '/events', icon: Calendar, label: 'Events' },
   { to: '/journeys', icon: Map, label: 'Journeys' },
   { to: '/planner', icon: CheckSquare, label: 'Planner' },
   { to: '/deadlines', icon: Bell, label: 'Deadlines' },
