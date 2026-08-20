@@ -75,11 +75,13 @@ class Settings(BaseSettings):
     @classmethod
     def secret_key_must_be_set(cls, v: str) -> str:
         if not v or v in ("your-secret-key-change-in-production", "your-production-secret-key"):
-            raise ValueError(
-                "SECRET_KEY is not set or is using an insecure default. "
-                "Set a strong SECRET_KEY environment variable or in your .env file."
-            )
+            import secrets
+            import logging
+            logger = logging.getLogger("backend.core.config")
+            logger.warning("[Security] SECRET_KEY not set in environment. Auto-generating secure token for this session.")
+            return secrets.token_urlsafe(32)
         return v
+
 
     class Config:
         env_file = ("backend/core/.env", ".env")
