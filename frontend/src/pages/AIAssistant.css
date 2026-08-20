@@ -56,11 +56,15 @@
 .profile-info div { display: flex; justify-content: space-between; gap: 8px; }
 .profile-info strong { font-weight: 600; color: var(--text-muted); }
 .profile-info span { color: var(--text); text-align: right; overflow: hidden; text-overflow: ellipsis; }
-.sidebar-actions { padding: 12px; }
+.sidebar-actions { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .primary, .primary-btn { border: 0; border-radius: var(--radius-sm); background: var(--primary); color: white; font: inherit; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-xs); transition: all var(--transition-fast); }
 .primary:hover, .primary-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
 .primary:disabled, .primary-btn:disabled { cursor: not-allowed; opacity: .65; transform: none; box-shadow: none; }
-.sidebar-actions .primary { width: 100%; padding: 9px 12px; font-size: .8rem; }
+.sidebar-actions .primary, .sidebar-actions .new-chat-btn { width: 100%; padding: 9px 12px; font-size: .8rem; }
+.roadmap-btn { width: 100%; padding: 8px 12px; font-size: .78rem; font-weight: 600; color: var(--text-secondary); background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all var(--transition-fast); }
+.roadmap-btn:hover { color: var(--text-primary); background: var(--surface-subtle); border-color: var(--primary); }
+.roadmap-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .sidebar-chat-history { min-height: 0; flex: 1; padding: 6px 12px 12px; overflow-y: auto; }
 .chat-list { display: grid; gap: 4px; }
 .chat-item { padding: 8px 10px; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: .78rem; cursor: pointer; transition: var(--transition-fast); overflow: hidden; }

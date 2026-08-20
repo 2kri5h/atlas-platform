@@ -150,19 +150,30 @@ function AIAssistant() {
   const sendMessage = async () => {
     if (!chatMessage.trim()) return
     if (sendingMessage) return
-    if (currentChatId === null) {
-      setChatError('Create or select a chat before sending a message.')
-      return
-    }
 
     setSendingMessage(true)
     setChatError('')
 
+    const message = chatMessage.trim()
+    setChatMessage("")
+
     try {
-      const message = chatMessage
-      const chatId = currentChatId
-      const shouldRenameChat = messages.length === 0
-      setChatMessage("")
+      let chatId = currentChatId
+      let isFirstMessage = false
+
+      // Auto-create chat session if none exists/selected
+      if (chatId === null) {
+        const newChatRes = await api.post("/ai/new-chat")
+        chatId = newChatRes.data.chat_id
+        setCurrentChatId(chatId)
+        setHasChat(true)
+        setHasUsedAI(true)
+        isFirstMessage = true
+        await loadChats()
+      } else if (messages.length === 0) {
+        isFirstMessage = true
+      }
+
       setMessages((prev) => [
         ...prev,
         {
@@ -183,9 +194,8 @@ function AIAssistant() {
         },
       ])
 
-      // A chat title is cosmetic. Rename only after the message succeeds, so a
-      // transient SQLite lock can never block the actual Gemini conversation.
-      if (shouldRenameChat) {
+      // Auto-rename chat with first user message
+      if (isFirstMessage) {
         try {
           await api.patch(`/ai/chat/${chatId}`, {
             title: message.length > 30 ? message.slice(0, 30) + "..." : message,
@@ -202,6 +212,7 @@ function AIAssistant() {
       setSendingMessage(false)
     }
   }
+
 
   const checkBurnout = async () => {
     setCheckingBurnout(true)
@@ -314,13 +325,22 @@ function AIAssistant() {
 
             <div className="sidebar-actions">
               <button
-                className="primary"
-                onClick={hasUsedAI ? createNewChat : generateRoadmap}
+                type="button"
+                className="primary new-chat-btn"
+                onClick={createNewChat}
+              >
+                + New Chat
+              </button>
+              <button
+                type="button"
+                className="roadmap-btn"
+                onClick={generateRoadmap}
                 disabled={generatingRoadmap}
               >
-                {generatingRoadmap ? 'Creating...' : hasUsedAI ? 'New Chat' : 'Generate Roadmap'}
+                {generatingRoadmap ? 'Creating Roadmap...' : '🎯 Generate Roadmap'}
               </button>
             </div>
+
             <div className="sidebar-chat-history">
               <h3>Chat History</h3>
               <div className="chat-list">
