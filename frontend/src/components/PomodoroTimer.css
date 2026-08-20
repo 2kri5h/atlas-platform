@@ -332,3 +332,39 @@
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Mobile Responsive Overrides ── */
+@media (max-width: 768px) {
+  .pomodoro-floating-launcher {
+    bottom: 76px; /* Sits cleanly above the 64px mobile bottom nav bar */
+    right: 16px;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.76rem;
+    box-shadow: 0 4px 14px rgba(124, 92, 252, 0.4);
+    z-index: 85; /* Below modals but above content */
+  }
+
+  .pomodoro-widget {
+    bottom: 76px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    border-radius: 16px;
+    z-index: 95;
+  }
+
+  .pomodoro-widget.minimized {
+    left: auto;
+    right: 16px;
+    width: 180px;
+  }
+
+  .pomodoro-toast {
+    bottom: 130px;
+    right: 16px;
+    left: 16px;
+    max-width: calc(100vw - 32px);
+  }
+}
+
