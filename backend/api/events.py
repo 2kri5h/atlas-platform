@@ -5,10 +5,11 @@ from typing import Optional, List
 from datetime import datetime, timedelta, date
 import re
 from ..core.database import get_db
-from ..models import PlannerEvent, Event
+from ..models import PlannerEvent, Event, UserAPIKey
 from .auth import get_current_user
 from ..core.config import settings
 from ..services.ai_gateway import GeminiGatewayDriver
+from ..services.crypto import decrypt_secret
 
 router = APIRouter()
 
@@ -850,12 +851,26 @@ def scan_timetable(
     contents = file.file.read()
     mime_type = file.content_type or "image/png"
     
-    # Read the standard server-side Gemini setting, including compatible legacy names.
-    api_key = settings.GEMINI_API_KEY
+    # 1. Check if user configured their own Gemini key
+    user_key_record = db.query(UserAPIKey).filter(
+        UserAPIKey.student_id == current_user.id,
+        UserAPIKey.provider == "gemini",
+        UserAPIKey.is_active == True
+    ).first()
+
+    if user_key_record:
+        try:
+            api_key = decrypt_secret(user_key_record.encrypted_key)
+        except Exception:
+            api_key = settings.GEMINI_API_KEY
+    else:
+        # 2. Fall back to platform team key (permitted for onboarding OCR)
+        api_key = settings.GEMINI_API_KEY
+
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GEMINI_API_KEY environment variable is not set on the server."
+            detail="No Gemini API key available. Please add your Gemini key in Settings or contact admin."
         )
     
     try:
@@ -867,6 +882,7 @@ def scan_timetable(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Timetable scan failed: {str(e)}"
         )
+
 
 
 @router.get("/", response_model=List[EventResponse])

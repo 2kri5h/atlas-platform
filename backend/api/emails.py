@@ -31,19 +31,33 @@ def register_email_account(
     return {"student_id": student_id}
 
 
+from sqlalchemy.orm import Session
+from ..core.database import get_db
+from ..services.llm_router import get_user_llm
+
+
 @router.post("/fetch")
-def fetch_emails(current_user: Student = Depends(get_current_user)):
+def fetch_emails(
+    current_user: Student = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     student_id = get_student_by_platform_id(str(current_user.id))
 
     if student_id is None:
         raise HTTPException(
             status_code=404,
-            detail="Email service not set up yet. Register first."
+            detail="Email service not set up yet. Register your IITB Webmail first."
         )
 
-    run_sync(student_id)
+    user_llm = get_user_llm(current_user.id, db)
+    run_sync(student_id, user_llm=user_llm)
 
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "ai_processing": bool(user_llm),
+        "model": getattr(user_llm, "model", None),
+    }
+
 @router.get("/")
 def list_emails(current_user: Student = Depends(get_current_user)):
     student_id = get_student_by_platform_id(str(current_user.id))

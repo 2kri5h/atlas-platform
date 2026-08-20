@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, type ComponentType } from 'react'
-import { Activity, Calendar, Check, ExternalLink, Pin, RefreshCw, Sparkles, X, Menu } from 'lucide-react'
-import api from '../utils/api'
+import { Activity, Calendar, Check, ExternalLink, Pin, RefreshCw, Sparkles, X, Menu, Key, ShieldCheck } from 'lucide-react'
+import api, { apiKeysAPI, UserAPIKey } from '../utils/api'
 import { Student, BurnoutScore, SmartSuggestion } from '../utils/api'
+import ApiKeyVaultModal from '../components/ApiKeyVaultModal'
 import './AIAssistant.css'
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -27,11 +28,29 @@ function AIAssistant() {
   const [suggestionsLoading, setSuggestionsLoading] = useState(true)
   const [refreshingSuggestions, setRefreshingSuggestions] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  
+  // BYOK Key Vault States
+  const [isVaultOpen, setIsVaultOpen] = useState(false)
+  const [hasKey, setHasKey] = useState(false)
+  const [activeKey, setActiveKey] = useState<UserAPIKey | null>(null)
+  
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    void Promise.all([fetchData(), loadChats(), fetchSmartSuggestions()])
+    void Promise.all([fetchData(), loadChats(), fetchSmartSuggestions(), checkKeys()])
   }, [])
+
+  const checkKeys = async () => {
+    try {
+      const res = await apiKeysAPI.getKeys()
+      setHasKey(res.has_active_key)
+      const firstActive = res.keys.find(k => k.is_active) || null
+      setActiveKey(firstActive)
+    } catch (err) {
+      console.error("Failed to check keys", err)
+    }
+  }
+
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -271,6 +290,28 @@ function AIAssistant() {
                 </div>
               </div>
             </div>
+
+            {/* BYOK Key Vault Status in Sidebar */}
+            <div className="sidebar-key-vault">
+              <div className="key-vault-header">
+                <span className="key-vault-label"><Key size={14} /> AI Key Vault</span>
+                <button
+                  type="button"
+                  className="key-vault-link-btn"
+                  onClick={() => setIsVaultOpen(true)}
+                >
+                  {hasKey ? 'Manage' : 'Connect'}
+                </button>
+              </div>
+              <div className={`key-vault-status-badge ${hasKey ? 'connected' : 'missing'}`}>
+                {hasKey ? (
+                  <span>🟢 {activeKey?.provider.toUpperCase()} ({activeKey?.model_name || 'Active'})</span>
+                ) : (
+                  <span>⚠️ No Key (Free tier available)</span>
+                )}
+              </div>
+            </div>
+
             <div className="sidebar-actions">
               <button
                 className="primary"
@@ -297,25 +338,117 @@ function AIAssistant() {
           </aside>
           <section className="ai-chat-window">
             <header className="chat-header">
-              <h2>
-                {hasUsedAI ? 'AI Mentor' : 'Personalized Roadmap'}
-                {hasChat && !hasUsedAI && (
-                  <span className="chat-status">Active</span>
-                )}
-              </h2>
+              <div className="chat-header-title-row">
+                <h2>
+                  {hasUsedAI ? 'AI Mentor' : 'Personalized Roadmap'}
+                  {hasChat && !hasUsedAI && (
+                    <span className="chat-status">Active</span>
+                  )}
+                </h2>
+                <button
+                  type="button"
+                  className="chat-header-vault-btn"
+                  onClick={() => setIsVaultOpen(true)}
+                  title="Configure AI API Keys"
+                >
+                  <Key size={14} />
+                  <span>{hasKey ? `${activeKey?.provider.toUpperCase()} Connected` : 'Connect Free Key'}</span>
+                </button>
+              </div>
               {!hasChat && !hasUsedAI && (
                 <p className="chat-empty">
                   Start a conversation to get your personalized learning plan.
                 </p>
               )}
             </header>
+
+            {/* Banner when no user key is configured */}
+            {!hasKey && (
+              <div className="byok-notice-banner">
+                <div className="byok-notice-text">
+                  <ShieldCheck size={16} />
+                  <span>
+                    <strong>BYOK Architecture:</strong> Connect your free Google Gemini or OpenAI key to chat with the mentor & generate deep custom roadmaps.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="byok-connect-btn"
+                  onClick={() => setIsVaultOpen(true)}
+                >
+                  Connect Key (10s setup)
+                </button>
+              </div>
+            )}
+
             <div className="chat-messages" id="ai-chat-messages">
               {messages.length === 0 && hasChat && (
                 <div className="chat-empty-state">
-                  <p>Start a conversation by asking a question.</p>
+                  <div className="empty-state-icon"><Sparkles size={28} /></div>
+                  <h3>AI Academic Mentor</h3>
+                  <p>Ask anything about courses, exam strategies, semester roadmaps, or placement prep.</p>
+                  
+                  <div className="quick-prompts-grid">
+                    <button
+                      type="button"
+                      className="quick-prompt-chip"
+                      onClick={() => {
+                        setChatMessage("Generate a detailed 12-week study roadmap for my semester goals and courses.")
+                      }}
+                    >
+                      <span className="prompt-emoji">🚀</span>
+                      <div className="prompt-content">
+                        <strong>12-Week Semester Roadmap</strong>
+                        <span>Custom weekly milestones & pacing</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="quick-prompt-chip"
+                      onClick={() => {
+                        setChatMessage("What are the highest-yield DSA and System Design milestones for campus placement prep?")
+                      }}
+                    >
+                      <span className="prompt-emoji">💼</span>
+                      <div className="prompt-content">
+                        <strong>Placement & Interview Prep</strong>
+                        <span>DSA & System Design study guide</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="quick-prompt-chip"
+                      onClick={() => {
+                        setChatMessage(`How can I systematically improve in my weak subjects (${student?.weak_subjects || 'my courses'}) without falling behind?`)
+                      }}
+                    >
+                      <span className="prompt-emoji">📚</span>
+                      <div className="prompt-content">
+                        <strong>Weak Subject Remediation</strong>
+                        <span>Targeted revision & practice strategy</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="quick-prompt-chip"
+                      onClick={() => {
+                        setChatMessage("Analyze my weekly study hours and suggest how to schedule focus blocks with Pomodoro to prevent burnout.")
+                      }}
+                    >
+                      <span className="prompt-emoji">⚡</span>
+                      <div className="prompt-content">
+                        <strong>Pacing & Burnout Prevention</strong>
+                        <span>Smart focus blocks & rest intervals</span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               )}
               <div className="messages-list">
+
                 {messages.map((msg, idx) => (
                   <div key={idx} className={`message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`}>
                     <div className="message-content">
@@ -333,13 +466,18 @@ function AIAssistant() {
             </div>
             <form className="chat-form" onSubmit={(e) => {
                 e.preventDefault();
+                if (!hasKey) {
+                  setChatError('Please connect your AI API key in the Vault to chat with the mentor.')
+                  setIsVaultOpen(true)
+                  return
+                }
                 sendMessage();
               }}>
               <input
                 type="text"
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
-                placeholder="Ask a follow-up question..."
+                placeholder={hasKey ? "Ask a follow-up question..." : "Connect your API key above to chat..."}
                 disabled={sendingMessage}
                 required
               />
@@ -363,9 +501,20 @@ function AIAssistant() {
           <SmartSuggestionsCard suggestions={suggestions} loading={suggestionsLoading} refreshing={refreshingSuggestions} onRefresh={refreshSuggestions} onUpdate={updateSuggestion} />
         </div>
       </section>
+
+      {/* ── Key Vault Modal ── */}
+      <ApiKeyVaultModal
+        isOpen={isVaultOpen}
+        onClose={() => {
+          setIsVaultOpen(false)
+          checkKeys()
+        }}
+        onKeyUpdated={checkKeys}
+      />
     </div>
   )
 }
+
 
 // Burnout Assessment Card
 function BurnoutAssessmentCard({

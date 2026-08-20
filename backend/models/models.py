@@ -41,6 +41,7 @@ class Student(Base):
     planner_events = relationship("PlannerEvent", back_populates="user")
     ai_chats = relationship("AIChat", back_populates="student")
     smart_suggestions = relationship("SmartSuggestion", back_populates="student")
+    api_keys = relationship("UserAPIKey", back_populates="student", cascade="all, delete-orphan")
 
 
 class AIChat(Base):
@@ -277,6 +278,28 @@ class SmartSuggestion(Base):
 
     student = relationship("Student", back_populates="smart_suggestions")
     resource = relationship("Resource")
+
+
+class UserAPIKey(Base):
+    __tablename__ = "user_api_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False, index=True)
+    provider = Column(String(30), nullable=False)  # "gemini", "openai", "anthropic", "xai", "deepseek", "groq", "openrouter", "mistral", "custom"
+    encrypted_key = Column(Text, nullable=False)
+    model_name = Column(String(100), nullable=True)  # e.g., "gemini-2.5-pro", "claude-3-7-sonnet", "deepseek-r1", "llama-3.3-70b"
+    base_url = Column(String(255), nullable=True)  # custom OpenAI-compatible endpoint URL (e.g. for Ollama, vLLM, DeepSeek, Groq, OpenRouter)
+    is_active = Column(Boolean, default=True)
+
+    last_validated_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("Student", back_populates="api_keys")
+
+    __table_args__ = (
+        UniqueConstraint('student_id', 'provider', name='unique_student_provider_key'),
+    )
 
 
 # Soft delete before_compile event listener

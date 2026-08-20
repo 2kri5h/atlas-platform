@@ -7,45 +7,46 @@ export interface ColorProfile {
 }
 
 // ─── Department-keyed "Academic Calm" palette ────────────────────────────────
-// Muted, low-saturation tones: distinct per department, never punchy.
+// Muted, low-saturation tones: distinct per department, modern in both light & dark mode.
 const DEPT_PALETTE: Record<string, ColorProfile> = {
-  // Electrical Engineering — sage green
-  EE:  { bg: '#f4f7f4', border: '#7a9e7e', text: '#3d6b42', badgeBg: '#dceadd', accentStrip: '#7a9e7e' },
-  // Computer Science / CL — slate blue
-  CS:  { bg: '#f4f5f9', border: '#7986ae', text: '#3a4a77', badgeBg: '#dde1f0', accentStrip: '#7986ae' },
-  CL:  { bg: '#f4f5f9', border: '#7986ae', text: '#3a4a77', badgeBg: '#dde1f0', accentStrip: '#7986ae' },
-  // Humanities & Social Sciences — dusty rose
-  HS:  { bg: '#f9f4f4', border: '#b98080', text: '#7a3f3f', badgeBg: '#eedcdc', accentStrip: '#b98080' },
-  // Mathematics — warm sand / ochre
-  MA:  { bg: '#f8f6f1', border: '#b5a06a', text: '#735e28', badgeBg: '#ede5cc', accentStrip: '#b5a06a' },
-  // Physics — dusty teal
-  PH:  { bg: '#f2f7f7', border: '#6a9e9e', text: '#2e6565', badgeBg: '#d5e9e9', accentStrip: '#6a9e9e' },
-  // Mechanical Engineering — warm terracotta
-  ME:  { bg: '#f8f4f1', border: '#b08060', text: '#7a4a28', badgeBg: '#edddd2', accentStrip: '#b08060' },
-  // Chemical Engineering — muted lavender
-  CH:  { bg: '#f5f4f8', border: '#9490b8', text: '#4e4878', badgeBg: '#e2e1f0', accentStrip: '#9490b8' },
-  // Aerospace — cool steel
-  AE:  { bg: '#f3f5f7', border: '#7a95a8', text: '#2e5166', badgeBg: '#d8e4ec', accentStrip: '#7a95a8' },
-  // Civil Engineering — muted olive
-  CE:  { bg: '#f5f7f2', border: '#8fa86a', text: '#4a6228', badgeBg: '#e3ecda', accentStrip: '#8fa86a' },
-  // Management / Entrepreneurship — warm amber-grey
-  MG:  { bg: '#f8f6f2', border: '#a89870', text: '#6b5828', badgeBg: '#ece5d4', accentStrip: '#a89870' },
-  ENT: { bg: '#f8f6f2', border: '#a89870', text: '#6b5828', badgeBg: '#ece5d4', accentStrip: '#a89870' },
-  // Technology, Design — muted mauve
-  TD:  { bg: '#f7f4f7', border: '#a888a8', text: '#6a3e6a', badgeBg: '#eadaea', accentStrip: '#a888a8' },
+  // Electrical Engineering — emerald / sage
+  EE:  { bg: 'var(--surface)', border: '#10b981', text: '#10b981', badgeBg: 'rgba(16, 185, 129, 0.14)', accentStrip: '#10b981' },
+  // Computer Science / CL — indigo / slate blue
+  CS:  { bg: 'var(--surface)', border: '#6366f1', text: '#6366f1', badgeBg: 'rgba(99, 102, 241, 0.14)', accentStrip: '#6366f1' },
+  CL:  { bg: 'var(--surface)', border: '#6366f1', text: '#6366f1', badgeBg: 'rgba(99, 102, 241, 0.14)', accentStrip: '#6366f1' },
+  // Humanities & Social Sciences — rose / coral
+  HS:  { bg: 'var(--surface)', border: '#f43f5e', text: '#f43f5e', badgeBg: 'rgba(244, 63, 94, 0.14)', accentStrip: '#f43f5e' },
+  // Mathematics — warm amber / ochre
+  MA:  { bg: 'var(--surface)', border: '#f59e0b', text: '#d97706', badgeBg: 'rgba(245, 158, 11, 0.14)', accentStrip: '#f59e0b' },
+  // Physics — cyan / teal
+  PH:  { bg: 'var(--surface)', border: '#06b6d4', text: '#0891b2', badgeBg: 'rgba(6, 182, 212, 0.14)', accentStrip: '#06b6d4' },
+  // Mechanical Engineering — orange / terracotta
+  ME:  { bg: 'var(--surface)', border: '#f97316', text: '#ea580c', badgeBg: 'rgba(249, 115, 22, 0.14)', accentStrip: '#f97316' },
+  // Chemical Engineering — purple / violet
+  CH:  { bg: 'var(--surface)', border: '#a855f7', text: '#9333ea', badgeBg: 'rgba(168, 85, 247, 0.14)', accentStrip: '#a855f7' },
+  // Aerospace — sky blue
+  AE:  { bg: 'var(--surface)', border: '#0284c7', text: '#0284c7', badgeBg: 'rgba(2, 132, 199, 0.14)', accentStrip: '#0284c7' },
+  // Civil Engineering — forest green
+  CE:  { bg: 'var(--surface)', border: '#059669', text: '#059669', badgeBg: 'rgba(5, 150, 105, 0.14)', accentStrip: '#059669' },
+  // Management / Entrepreneurship — warm gold
+  MG:  { bg: 'var(--surface)', border: '#d97706', text: '#b45309', badgeBg: 'rgba(217, 119, 6, 0.14)', accentStrip: '#d97706' },
+  ENT: { bg: 'var(--surface)', border: '#d97706', text: '#b45309', badgeBg: 'rgba(217, 119, 6, 0.14)', accentStrip: '#d97706' },
+  // Technology, Design — fuchsia / mauve
+  TD:  { bg: 'var(--surface)', border: '#d946ef', text: '#c026d3', badgeBg: 'rgba(217, 70, 239, 0.14)', accentStrip: '#d946ef' },
 };
 
 // Fallback palette for unrecognised dept prefixes
 const FALLBACK_PALETTE: ColorProfile[] = [
-  { bg: '#f4f5f9', border: '#7986ae', text: '#3a4a77', badgeBg: '#dde1f0', accentStrip: '#7986ae' },
-  { bg: '#f4f7f4', border: '#7a9e7e', text: '#3d6b42', badgeBg: '#dceadd', accentStrip: '#7a9e7e' },
-  { bg: '#f9f4f4', border: '#b98080', text: '#7a3f3f', badgeBg: '#eedcdc', accentStrip: '#b98080' },
-  { bg: '#f8f6f1', border: '#b5a06a', text: '#735e28', badgeBg: '#ede5cc', accentStrip: '#b5a06a' },
-  { bg: '#f2f7f7', border: '#6a9e9e', text: '#2e6565', badgeBg: '#d5e9e9', accentStrip: '#6a9e9e' },
-  { bg: '#f8f4f1', border: '#b08060', text: '#7a4a28', badgeBg: '#edddd2', accentStrip: '#b08060' },
-  { bg: '#f5f4f8', border: '#9490b8', text: '#4e4878', badgeBg: '#e2e1f0', accentStrip: '#9490b8' },
-  { bg: '#f3f5f7', border: '#7a95a8', text: '#2e5166', badgeBg: '#d8e4ec', accentStrip: '#7a95a8' },
+  { bg: 'var(--surface)', border: '#6366f1', text: '#6366f1', badgeBg: 'rgba(99, 102, 241, 0.14)', accentStrip: '#6366f1' },
+  { bg: 'var(--surface)', border: '#10b981', text: '#10b981', badgeBg: 'rgba(16, 185, 129, 0.14)', accentStrip: '#10b981' },
+  { bg: 'var(--surface)', border: '#f43f5e', text: '#f43f5e', badgeBg: 'rgba(244, 63, 94, 0.14)', accentStrip: '#f43f5e' },
+  { bg: 'var(--surface)', border: '#f59e0b', text: '#d97706', badgeBg: 'rgba(245, 158, 11, 0.14)', accentStrip: '#f59e0b' },
+  { bg: 'var(--surface)', border: '#06b6d4', text: '#0891b2', badgeBg: 'rgba(6, 182, 212, 0.14)', accentStrip: '#06b6d4' },
+  { bg: 'var(--surface)', border: '#f97316', text: '#ea580c', badgeBg: 'rgba(249, 115, 22, 0.14)', accentStrip: '#f97316' },
+  { bg: 'var(--surface)', border: '#a855f7', text: '#9333ea', badgeBg: 'rgba(168, 85, 247, 0.14)', accentStrip: '#a855f7' },
+  { bg: 'var(--surface)', border: '#0284c7', text: '#0284c7', badgeBg: 'rgba(2, 132, 199, 0.14)', accentStrip: '#0284c7' },
 ];
+
 
 /**
  * Extracts a standard course code (e.g. "EE325", "HS109") or uses the cleaned formatted title.
@@ -112,11 +113,13 @@ export function getDeterministicColor(title: string): ColorProfile {
 export function getDepartmentColor(title: string): Record<string, string> {
   const profile = getDeterministicColor(title);
   return {
-    '--dept-bg': profile.bg,
-    '--dept-border': profile.border,
-    '--dept-text': profile.text,
+    '--dept-bg': 'var(--surface)',
+    '--dept-border': 'var(--border)',
+    '--dept-text': 'var(--text-primary)',
     '--dept-badge-bg': profile.badgeBg,
+    '--dept-badge-text': profile.text,
     '--dept-accent-strip': profile.accentStrip,
   };
 }
+
 

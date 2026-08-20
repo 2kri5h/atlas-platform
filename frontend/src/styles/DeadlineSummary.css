@@ -162,21 +162,22 @@
 /* ── Deadline Card (Uses CSS variables --dept-bg, --dept-border, --dept-text) ── */
 .dt-card {
   position: relative;
-  background-color: var(--dept-bg, #f4f5f9);
-  border: 1px solid var(--dept-border, #7986ae);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
+  color: var(--text-primary);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .dt-card:hover {
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
 }
 
 .dt-card-accent-strip {
   height: 4px;
   width: 100%;
-  background-color: var(--dept-accent-strip, var(--dept-border, #7986ae));
+  background-color: var(--dept-accent-strip, var(--primary));
 }
 
 .dt-card-header {
@@ -209,7 +210,7 @@
   margin: 0;
   font-size: 0.95rem;
   font-weight: 650;
-  color: var(--dept-text, #3a4a77);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -227,26 +228,27 @@
 }
 
 .dt-deadline-badge.overdue {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fca5a5;
+  background-color: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
 }
 
 .dt-deadline-badge.today {
-  background-color: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fcd34d;
+  background-color: var(--warning-light);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
 }
 
 .dt-deadline-badge.soon {
-  background-color: #ffedd5;
-  color: #9a3412;
-  border: 1px solid #fdba74;
+  background-color: var(--warning-light);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
 }
 
 .dt-deadline-badge.upcoming {
-  background-color: var(--dept-badge-bg, #dde1f0);
-  color: var(--dept-text, #3a4a77);
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
 }
 
 .dt-card-meta-row {
@@ -254,12 +256,14 @@
   align-items: center;
   gap: 8px;
   font-size: 0.75rem;
-  color: var(--dept-text, #475569);
+  color: var(--text-secondary);
   opacity: 0.9;
 }
 
 .dt-label-tag {
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: var(--surface-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
   padding: 1px 6px;
   border-radius: 4px;
   font-weight: 500;
@@ -274,6 +278,7 @@
 .dt-subtask-count {
   margin-left: auto;
   font-weight: 600;
+  color: var(--text-muted);
 }
 
 .dt-expand-toggle-btn {
@@ -288,13 +293,13 @@
   padding: 4px;
   background: transparent;
   border: none;
-  color: var(--dept-text, #475569);
+  color: var(--text-muted);
   cursor: pointer;
   border-radius: 6px;
 }
 
 .dt-expand-toggle-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--surface-hover);
 }
 
 /* ── Progress Bar ── */
@@ -308,14 +313,14 @@
 .dt-progress-track {
   flex: 1;
   height: 6px;
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: var(--surface-hover);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .dt-progress-fill {
   height: 100%;
-  background-color: var(--dept-border, var(--primary-color, #3b82f6));
+  background-color: var(--primary);
   border-radius: 3px;
   transition: width 0.3s ease;
 }
@@ -323,7 +328,7 @@
 .dt-progress-text {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--dept-text, #475569);
+  color: var(--text-muted);
   min-width: 28px;
   text-align: right;
 }
@@ -331,8 +336,8 @@
 /* ── Card Body & Subtasks List ── */
 .dt-card-body {
   padding: 8px 12px 12px 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  background-color: rgba(255, 255, 255, 0.4);
+  border-top: 1px solid var(--border);
+  background-color: var(--surface-subtle);
 }
 
 .dt-subtasks-list {
@@ -344,7 +349,7 @@
 
 .dt-subtasks-empty {
   font-size: 0.78rem;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted);
   font-style: italic;
   padding: 4px 0;
 }
@@ -356,12 +361,13 @@
   gap: 8px;
   padding: 4px 6px;
   border-radius: 6px;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
   transition: background-color 0.15s ease;
 }
 
 .dt-subtask-item:hover {
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: var(--surface-hover);
 }
 
 .dt-subtask-item.completed .dt-subtask-title {
@@ -378,8 +384,8 @@
   min-width: 18px;
   min-height: 18px;
   flex-shrink: 0;
-  background-color: #ffffff;
-  border: 1.5px solid var(--dept-border, #94a3b8);
+  background-color: var(--input-bg);
+  border: 1.5px solid var(--border);
   border-radius: 4px;
   cursor: pointer;
   padding: 0;
@@ -388,8 +394,8 @@
 }
 
 .dt-subtask-checkbox.checked {
-  background-color: var(--dept-border, #3b82f6);
-  border-color: var(--dept-border, #3b82f6);
+  background-color: var(--primary);
+  border-color: var(--primary);
 }
 
 .dt-check-icon {
@@ -399,7 +405,7 @@
 .dt-subtask-title {
   flex: 1;
   font-size: 0.85rem;
-  color: var(--dept-text, #1e293b);
+  color: var(--text-primary);
   cursor: pointer;
   word-break: break-word;
 }
@@ -416,7 +422,7 @@
   padding: 0;
   background: transparent;
   border: none;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted);
   cursor: pointer;
   border-radius: 4px;
   opacity: 0.7;
@@ -428,8 +434,8 @@
 }
 
 .dt-subtask-delete-btn:hover {
-  color: #ef4444;
-  background-color: #fee2e2;
+  color: var(--danger);
+  background-color: var(--danger-light);
 }
 
 /* ── Add Subtask Form ── */
@@ -444,10 +450,12 @@
   flex: 1;
   padding: 8px 10px;
   min-height: 44px;
-  border: 1px solid var(--border-color, #cbd5e1);
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 0.82rem;
-  background-color: #ffffff;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+
   box-sizing: border-box;
 }
 

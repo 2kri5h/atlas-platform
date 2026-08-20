@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Any
 import json
 import os
 import joblib
@@ -19,27 +19,41 @@ from ..models import (
     SmartSuggestion,
     PlannerEvent,
     DeadlineSubtask,
+    UserAPIKey,
+    Resource,
 )
 from .auth import get_current_user
 from sqlalchemy import func, case
 
-try:
-    from ..services.planner_ai import (
-        GeminiServiceError,
-        generate_test_response,
-        generate_plan,
-        chat_with_gemini,
-    )
-    from ..services.resource_context import get_resource_library_context
-    from ..services.smart_suggestions import generate_suggestions
-    has_ai_services = True
-except Exception as e:
-    print("AI IMPORT ERROR:", e)
-    import traceback
-    traceback.print_exc()
-    has_ai_services = False
+from ..services.llm_router import (
+    get_user_llm,
+    validate_raw_key,
+    run_chat_with_mentor,
+    run_generate_roadmap,
+    run_generate_smart_suggestions,
+    SUPPORTED_PROVIDERS,
+    LLMServiceError,
+    NoUserKeyConfiguredError,
+)
+from ..services.crypto import encrypt_secret
+from ..services.resource_context import get_resource_library_context
 
 router = APIRouter()
+
+
+class KeyCreateRequest(BaseModel):
+    provider: str
+    api_key: str
+    model_name: Optional[str] = None
+    base_url: Optional[str] = None
+
+
+class KeyValidateRequest(BaseModel):
+    provider: str
+    api_key: str
+    model_name: Optional[str] = None
+    base_url: Optional[str] = None
+
 
 
 class RoadmapRequest(BaseModel):
@@ -360,12 +374,11 @@ def _generate_burnout_recommendations(
     deadline_count: int,
     sleep_deficit_hours: float,
     overdue_task_count: int,
-    has_ai: bool,
+    user_llm: Optional[Any] = None,
 ) -> list[str]:
-    """Generate specific, contextual recommendations. Uses Gemini if available."""
-    if has_ai:
+    """Generate specific, contextual recommendations. Uses user's LLM if configured."""
+    if user_llm:
         try:
-            from ..services.planner_ai import _generate
             prompt = (
                 f"You are a student wellbeing coach. A student has a {risk_level} burnout risk.\n"
                 f"Their signals this week: {weekly_working_hours:.1f}h working hours logged, "
@@ -375,7 +388,7 @@ def _generate_burnout_recommendations(
                 "Give 3 short, specific, actionable recommendations (1 sentence each). "
                 "Refer to the actual numbers. Return as a JSON array of strings only."
             )
-            response_text = _generate(prompt, {"response_mime_type": "application/json"})
+            response_text = user_llm.generate(prompt, response_json=True)
             import re
             cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", response_text.strip(), flags=re.IGNORECASE)
             recs = json.loads(cleaned)
@@ -384,7 +397,7 @@ def _generate_burnout_recommendations(
         except Exception:
             pass
 
-    # Fallback: signal-aware static recommendations
+    # Fallback: signal-aware static recommendations (Zero token cost)
     recs = []
     if weekly_working_hours > 45:
         recs.append(f"You've logged {weekly_working_hours:.0f}h this week — schedule a rest day or cut non-critical blocks.")
@@ -402,6 +415,7 @@ def _generate_burnout_recommendations(
             recs.append("Maintain a consistent sleep schedule.")
             recs.append("Balance academic work with short physical activity.")
     return recs
+
 
 
 def _serialize_suggestion(suggestion: SmartSuggestion) -> dict:
@@ -423,27 +437,156 @@ def _serialize_suggestion(suggestion: SmartSuggestion) -> dict:
 
 
 def _replace_unpinned_suggestions(db: Session, student: Student) -> list:
-    if not has_ai_services:
-        return []
     db.query(SmartSuggestion).filter(
         SmartSuggestion.student_id == student.id,
         SmartSuggestion.status == "active",
         SmartSuggestion.is_pinned == False,
     ).delete(synchronize_session=False)
-    for item in generate_suggestions(db, student):
-        # `item` contains action_steps as a list for the API. Persist its JSON
-        # representation once; passing both values raises a TypeError.
-        suggestion_data = {
-            **item,
-            "action_steps": json.dumps(item["action_steps"]),
+
+    user_llm = get_user_llm(student.id, db)
+    resources = db.query(Resource).order_by(Resource.upvotes.desc()).limit(12).all()
+    suggestions_data = []
+
+    if user_llm:
+        history = (
+            db.query(AIMessage)
+            .join(AIMessage.chat)
+            .filter(AIMessage.chat.has(student_id=student.id))
+            .order_by(AIMessage.created_at.desc())
+            .limit(8)
+            .all()
+        )
+        try:
+            suggestions_data = run_generate_smart_suggestions(student, resources, history, user_llm)
+        except Exception as e:
+            logger.warning(f"Smart suggestions generation failed with user LLM: {e}")
+    
+    if not suggestions_data:
+        suggestions_data = _profile_suggestions(student, resources)
+
+    for item in suggestions_data:
+        steps = item.get("action_steps", [])
+        suggestion_dict = {
+            "title": item.get("title", "Focus task"),
+            "reason": item.get("reason", "Recommended based on your profile"),
+            "action_steps": json.dumps(steps) if isinstance(steps, list) else str(steps),
+            "priority": int(item.get("priority", 2)),
+            "resource_id": item.get("resource_id"),
         }
-        db.add(SmartSuggestion(student_id=student.id, **suggestion_data))
+        db.add(SmartSuggestion(student_id=student.id, **suggestion_dict))
     db.commit()
     return db.query(SmartSuggestion).filter(
         SmartSuggestion.student_id == student.id,
         SmartSuggestion.status == "active",
     ).order_by(SmartSuggestion.is_pinned.desc(), SmartSuggestion.priority.asc()).all()
 
+
+# ── BYOK Key Vault Endpoints ──────────────────────────────────────────────
+
+@router.get("/providers")
+def get_supported_providers():
+    """Return list of supported AI providers, recommended models, and help links."""
+    return {"providers": SUPPORTED_PROVIDERS}
+
+
+@router.get("/keys")
+def get_user_keys(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """List the current user's configured API keys (never exposes raw keys)."""
+    keys = db.query(UserAPIKey).filter(UserAPIKey.student_id == current_user.id).all()
+    return {
+        "keys": [
+            {
+                "id": k.id,
+                "provider": k.provider,
+                "model_name": k.model_name,
+                "base_url": getattr(k, "base_url", None),
+                "is_active": k.is_active,
+                "last_validated_at": k.last_validated_at.isoformat() if k.last_validated_at else None,
+                "created_at": k.created_at.isoformat() if k.created_at else None,
+            }
+            for k in keys
+        ],
+        "has_active_key": any(k.is_active for k in keys),
+    }
+
+
+@router.post("/keys/validate")
+def validate_key_endpoint(request: KeyValidateRequest, current_user=Depends(get_current_user)):
+    """Dry-run test of an API key or custom endpoint against the provider."""
+    is_valid, error = validate_raw_key(request.provider, request.api_key, request.model_name, request.base_url)
+    return {"is_valid": is_valid, "error": error}
+
+
+@router.post("/keys")
+def save_user_key(request: KeyCreateRequest, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Validate, encrypt, and save a user API key in the vault."""
+    clean_key = request.api_key.strip()
+    is_custom = request.provider.lower() in ("custom", "ollama", "lmstudio")
+    if not clean_key and not is_custom:
+        raise HTTPException(status_code=400, detail="API key cannot be empty.")
+
+    is_valid, error = validate_raw_key(request.provider, clean_key, request.model_name, request.base_url)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=f"Key/endpoint validation failed: {error}")
+
+    encrypted = encrypt_secret(clean_key) if clean_key else ""
+
+    existing = db.query(UserAPIKey).filter(
+        UserAPIKey.student_id == current_user.id,
+        UserAPIKey.provider == request.provider.lower()
+    ).first()
+
+    if existing:
+        existing.encrypted_key = encrypted
+        existing.model_name = request.model_name
+        existing.base_url = request.base_url
+        existing.is_active = True
+        existing.last_validated_at = datetime.utcnow()
+        key_record = existing
+    else:
+        key_record = UserAPIKey(
+            student_id=current_user.id,
+            provider=request.provider.lower(),
+            encrypted_key=encrypted,
+            model_name=request.model_name,
+            base_url=request.base_url,
+            is_active=True,
+            last_validated_at=datetime.utcnow()
+        )
+        db.add(key_record)
+
+    db.commit()
+    db.refresh(key_record)
+    return {
+        "success": True,
+        "message": f"Successfully connected {request.provider.capitalize()} API key.",
+        "key": {
+            "id": key_record.id,
+            "provider": key_record.provider,
+            "model_name": key_record.model_name,
+            "base_url": getattr(key_record, "base_url", None),
+            "is_active": key_record.is_active,
+            "last_validated_at": key_record.last_validated_at.isoformat() if key_record.last_validated_at else None,
+        }
+    }
+
+
+
+@router.delete("/keys/{provider}")
+def delete_user_key(provider: str, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Remove a stored API key from the vault."""
+    key_record = db.query(UserAPIKey).filter(
+        UserAPIKey.student_id == current_user.id,
+        UserAPIKey.provider == provider.lower()
+    ).first()
+    if not key_record:
+        raise HTTPException(status_code=404, detail="Key not found.")
+    db.delete(key_record)
+    db.commit()
+    return {"success": True, "message": f"{provider.capitalize()} key removed."}
+
+
+# ── Core AI Endpoints ──────────────────────────────────────────────────────
 
 @router.get("/smart-suggestions")
 def list_smart_suggestions(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
@@ -488,35 +631,38 @@ def update_smart_suggestion(
 
 @router.post("/roadmap")
 def generate_roadmap(request: RoadmapRequest, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    if has_ai_services and request.chat_id:
+    user_llm = get_user_llm(current_user.id, db)
+    
+    if user_llm and request.chat_id:
         try:
             resource_context = get_resource_library_context(db, current_user)
-            plan = generate_plan(
+            plan = run_generate_roadmap(
                 branch=request.branch,
                 year=request.year,
                 goals=request.goals,
                 weak_subjects=request.weak_subjects,
-                cpi=current_user.cpi,
-                sleep_hours=current_user.sleep_hours,
-                screen_time_hours=current_user.screen_time_hours,
+                cpi=current_user.cpi or 0.0,
+                sleep_hours=current_user.sleep_hours or 7.0,
+                screen_time_hours=current_user.screen_time_hours or 3.0,
                 resource_context=resource_context,
+                user_llm=user_llm,
             )
-        except GeminiServiceError as exc:
+            chat = db.query(AIChat).filter(
+                AIChat.id == request.chat_id,
+                AIChat.student_id == current_user.id,
+            ).first()
+
+            if chat:
+                chat.title = f"AI Roadmap ({user_llm.model})"
+                message = AIMessage(chat_id=chat.id, role="assistant", content=plan)
+                db.add(message)
+                db.commit()
+
+            return AIResponse(message=plan, data={"powered_by": user_llm.model, "has_user_key": True})
+        except LLMServiceError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
-        chat = db.query(AIChat).filter(
-            AIChat.id == request.chat_id,
-            AIChat.student_id == current_user.id,
-        ).first()
 
-        if chat:
-            chat.title = "AI Roadmap"
-            message = AIMessage(chat_id=chat.id, role="assistant", content=plan)
-            db.add(message)
-            db.commit()
-
-        return AIResponse(message=plan)
-
-    # Rule-based fallback
+    # Rule-based fallback when user has not configured their key
     goals_lower = request.goals.lower()
     if "placement" in goals_lower or "sde" in goals_lower or "software" in goals_lower:
         domain = "sde"
@@ -531,12 +677,14 @@ def generate_roadmap(request: RoadmapRequest, current_user=Depends(get_current_u
     weeks = max(int(request.study_hours_per_week * 4), 1)
 
     return AIResponse(
-        message=f"Personalized {domain.upper()} roadmap based on your goals and available time.",
+        message=f"Personalized {domain.upper()} roadmap (Rule-based). Connect your own free Gemini / OpenAI / Claude key in Settings to unlock deep AI generation.",
         data={
             "domain": domain,
             "roadmap": roadmap,
             "estimated_weeks": weeks,
             "weak_subjects": request.weak_subjects.split(",") if request.weak_subjects else [],
+            "requires_key_for_ai": True,
+            "has_user_key": False,
         }
     )
 
@@ -575,21 +723,26 @@ def chat(chat_id: int, request: ChatRequest, current_user=Depends(get_current_us
     ).first()
 
     if not chat:
-        raise HTTPException(status_code=404, detail="No chat found. Generate a roadmap first.")
+        raise HTTPException(status_code=404, detail="No chat found. Create a new chat first.")
+
+    user_llm = get_user_llm(current_user.id, db)
+    if not user_llm:
+        raise HTTPException(
+            status_code=428,
+            detail="AI Mentor requires a personal API key. Please connect your free Google Gemini, OpenAI, Claude, or Grok key in Settings to chat."
+        )
 
     user_message = AIMessage(chat_id=chat.id, role="user", content=request.message)
     db.add(user_message)
     db.commit()
 
-    if has_ai_services:
-        try:
-            history = db.query(AIMessage).filter(AIMessage.chat_id == chat.id).order_by(AIMessage.created_at.desc()).limit(12).all()
-            history.reverse()
-            reply = chat_with_gemini(current_user, history, get_resource_library_context(db, current_user, request.message))
-        except GeminiServiceError as exc:
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
-    else:
-        reply = f"AI response for: {request.message}"
+    try:
+        history = db.query(AIMessage).filter(AIMessage.chat_id == chat.id).order_by(AIMessage.created_at.desc()).limit(12).all()
+        history.reverse()
+        resource_context = get_resource_library_context(db, current_user, request.message)
+        reply = run_chat_with_mentor(current_user, history, resource_context, user_llm)
+    except LLMServiceError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     assistant_message = AIMessage(chat_id=chat.id, role="assistant", content=reply)
     db.add(assistant_message)
@@ -602,6 +755,7 @@ def chat(chat_id: int, request: ChatRequest, current_user=Depends(get_current_us
 def get_chats(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     chats = db.query(AIChat).filter(AIChat.student_id == current_user.id).order_by(AIChat.created_at.desc()).all()
     return ChatListResponse(chats=[ChatSummary(id=c.id, title=c.title) for c in chats])
+
 
 
 @router.post("/burnout-score")
@@ -689,14 +843,16 @@ def calculate_burnout(request: BurnoutRequest, current_user=Depends(get_current_
     ).count()
 
     # ── Step 4: Recommendations ────────────────────────────────────────────────
+    user_llm = get_user_llm(current_user.id, db)
     recommendations = _generate_burnout_recommendations(
         risk_level=risk_level,
         weekly_working_hours=weekly_hours,
         deadline_count=active_deadline_count,
         sleep_deficit_hours=sleep_deficit_hrs,
         overdue_task_count=overdue_task_count,
-        has_ai=has_ai_services,
+        user_llm=user_llm,
     )
+
 
     # ── Step 5: Persist ────────────────────────────────────────────────────────
     db_score = BurnoutScore(

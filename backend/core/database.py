@@ -105,7 +105,11 @@ def migrate_sqlite_schema():
             "weekly_working_hours": "FLOAT",
             "deadline_pressure": "FLOAT",
         },
+        "user_api_keys": {
+            "base_url": "VARCHAR(255)",
+        },
     }
+
     inspector = inspect(engine)
     with engine.begin() as connection:
         for table_name, columns in required_columns.items():

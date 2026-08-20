@@ -310,3 +310,59 @@ export interface EmailRecord {
   email_date?: string
   events: EmailEvent[]
 }
+
+export interface UserAPIKey {
+  id: number
+  provider: 'gemini' | 'openai' | 'anthropic' | 'xai' | 'deepseek' | 'groq' | 'openrouter' | 'mistral' | 'custom' | string
+  model_name?: string
+  base_url?: string
+  is_active: boolean
+  last_validated_at?: string
+  created_at: string
+}
+
+export interface AIProvider {
+  id: string
+  name: string
+  default_model: string
+  recommended_models: string[]
+  free_tier_available: boolean
+  key_help_url: string
+  supports_custom_url?: boolean
+  default_base_url?: string
+}
+
+export const apiKeysAPI = {
+  getProviders: async (): Promise<AIProvider[]> => {
+    const res = await api.get<{ providers: AIProvider[] }>('/ai/providers')
+    return res.data.providers
+  },
+  getKeys: async (): Promise<{ keys: UserAPIKey[]; has_active_key: boolean }> => {
+    const res = await api.get<{ keys: UserAPIKey[]; has_active_key: boolean }>('/ai/keys')
+    return res.data
+  },
+  validateKey: async (provider: string, apiKey: string, modelName?: string, baseUrl?: string): Promise<{ is_valid: boolean; error?: string }> => {
+    const res = await api.post<{ is_valid: boolean; error?: string }>('/ai/keys/validate', {
+      provider,
+      api_key: apiKey,
+      model_name: modelName || undefined,
+      base_url: baseUrl || undefined,
+    })
+    return res.data
+  },
+  saveKey: async (provider: string, apiKey: string, modelName?: string, baseUrl?: string): Promise<{ success: boolean; message: string; key: UserAPIKey }> => {
+    const res = await api.post<{ success: boolean; message: string; key: UserAPIKey }>('/ai/keys', {
+      provider,
+      api_key: apiKey,
+      model_name: modelName || undefined,
+      base_url: baseUrl || undefined,
+    })
+    return res.data
+  },
+  deleteKey: async (provider: string): Promise<{ success: boolean; message: string }> => {
+    const res = await api.delete<{ success: boolean; message: string }>(`/ai/keys/${provider}`)
+    return res.data
+  },
+}
+
+

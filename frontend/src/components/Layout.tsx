@@ -5,7 +5,11 @@ import {
   Bell, MessageCircle, Bot, User, LogOut, Mail, Menu, X, MoreHorizontal
 } from 'lucide-react'
 import { Breadcrumbs } from './Breadcrumbs'
+import PomodoroTimer from './PomodoroTimer'
+import ThemeToggle from './ThemeToggle'
 import './Layout.css'
+
+
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -96,9 +100,12 @@ function Layout() {
           <span className="mobile-page-divider">/</span>
           <span className="mobile-page-title">{activeTitle}</span>
         </div>
-        <NavLink to="/profile" className="mobile-profile-btn" aria-label="My Profile">
-          <User size={20} />
-        </NavLink>
+        <div className="mobile-actions-group">
+          <ThemeToggle />
+          <NavLink to="/profile" className="mobile-profile-btn" aria-label="My Profile">
+            <User size={20} />
+          </NavLink>
+        </div>
       </header>
 
       {/* ── Mobile Drawer Backdrop & Slide-over ── */}
@@ -142,6 +149,9 @@ function Layout() {
         </nav>
 
         <div className="sidebar-footer">
+          <div className="sidebar-theme-row">
+            <ThemeToggle showLabel className="sidebar-theme-toggle" />
+          </div>
           <NavLink
             to="/profile"
             className="nav-item"
@@ -156,6 +166,7 @@ function Layout() {
           </button>
         </div>
       </aside>
+
 
       {/* ── Main Content Body ── */}
       <main className="main-content">
@@ -192,8 +203,12 @@ function Layout() {
           <span className="bottom-nav-label">More</span>
         </button>
       </nav>
+
+      {/* ── Global Focus Pomodoro Timer (Logs directly to Planner Telemetry) ── */}
+      <PomodoroTimer />
     </div>
   )
 }
+
 
 export default Layout

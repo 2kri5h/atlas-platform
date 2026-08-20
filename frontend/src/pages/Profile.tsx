@@ -1,31 +1,60 @@
 import { useState, useEffect } from 'react'
-import { User, Save, RefreshCw } from 'lucide-react'
-import api from '../utils/api'
-import { Student } from '../utils/api'
+import { User, Save, RefreshCw, Key, Plus, Trash2, Sun, Moon, Laptop } from 'lucide-react'
+
+import api, { apiKeysAPI, Student, UserAPIKey } from '../utils/api'
 import { DOMAINS } from '../utils/helpers'
+import ApiKeyVaultModal from '../components/ApiKeyVaultModal'
+import { useTheme } from '../context/ThemeContext'
 import './Profile.css'
 
 function Profile() {
+  const { theme, setTheme } = useTheme()
   const [student, setStudent] = useState<Student | null>(null)
   const [form, setForm] = useState<Partial<Student>>({})
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
 
+  
+  // BYOK Key Vault state
+  const [isVaultOpen, setIsVaultOpen] = useState(false)
+  const [userKeys, setUserKeys] = useState<UserAPIKey[]>([])
+
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await api.get('/auth/me')
-        setStudent(res.data)
-        setForm(res.data)
-      } catch (err) {
-        console.error('Failed to fetch profile', err)
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchProfile()
+    fetchKeys()
   }, [])
+
+  const fetchProfile = async () => {
+    try {
+      const res = await api.get('/auth/me')
+      setStudent(res.data)
+      setForm(res.data)
+    } catch (err) {
+      console.error('Failed to fetch profile', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchKeys = async () => {
+    try {
+      const res = await apiKeysAPI.getKeys()
+      setUserKeys(res.keys)
+    } catch (err) {
+      console.error('Failed to fetch keys', err)
+    }
+  }
+
+  const handleDeleteKey = async (provider: string) => {
+    if (!confirm(`Remove ${provider.toUpperCase()} API key?`)) return
+    try {
+      await apiKeysAPI.deleteKey(provider)
+      fetchKeys()
+    } catch (err) {
+      console.error('Failed to delete key', err)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,7 +81,7 @@ function Profile() {
     <div className="profile-page">
       <div className="page-header">
         <h1>Profile</h1>
-        <p>Manage your account and preferences</p>
+        <p>Manage your account, preferences, and AI Key Vault</p>
       </div>
 
       <div className="profile-content">
@@ -167,7 +196,175 @@ function Profile() {
               />
             </div>
 
+            {/* ── BYOK AI Key Vault Section ── */}
+            <div className="form-section key-vault-profile-section">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Key size={18} color="#a78bfa" /> BYOK AI Key Vault
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsVaultOpen(true)}
+                  style={{
+                    background: 'rgba(124, 92, 252, 0.2)',
+                    border: '1px solid #7c5cfc',
+                    color: '#a78bfa',
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <Plus size={14} /> Add / Manage Keys
+                </button>
+              </div>
+              <p style={{ fontSize: '13px', color: '#9ca3af', margin: '0 0 12px' }}>
+                Connect your personal API key (Google Gemini, OpenAI, Claude, Grok) for zero-cost AI Mentor chat and email event extraction.
+              </p>
+
+              {userKeys.length === 0 ? (
+                <div style={{
+                  padding: '12px 16px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px dashed rgba(255, 255, 255, 0.15)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  color: '#9ca3af',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                  <span>No keys connected yet. Google Gemini free tier key works out-of-the-box.</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsVaultOpen(true)}
+                    style={{ background: '#7c5cfc', border: 'none', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}
+                  >
+                    Connect Key
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {userKeys.map(k => (
+                    <div
+                      key={k.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontWeight: 700, fontSize: '14px', marginRight: '8px' }}>{k.provider.toUpperCase()}</span>
+                        <span style={{ fontSize: '12px', color: '#9ca3af' }}>Model: {k.model_name || 'Default'}</span>
+                        <span style={{ marginLeft: '10px', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 600 }}>
+                          Active & Verified
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteKey(k.provider)}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                        title="Remove key"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Appearance & Theme ── */}
+            <div className="form-section appearance-section">
+              <h3 style={{ margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sun size={18} color="var(--primary)" /> Appearance & Theme
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+                Customize your visual interface experience.
+              </p>
+              <div className="theme-options-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setTheme('dark')}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    background: theme === 'dark' ? 'var(--primary-light)' : 'var(--surface-subtle)',
+                    border: `1.5px solid ${theme === 'dark' ? 'var(--primary)' : 'var(--border)'}`,
+                    color: theme === 'dark' ? 'var(--primary)' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Moon size={20} />
+                  <span>Dark Mode</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTheme('light')}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    background: theme === 'light' ? 'var(--primary-light)' : 'var(--surface-subtle)',
+                    border: `1.5px solid ${theme === 'light' ? 'var(--primary)' : 'var(--border)'}`,
+                    color: theme === 'light' ? 'var(--primary)' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Sun size={20} />
+                  <span>Light Mode</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTheme('system')}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    background: theme === 'system' ? 'var(--primary-light)' : 'var(--surface-subtle)',
+                    border: `1.5px solid ${theme === 'system' ? 'var(--primary)' : 'var(--border)'}`,
+                    color: theme === 'system' ? 'var(--primary)' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Laptop size={20} />
+                  <span>System Default</span>
+                </button>
+              </div>
+            </div>
+
             {message && <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>{message}</div>}
+
 
             <button type="submit" className="primary" disabled={saving}>
               <Save size={18} /> {saving ? 'Saving...' : 'Save Changes'}
@@ -175,11 +372,22 @@ function Profile() {
           </form>
         </div>
       </div>
+
+      {/* ── Key Vault Modal ── */}
+      <ApiKeyVaultModal
+        isOpen={isVaultOpen}
+        onClose={() => {
+          setIsVaultOpen(false)
+          fetchKeys()
+        }}
+        onKeyUpdated={fetchKeys}
+      />
     </div>
   )
 }
 
 export default Profile
+
 
 
 // ── StudyHoursPicker ───────────────────────────────────────────────────────────

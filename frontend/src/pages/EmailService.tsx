@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import api from '../utils/api'
+import api, { apiKeysAPI, UserAPIKey } from '../utils/api'
 import type { EmailRecord } from '../utils/api'
+import ApiKeyVaultModal from '../components/ApiKeyVaultModal'
 import './EmailService.css'
 import { 
   Clock, 
@@ -13,19 +14,30 @@ import {
   Mail,
   ChevronDown,
   ChevronUp,
-  Inbox
+  Inbox,
+  Key,
+  Building2,
+  Globe,
 } from 'lucide-react'
+
 
 export default function EmailService() {
   const [searchParams] = useSearchParams()
   const initialTab = searchParams.get('tab') === 'events' ? 'events' : 'all'
 
+  const [inboxSource, setInboxSource] = useState<'iitb' | 'gmail'>('iitb')
   const [imapEmail, setImapEmail] = useState('')
   const [imapToken, setImapToken] = useState('')
   const [emails, setEmails] = useState<EmailRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [registered, setRegistered] = useState(false)
   const [tab, setTab] = useState<'all' | 'events'>(initialTab)
+  
+  // BYOK Key Vault States
+  const [isVaultOpen, setIsVaultOpen] = useState(false)
+  const [hasKey, setHasKey] = useState(false)
+  const [activeKey, setActiveKey] = useState<UserAPIKey | null>(null)
+
   
   // Sync tab with URL query parameter changes
   useEffect(() => {
@@ -291,6 +303,21 @@ export default function EmailService() {
     return { bg: '#f8fafc', color: '#475569' }
   }
 
+  useEffect(() => {
+    checkKeys()
+  }, [])
+
+  const checkKeys = async () => {
+    try {
+      const res = await apiKeysAPI.getKeys()
+      setHasKey(res.has_active_key)
+      const firstActive = res.keys.find(k => k.is_active) || null
+      setActiveKey(firstActive)
+    } catch (err) {
+      console.error("Failed to check keys", err)
+    }
+  }
+
   return (
     <div className="email-service-container">
       
@@ -306,7 +333,9 @@ export default function EmailService() {
         <div>
           <div className="email-header-branding">
             <h1 className="email-header-title">Email Service</h1>
-            <span className="email-header-badge">IITB Webmail</span>
+            <span className="email-header-badge">
+              {inboxSource === 'iitb' ? '🏛️ IITB Webmail' : '📧 Personal Gmail'}
+            </span>
           </div>
           <p className="email-header-subtitle">
             Campus updates, summaries, and extracted planner events
@@ -334,8 +363,133 @@ export default function EmailService() {
         </div>
       </div>
 
-      {/* Registration Form */}
-      {!registered && (
+      {/* Dual Inbox Switcher */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: 'rgba(255, 255, 255, 0.03)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '12px',
+        padding: '6px 8px',
+        marginBottom: '16px',
+        flexWrap: 'wrap',
+        gap: '8px',
+      }}>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={() => setInboxSource('iitb')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              background: inboxSource === 'iitb' ? '#4f46e5' : 'transparent',
+              color: inboxSource === 'iitb' ? '#fff' : '#94a3b8',
+              transition: 'all 0.15s',
+            }}
+          >
+            <Building2 size={15} /> IIT Bombay Webmail (IMAP)
+          </button>
+          <button
+            type="button"
+            onClick={() => setInboxSource('gmail')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              background: inboxSource === 'gmail' ? '#4f46e5' : 'transparent',
+              color: inboxSource === 'gmail' ? '#fff' : '#94a3b8',
+              transition: 'all 0.15s',
+            }}
+          >
+            <Globe size={15} /> Personal Gmail (OAuth)
+          </button>
+        </div>
+
+        {/* AI Key Status Pill */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '4px 10px',
+          borderRadius: '8px',
+          fontSize: '12px',
+          background: hasKey ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+          border: `1px solid ${hasKey ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
+          color: hasKey ? '#34d399' : '#fbbf24',
+        }}>
+          <Key size={13} />
+          <span>
+            {hasKey ? `AI Extraction: Active (${activeKey?.provider.toUpperCase()})` : 'AI Extraction: Standard'}
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsVaultOpen(true)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#a78bfa',
+              textDecoration: 'underline',
+              cursor: 'pointer',
+              fontSize: '11px',
+              fontWeight: 600,
+              padding: 0,
+            }}
+          >
+            {hasKey ? 'Manage' : 'Add Key'}
+          </button>
+        </div>
+      </div>
+
+      {/* Gmail OAuth Coming Soon Banner */}
+      {inboxSource === 'gmail' && (
+        <div style={{
+          padding: '24px',
+          background: 'rgba(99, 102, 241, 0.06)',
+          border: '1px solid rgba(99, 102, 241, 0.2)',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          textAlign: 'center',
+        }}>
+          <Globe size={32} color="#6366f1" style={{ marginBottom: '8px' }} />
+          <h3 style={{ margin: '0 0 6px', color: '#f8fafc' }}>Personal Gmail Integration</h3>
+          <p style={{ fontSize: '13px', color: '#94a3b8', maxWidth: '480px', margin: '0 auto 16px' }}>
+            Sync personal Gmail alongside your IIT Bombay Webmail. Auto-categorize course notices, assignment emails, and recruiter updates.
+          </p>
+          <button
+            type="button"
+            onClick={() => alert('Google Workspace OAuth integration will be configured in Phase 3. IIT Bombay Webmail (IMAP) is fully active now!')}
+            style={{
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              color: '#fff',
+              border: 'none',
+              padding: '8px 18px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Connect Google Account
+          </button>
+        </div>
+      )}
+
+      {/* Registration Form (IITB) */}
+      {inboxSource === 'iitb' && !registered && (
         <div className="email-setup-box">
           <h3>Connect IITB Webmail</h3>
           <input
@@ -362,29 +516,32 @@ export default function EmailService() {
       )}
 
       {/* Main Navigation Tabs */}
-      <div className="email-nav-tabs">
-        <button
-          onClick={() => setTab('all')}
-          className={`email-nav-tab ${tab === 'all' ? 'active' : ''}`}
-        >
-          <Mail size={16} />
-          <span>All Emails</span>
-          <span className="email-nav-tab-count">
-            {emails.length}
-          </span>
-        </button>
+      {inboxSource === 'iitb' && (
+        <div className="email-nav-tabs">
+          <button
+            onClick={() => setTab('all')}
+            className={`email-nav-tab ${tab === 'all' ? 'active' : ''}`}
+          >
+            <Mail size={16} />
+            <span>All Emails</span>
+            <span className="email-nav-tab-count">
+              {emails.length}
+            </span>
+          </button>
 
-        <button
-          onClick={() => setTab('events')}
-          className={`email-nav-tab ${tab === 'events' ? 'active' : ''}`}
-        >
-          <Sparkles size={16} />
-          <span>Extracted Events</span>
-          <span className="email-nav-tab-count">
-            {allEvents.length}
-          </span>
-        </button>
-      </div>
+          <button
+            onClick={() => setTab('events')}
+            className={`email-nav-tab ${tab === 'events' ? 'active' : ''}`}
+          >
+            <Sparkles size={16} />
+            <span>Extracted Events</span>
+            <span className="email-nav-tab-count">
+              {allEvents.length}
+            </span>
+          </button>
+        </div>
+      )}
+
 
       {/* ───────────────── TAB 1: ALL EMAILS (CLEAN & RESPONSIVE) ───────────────── */}
       {tab === 'all' && (
@@ -778,6 +935,16 @@ export default function EmailService() {
           </div>
         </div>
       )}
+
+      {/* ── Key Vault Modal ── */}
+      <ApiKeyVaultModal
+        isOpen={isVaultOpen}
+        onClose={() => {
+          setIsVaultOpen(false)
+          checkKeys()
+        }}
+        onKeyUpdated={checkKeys}
+      />
     </div>
   )
-}
+}

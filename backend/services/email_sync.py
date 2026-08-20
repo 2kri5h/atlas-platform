@@ -12,7 +12,7 @@ from .db_writer import (
 )
 
 
-def run_sync(student_id="test_student"):
+def run_sync(student_id="test_student", user_llm=None):
     student = get_student(student_id)
 
     if student is None:
@@ -28,13 +28,14 @@ def run_sync(student_id="test_student"):
         print("[SYNC] No previous sync found. Falling back to 2-day window.")
 
     emails = connect_imap(
-    email_user=student["imap_email"],
-    token_key=student["imap_token"],
-    since_date=last_synced_at,
+        email_user=student["imap_email"],
+        token_key=student["imap_token"],
+        since_date=last_synced_at,
     )
     cleaned = clean_email_dataset(emails)
     cleaned = filter_new_emails(cleaned)
-    results = process_emails(cleaned)
+    results = process_emails(cleaned, user_llm=user_llm)
+
 
     print(f"\nProcessed {len(results)} emails.\n")
 

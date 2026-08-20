@@ -104,26 +104,47 @@ def try_fix_json(raw_text):
             return None
     return None
 
-def process_emails(cleaned_emails, batch_size=20, delay_between_batches=2):
+def process_emails(cleaned_emails, batch_size=20, delay_between_batches=2, user_llm=None):
     """
     Returns: list: Processed emails with category, summary and extracted events.
+    Uses user_llm if provided. If not provided, falls back to basic metadata extraction (0 token cost).
     """
-
     all_results = []
+
+    if not cleaned_emails:
+        return all_results
+
+    # If user has not provided their LLM key, do zero-cost basic extraction
+    if user_llm is None:
+        print("[BYOK NOTICE] No user AI key configured for email processing. Using zero-token basic extraction.")
+        for e in cleaned_emails:
+            body = e.get("body_plain") or e.get("body_html") or ""
+            snippet = body[:160].replace("\n", " ").strip()
+            all_results.append({
+                "message_id": e.get("message_id", ""),
+                "subject": e.get("subject", ""),
+                "sender": e.get("sender", ""),
+                "date": e.get("date", ""),
+                "category": "academic" if "course" in (e.get("subject", "") + body).lower() else "other",
+                "importance": "high" if "deadline" in (e.get("subject", "") + body).lower() else "medium",
+                "summary": snippet if snippet else e.get("subject", "No summary"),
+                "events": [],
+            })
+        return all_results
 
     batches = list(batch_emails(cleaned_emails, batch_size))
 
-    print(f"\nProcessing {len(cleaned_emails)} emails...")
+    print(f"\nProcessing {len(cleaned_emails)} emails with user's {getattr(user_llm, 'model', 'LLM')}...")
     print(f"Created {len(batches)} batches of size {batch_size}.\n")
 
     for batch_number, batch in enumerate(batches, start=1):
-
         print(f"[Batch {batch_number}/{len(batches)}] Processing {len(batch)} emails...")
-
-        raw_response = _provider.process_batch(
-            batch,
-            build_batch_prompt
-        )
+        prompt = build_batch_prompt(batch)
+        try:
+            raw_response = user_llm.generate(prompt, response_json=True)
+        except Exception as err:
+            print(f"[LLM Error on batch {batch_number}]: {err}")
+            raw_response = None
 
         parsed_results = parse_llm_response(
             raw_response,
@@ -131,7 +152,6 @@ def process_emails(cleaned_emails, batch_size=20, delay_between_batches=2):
         )
 
         all_results.extend(parsed_results)
-
         print(f"✓ Parsed {len(parsed_results)} emails.\n")
 
         if batch_number != len(batches):
@@ -142,6 +162,7 @@ def process_emails(cleaned_emails, batch_size=20, delay_between_batches=2):
     print("=" * 80)
 
     return all_results
+
 
 def parse_llm_response(raw_text, email_batch):
     if raw_text is None:

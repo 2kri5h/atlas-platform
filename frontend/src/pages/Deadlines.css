@@ -59,7 +59,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: var(--text-primary);
+  background: var(--primary);
   color: #ffffff;
   border: none;
   border-radius: var(--radius-sm);
@@ -71,7 +71,7 @@
 }
 
 .deadlines-create-btn:hover {
-  background: #27272a;
+  background: var(--primary-hover);
   transform: translateY(-1px);
 }
 
@@ -92,7 +92,7 @@
 .deadlines-refresh-btn:hover:not(:disabled) {
   background: var(--surface-hover);
   color: var(--text-primary);
-  border-color: #d4d4d8;
+  border-color: var(--primary);
 }
 
 /* ── Metrics Summary Bar ── */
@@ -123,10 +123,11 @@
   flex-shrink: 0;
 }
 
-.metrics-icon-wrap.blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
-.metrics-icon-wrap.red { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
-.metrics-icon-wrap.orange { background: #fffbeb; color: #d97706; border: 1px solid #fef3c7; }
-.metrics-icon-wrap.green { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
+.metrics-icon-wrap.blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+.metrics-icon-wrap.red { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+.metrics-icon-wrap.orange { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.metrics-icon-wrap.green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
 
 .metrics-info {
   display: flex;

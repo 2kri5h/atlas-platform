@@ -91,27 +91,53 @@ function Dashboard() {
   // Build SVG sparkline path from burnout history
   const renderSparkline = () => {
     if (burnoutHistory.length < 2) return null
-    const W = 160, H = 36, pad = 4
+    const W = 170, H = 36, pad = 5
     const scores = burnoutHistory.map(p => p.score)
-    const minS = Math.min(...scores), maxS = Math.max(...scores)
+    const latest = scores[scores.length - 1]
+    const first = scores[0]
+    const diff = latest - first
+    
+    // Normalize range with a minimum span of 20 so small differences don't become huge cliffs
+    const dataMin = Math.min(...scores)
+    const dataMax = Math.max(...scores)
+    const mid = (dataMin + dataMax) / 2
+    const minS = Math.max(0, Math.min(dataMin - 4, mid - 12))
+    const maxS = Math.min(100, Math.max(dataMax + 4, mid + 12))
     const range = maxS - minS || 1
-    const pts = scores.map((s, i) => {
+
+    const coords = scores.map((s, i) => {
       const x = pad + (i / (scores.length - 1)) * (W - pad * 2)
       const y = H - pad - ((s - minS) / range) * (H - pad * 2)
-      return `${x.toFixed(1)},${y.toFixed(1)}`
-    }).join(' ')
-    const latest = scores[scores.length - 1]
+      return { x, y }
+    })
+
+    const pts = coords.map(c => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ')
+    const areaPath = `M ${coords[0].x.toFixed(1)},${H - pad} L ${pts} L ${coords[coords.length - 1].x.toFixed(1)},${H - pad} Z`
+    
     const color = latest > 65 ? '#ef4444' : latest > 40 ? '#f59e0b' : '#10b981'
+    const gradId = `burnout-spark-grad-${latest > 65 ? 'high' : latest > 40 ? 'med' : 'low'}`
+
     return (
-      <svg width={W} height={H} style={{ overflow: 'visible' }}>
-        <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Dot on latest */}
-        {(() => {
-          const lastPt = pts.split(' ').pop()!
-          const [lx, ly] = lastPt.split(',')
-          return <circle cx={lx} cy={ly} r="3" fill={color} />
-        })()}
-      </svg>
+      <div className="burnout-sparkline-wrap">
+        <svg width={W} height={H} className="burnout-sparkline-svg">
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+          <path d={areaPath} fill={`url(#${gradId})`} />
+          <polyline points={pts} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx={coords[0].x} cy={coords[0].y} r="2.5" fill={color} opacity="0.6" />
+          <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="3.5" fill={color} />
+        </svg>
+        <div className="burnout-sparkline-meta">
+          <span className="sparkline-trend-label">14-day trend</span>
+          <span className="sparkline-trend-diff" style={{ color: diff <= 0 ? 'var(--success)' : 'var(--warning)' }}>
+            {Math.abs(diff) < 0.2 ? 'Stable' : `${diff > 0 ? '+' : ''}${diff.toFixed(1)}% ${diff > 0 ? '↑' : '↓'}`}
+          </span>
+        </div>
+      </div>
     )
   }
 
@@ -148,7 +174,7 @@ function Dashboard() {
         {stats.map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="stat-card">
             <div className="stat-icon" style={{ background: `${color}15`, color }}>
-              <Icon size={24} />
+              <Icon size={22} />
             </div>
             <div className="stat-info">
               <span className="stat-value">{value}</span>
@@ -166,14 +192,14 @@ function Dashboard() {
 
       <div className="dashboard-grid">
         <div className="card">
-          <h3>Upcoming Tasks</h3>
+          <h3>Upcoming Deadlines & Tasks</h3>
           {tasks.length === 0 ? (
-            <p className="empty-state">No active tasks. <Link to="/planner">Create one</Link></p>
+            <p className="empty-state">No pending tasks. You're all caught up!</p>
           ) : (
             <ul className="task-list">
-              {tasks.map((task) => (
+              {tasks.map(task => (
                 <li key={task.id} className="task-item">
-                  <span className={`priority priority-${task.priority}`}></span>
+                  <div className={`priority priority-${task.priority}`} />
                   <div className="task-info">
                     <span className="task-title">{task.title}</span>
                     <span className="task-meta">
@@ -189,48 +215,57 @@ function Dashboard() {
 
         {/* Enhanced Burnout Widget */}
         {burnout ? (
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <h3>Burnout Status</h3>
-              <Link to="/ai" style={{ fontSize: '12px', color: '#6b7280', textDecoration: 'none' }}>
+          <div className="card burnout-widget-card">
+            <div className="burnout-widget-header">
+              <div className="burnout-widget-title-group">
+                <div className="burnout-widget-icon" style={{ color: riskColor, background: `${riskColor}15` }}>
+                  <TrendingUp size={16} />
+                </div>
+                <h3>Burnout Status</h3>
+              </div>
+              <Link to="/ai" className="burnout-widget-link">
                 Full Assessment →
               </Link>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', margin: '10px 0' }}>
+            
+            <div className="burnout-widget-body">
               {/* Mini score ring */}
-              <svg width="64" height="64" viewBox="0 0 64 64">
-                <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
-                <circle
-                  cx="32" cy="32" r="26" fill="none"
-                  stroke={riskColor} strokeWidth="6"
-                  strokeDasharray={2 * Math.PI * 26}
-                  strokeDashoffset={2 * Math.PI * 26 - (burnout.score / 100) * 2 * Math.PI * 26}
-                  strokeLinecap="round"
-                  transform="rotate(-90 32 32)"
-                  style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-                />
-                <text x="32" y="36" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
-                  {burnout.score}%
-                </text>
-              </svg>
-              <div>
-                <div style={{ color: riskColor, fontWeight: 700, fontSize: '16px' }}>
-                  {burnout.risk_level} Risk
+              <div className="burnout-ring-wrapper">
+                <svg width="68" height="68" viewBox="0 0 68 68" className="burnout-ring-svg">
+                  <circle cx="34" cy="34" r="28" fill="none" stroke="var(--surface-hover)" strokeWidth="6" />
+                  <circle
+                    cx="34" cy="34" r="28" fill="none"
+                    stroke={riskColor} strokeWidth="6"
+                    strokeDasharray={2 * Math.PI * 28}
+                    strokeDashoffset={2 * Math.PI * 28 - (Math.min(100, Math.max(0, burnout.score)) / 100) * 2 * Math.PI * 28}
+                    strokeLinecap="round"
+                    transform="rotate(-90 34 34)"
+                    style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                  />
+                  <text x="34" y="39" textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="system-ui, -apple-system, sans-serif">
+                    {Math.round(burnout.score)}%
+                  </text>
+                </svg>
+              </div>
+
+              <div className="burnout-info-group">
+                <div className="burnout-risk-row">
+                  <span className="burnout-risk-title" style={{ color: riskColor }}>
+                    {burnout.risk_level} Risk
+                  </span>
+                  <span className="burnout-risk-tag" style={{ background: `${riskColor}18`, color: riskColor, borderColor: `${riskColor}33` }}>
+                    {burnout.score < 30 ? 'Optimal' : burnout.score < 65 ? 'Moderate' : 'Elevated'}
+                  </span>
                 </div>
+
                 {burnout.signals?.weekly_working_hours != null && (
-                  <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
-                    {burnout.signals.weekly_working_hours.toFixed(1)}h working · {burnout.signals.deadline_pressure > 0 ? `${(burnout.signals.deadline_pressure * 100).toFixed(0)}% deadline load` : 'No deadlines'}
+                  <div className="burnout-signals-summary">
+                    {burnout.signals.weekly_working_hours.toFixed(1)}h working · {burnout.signals.deadline_pressure > 0 ? `${Math.round(burnout.signals.deadline_pressure * 100)}% deadline load` : 'No deadlines'}
                   </div>
                 )}
+
                 {/* Sparkline */}
-                <div style={{ marginTop: '6px' }}>
-                  {renderSparkline()}
-                  {burnoutHistory.length >= 2 && (
-                    <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
-                      14-day trend
-                    </div>
-                  )}
-                </div>
+                {renderSparkline()}
               </div>
             </div>
           </div>

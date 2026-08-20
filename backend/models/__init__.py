@@ -14,6 +14,7 @@ from .models import (
     AIChat,
     AIMessage,
     SmartSuggestion,
+    UserAPIKey,
 )
 
 __all__ = [
@@ -32,4 +33,5 @@ __all__ = [
     "AIChat",
     "AIMessage",
     "SmartSuggestion",
+    "UserAPIKey",
 ]
