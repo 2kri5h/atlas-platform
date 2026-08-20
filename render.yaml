@@ -4,8 +4,9 @@ services:
     env: python
     region: oregon
     plan: free
-    branch: all-merged
+    branch: main
     buildCommand: pip install -r requirements.txt && python init_db.py
+
     startCommand: gunicorn backend.api.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     healthCheckPath: /health
     envVars:
