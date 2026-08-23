@@ -1,0 +1,225 @@
+﻿/* ── Shared UI Primitives ─────────────────────────────────────────────────── */
+
+.ui-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.ui-page-header-text h1 {
+  font-size: 1.55rem;
+  margin-bottom: 4px;
+}
+
+.ui-page-header-text p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.ui-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 16px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.ui-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  animation: ui-spin 0.7s linear infinite;
+}
+
+@keyframes ui-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ui-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 44px 20px;
+  gap: 10px;
+  color: var(--text-muted);
+  background: var(--surface-subtle);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.ui-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.ui-empty-title {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.ui-empty-hint {
+  font-size: 0.83rem;
+  max-width: 340px;
+  line-height: 1.5;
+}
+
+.ui-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--danger-light);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+  font-size: 0.88rem;
+}
+
+.ui-error-retry {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+  min-height: 36px;
+}
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+
+.ui-badge.primary { background: var(--primary-light); color: var(--primary); border-color: var(--primary-border); }
+.ui-badge.success { background: var(--success-light); color: var(--success); border-color: var(--success-border); }
+.ui-badge.warning { background: var(--warning-light); color: var(--warning); border-color: var(--warning-border); }
+.ui-badge.danger { background: var(--danger-light); color: var(--danger); border-color: var(--danger-border); }
+.ui-badge.neutral { background: var(--surface-hover); color: var(--text-secondary); border-color: var(--border); }
+
+/* ── Accessible modal shell ── */
+.ui-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: var(--modal-overlay-bg);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  animation: ui-fade-in 0.15s ease-out;
+}
+
+@keyframes ui-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ui-modal-card {
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--modal-card-bg);
+  border: 1px solid var(--modal-card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: ui-pop-in 0.18s var(--ease-spring);
+}
+
+@keyframes ui-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.ui-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-modal-header h3 {
+  font-size: 1.02rem;
+}
+
+.ui-modal-body {
+  padding: 20px;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.ui-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 480px) {
+  .ui-modal-overlay { padding: 10px; align-items: flex-end; }
+  .ui-modal-card { max-height: 88vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+}
+
+/* ── Skeleton loaders ───────────────────────────────────────────────────────── */
+.ui-skeleton {
+  display: block;
+  height: 12px;
+  border-radius: 8px;
+  background: linear-gradient(90deg,
+    rgba(148, 163, 184, 0.14) 25%,
+    rgba(148, 163, 184, 0.30) 37%,
+    rgba(148, 163, 184, 0.14) 63%);
+  background-size: 400% 100%;
+  animation: ui-shimmer 1.3s ease infinite;
+}
+
+.ui-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.ui-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.16));
+  background: var(--card-bg, rgba(148, 163, 184, 0.05));
+}
+
+.ui-skeleton-card-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+@keyframes ui-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
