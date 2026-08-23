@@ -40,8 +40,26 @@ class Settings(BaseSettings):
 
     gemini_api_key_krish: str = ""  # krish-api //krish-api
     gemini_api_key: str = ""  # krish-api //krish-api
+    # Google OAuth 2.0 Credentials (for Gmail, Google Drive, Google Calendar)
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = ""
+
+    @property
+    def GOOGLE_CLIENT_ID(self) -> str:
+        return self.google_client_id
+
+    @property
+    def GOOGLE_CLIENT_SECRET(self) -> str:
+        return self.google_client_secret
+
+    @property
+    def GOOGLE_REDIRECT_URI(self) -> str:
+        return self.google_redirect_uri or "http://localhost:3000/integrations/google/callback"
+
     # Use the lower-latency Flash-Lite model for interactive mentor chat.
     GEMINI_MODEL: str = "gemini-3.1-flash-lite"
+
 
     @property
     def GEMINI_API_KEY(self) -> str:

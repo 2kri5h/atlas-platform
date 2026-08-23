@@ -1,28 +1,81 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BookOpen, Calendar, Map, CheckSquare, MessageCircle, Bot, TrendingUp, Clock, Target } from 'lucide-react'
-import api from '../utils/api'
+import api, { dashboardAPI, TodayDashboardData } from '../utils/api'
 import { Student, BurnoutScore, BurnoutHistoryPoint, Task } from '../utils/api'
 import { formatDate } from '../utils/helpers'
+import { CardGridSkeleton } from '../components/ui'
 import { FAQSection } from '../components/FAQSection'
 import './Dashboard.css'
+
+interface WorkingHoursData {
+  weekly_working_hours: number
+  source: string
+}
+
+interface DeadlineEvent {
+  id: number
+  title: string
+  deadline_date?: string
+  deadline_label?: string
+}
+
+interface CapacityDay {
+  date: string
+  loadPct: number
+  status: 'low' | 'medium' | 'high' | 'max'
+}
+
+interface ConflictWarning {
+  type: string
+  date?: string
+  severity: 'high' | 'medium'
+  message: string
+  deadlines?: string[]
+}
 
 function Dashboard() {
   const [student, setStudent] = useState<Student | null>(null)
   const [burnout, setBurnout] = useState<BurnoutScore | null>(null)
   const [burnoutHistory, setBurnoutHistory] = useState<BurnoutHistoryPoint[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [workingHours, setWorkingHours] = useState<WorkingHoursData | null>(null)
+  const [nextDeadline, setNextDeadline] = useState<DeadlineEvent | null>(null)
+  const [capacityToday, setCapacityToday] = useState<CapacityDay | null>(null)
+  const [conflicts, setConflicts] = useState<ConflictWarning[]>([])
+  const [today, setToday] = useState<TodayDashboardData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [studentRes, tasksRes] = await Promise.all([
+        const monthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+        const [studentRes, tasksRes, hoursRes, deadlinesRes, loadRes, radarRes, todayRes] = await Promise.all([
           api.get('/auth/me'),
           api.get('/planner/'),
+          api.get('/ai/working-hours'),
+          api.get('/events/deadlines?days=21'),
+          api.get(`/load?month=${monthStr}`),
+          api.get('/ai/conflict-radar'),
+          dashboardAPI.getToday(),
         ])
+        setToday(todayRes)
         setStudent(studentRes.data)
         setTasks(tasksRes.data.filter((t: Task) => !t.completed).slice(0, 5))
+        setWorkingHours(hoursRes.data)
+
+        const today = new Date(); today.setHours(0, 0, 0, 0)
+
+        const deadlines: DeadlineEvent[] = deadlinesRes.data || []
+        if (deadlines.length > 0) {
+          // First deadline that is not already past (list is sorted ascending).
+          setNextDeadline(deadlines.find(d => d.deadline_date && new Date(d.deadline_date + 'T23:59:59') >= today) || null)
+        }
+
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+        const capacityList: CapacityDay[] = loadRes.data || []
+        setCapacityToday(capacityList.find(c => c.date === todayStr) || null)
+        setConflicts(radarRes.data?.warnings || [])
       } catch (err) {
         console.error('Failed to fetch dashboard data', err)
       } finally {
@@ -64,9 +117,21 @@ function Dashboard() {
     fetchHistory()
   }, [student])
 
-  if (loading) return <div className="loading">Loading...</div>
+  if (loading) return (
+    <div className="dashboard">
+      <CardGridSkeleton count={4} height={110} />
+    </div>
+  )
 
   const riskColor = burnout?.risk_level === 'High' ? '#ef4444' : burnout?.risk_level === 'Medium' ? '#f59e0b' : '#10b981'
+
+  // Days until the nearest active deadline (negative = overdue).
+  let nextDeadlineDays: number | null = null
+  if (nextDeadline?.deadline_date) {
+    const dl = new Date(nextDeadline.deadline_date + 'T00:00:00')
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    nextDeadlineDays = Math.round((dl.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  }
 
   const stats = [
     { icon: CheckSquare, label: 'Active Tasks', value: tasks.length, color: '#4f46e5' },
@@ -76,8 +141,27 @@ function Dashboard() {
       value: burnout?.risk_level || 'N/A',
       color: riskColor,
     },
-    { icon: Clock, label: 'Study Hours/Week', value: student?.study_hours_per_week || 0, color: '#8b5cf6' },
-    { icon: Target, label: 'Goals', value: student?.goals?.split(',').length || 0, color: '#06b6d4' },
+    {
+      icon: Clock,
+      label: 'Logged Hours / Week',
+      value: workingHours ? `${workingHours.weekly_working_hours}h` : `${student?.study_hours_per_week || 0}h`,
+      color: '#8b5cf6',
+    },
+    nextDeadlineDays !== null
+      ? {
+        icon: Target,
+        label: nextDeadline?.deadline_label || nextDeadline?.title || 'Next Deadline',
+        value: nextDeadlineDays < 0 ? `${Math.abs(nextDeadlineDays)}d late` : nextDeadlineDays === 0 ? 'Today!' : `${nextDeadlineDays}d left`,
+        color: nextDeadlineDays <= 2 ? '#ef4444' : '#06b6d4',
+      }
+      : capacityToday
+        ? {
+          icon: Target,
+          label: 'Capacity Today',
+          value: `${capacityToday.loadPct}%`,
+          color: capacityToday.status === 'max' ? '#ef4444' : capacityToday.status === 'high' ? '#f59e0b' : '#06b6d4',
+        }
+        : { icon: Target, label: 'Next Deadline', value: 'None due', color: '#06b6d4' },
   ]
 
   const quickLinks = [
@@ -96,7 +180,7 @@ function Dashboard() {
     const latest = scores[scores.length - 1]
     const first = scores[0]
     const diff = latest - first
-    
+
     // Normalize range with a minimum span of 20 so small differences don't become huge cliffs
     const dataMin = Math.min(...scores)
     const dataMax = Math.max(...scores)
@@ -113,7 +197,7 @@ function Dashboard() {
 
     const pts = coords.map(c => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ')
     const areaPath = `M ${coords[0].x.toFixed(1)},${H - pad} L ${pts} L ${coords[coords.length - 1].x.toFixed(1)},${H - pad} Z`
-    
+
     const color = latest > 65 ? '#ef4444' : latest > 40 ? '#f59e0b' : '#10b981'
     const gradId = `burnout-spark-grad-${latest > 65 ? 'high' : latest > 40 ? 'med' : 'low'}`
 
@@ -190,6 +274,95 @@ function Dashboard() {
         </div>
       )}
 
+      {/* ── Today at a glance: unified aggregation from /dashboard/today ── */}
+      {today && (
+        <div className="dashboard-grid">
+          <div className="card">
+            <h3>Today's Schedule</h3>
+            {today.working_hours_today > 0 && (
+              <p className="empty-state" style={{ marginTop: 0 }}>
+                {today.working_hours_today}h of classes/blocks scheduled
+              </p>
+            )}
+            {today.timetable.length === 0 ? (
+              <p className="empty-state">No classes or blocks today. Free day!</p>
+            ) : (
+              <ul className="task-list">
+                {today.timetable.map(block => (
+                  <li key={block.id} className="task-item">
+                    <div className={`priority priority-${block.tag === 'CRITICAL' ? 1 : block.tag === 'IMPORTANT' ? 2 : 3}`} />
+                    <div className="task-info">
+                      <span className="task-title">{block.title}</span>
+                      <span className="task-meta">
+                        {block.start_time}–{block.end_time}
+                        {block.location && ` · ${block.location}`}
+                        {block.is_recurring && ' · weekly'}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link to="/planner" className="view-all">Open Planner</Link>
+          </div>
+
+          <div className="card">
+            <h3>Next 48 Hours</h3>
+            {today.deadlines.overdue.length === 0 && today.deadlines.due_soon.length === 0 ? (
+              <p className="empty-state">Nothing due in the next 48 hours. 🎉</p>
+            ) : (
+              <ul className="task-list">
+                {today.deadlines.overdue.map(d => (
+                  <li key={`o-${d.id}`} className="task-item">
+                    <div className="priority priority-1" />
+                    <div className="task-info">
+                      <span className="task-title">{d.title}</span>
+                      <span className="task-meta" style={{ color: '#ef4444' }}>
+                        Overdue{d.deadline_date && ` · was ${formatDate(d.deadline_date)}`}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+                {today.deadlines.due_soon.map(d => (
+                  <li key={`s-${d.id}`} className="task-item">
+                    <div className="priority priority-2" />
+                    <div className="task-info">
+                      <span className="task-title">{d.title}</span>
+                      <span className="task-meta">
+                        Due {d.deadline_date && formatDate(d.deadline_date)}
+                        {d.deadline_label && ` · ${d.deadline_label}`}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {today.tasks.open_count > 0 && (
+              <Link to="/deadlines" className="view-all">
+                {today.tasks.open_count} open task{today.tasks.open_count !== 1 ? 's' : ''}
+                {today.tasks.overdue_count > 0 && ` (${today.tasks.overdue_count} overdue)`} →
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Conflict Radar: deadline × capacity collisions ── */}
+      {conflicts.length > 0 && (
+        <div className="alert alert-warning" style={{ borderLeft: '4px solid #ef4444' }}>
+          <strong>⚠ Conflict Radar:</strong> {conflicts.length} scheduling conflict{conflicts.length !== 1 ? 's' : ''} detected this week.
+          <ul style={{ margin: '8px 0 0', paddingLeft: '20px' }}>
+            {conflicts.slice(0, 3).map((c, i) => (
+              <li key={i}>
+                {c.date && <strong>{new Date(c.date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}: </strong>}
+                {c.message}
+              </li>
+            ))}
+          </ul>
+          <Link to="/planner" style={{ display: 'inline-block', marginTop: '8px' }}>Open Planner to rebalance →</Link>
+        </div>
+      )}
+
       <div className="dashboard-grid">
         <div className="card">
           <h3>Upcoming Deadlines & Tasks</h3>
@@ -227,7 +400,7 @@ function Dashboard() {
                 Full Assessment →
               </Link>
             </div>
-            
+
             <div className="burnout-widget-body">
               {/* Mini score ring */}
               <div className="burnout-ring-wrapper">

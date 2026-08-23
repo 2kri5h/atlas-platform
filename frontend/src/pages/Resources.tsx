@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Plus, ThumbsUp, Edit2, Trash2, X, Search, Bookmark, Star, BookOpen, FileText, Play, Wrench, FileQuestion, ArrowRight } from 'lucide-react'
-import api from '../utils/api'
+import { Plus, ThumbsUp, Edit2, Trash2, X, Search, Bookmark, Star, BookOpen, FileText, Play, Wrench, FileQuestion, ArrowRight, HardDrive, ExternalLink } from 'lucide-react'
+import api, { googleIntegrationsAPI } from '../utils/api'
 import { Resource, RecommendedResource } from '../utils/api'
 import { DOMAINS, getDomainBadgeClass } from '../utils/helpers'
+import GoogleConnectModal from '../components/GoogleConnectModal'
 import './Resources.css'
 
 function Resources() {
@@ -19,6 +20,40 @@ function Resources() {
   const [userDomains, setUserDomains] = useState<string[]>([])
   const [editingResource, setEditingResource] = useState<Resource | null>(null)
   const [editForm, setEditForm] = useState({ title: '', description: '', url: '', domain: '', course: '', resource_type: '', is_private: false })
+
+  // Google Drive Export States
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false)
+  const [savingDriveTitle, setSavingDriveTitle] = useState<string | null>(null)
+  const [driveToast, setDriveToast] = useState<{ message: string; link?: string } | null>(null)
+
+  const handleSaveToDrive = async (item: { title: string; url?: string; course?: string; domain?: string; description?: string }) => {
+    if (!item.url) return
+    try {
+      const status = await googleIntegrationsAPI.getStatus()
+      if (!status.is_connected) {
+        setIsGoogleModalOpen(true)
+        return
+      }
+      setSavingDriveTitle(item.title)
+      const res = await googleIntegrationsAPI.exportToDrive({
+        title: item.title,
+        url: item.url,
+        course_code: item.course || item.domain || 'GENERAL',
+        year: 2026,
+        description: item.description,
+      })
+      setDriveToast({
+        message: res.message || `Saved to ${res.folder_path}`,
+        link: res.web_view_link,
+      })
+      setTimeout(() => setDriveToast(null), 5000)
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to save resource to Google Drive')
+    } finally {
+      setSavingDriveTitle(null)
+    }
+  }
+
 
   const getResourceIcon = (type: string) => {
     switch (type?.toLowerCase()) {
@@ -294,6 +329,39 @@ function Resources() {
         ))}
       </div>
 
+      {/* Drive Toast Banner */}
+      {driveToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          background: '#1e293b',
+          color: '#f8fafc',
+          padding: '12px 18px',
+          borderRadius: '10px',
+          border: '1px solid #334155',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '13px',
+        }}>
+          <HardDrive size={16} color="#34a853" />
+          <span>{driveToast.message}</span>
+          {driveToast.link && (
+            <a
+              href={driveToast.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#60a5fa', textDecoration: 'underline', marginLeft: '6px', display: 'flex', alignItems: 'center', gap: '2px' }}
+            >
+              Open in Drive <ExternalLink size={12} />
+            </a>
+          )}
+        </div>
+      )}
+
       {/* Recommended Section */}
       {recommended.filter(r => !filter || r.domain === filter).length > 0 && activeTab === 'all' && !searchQuery && (!filter || userDomains.includes(filter)) && (
         <div className="recommended-section">
@@ -307,6 +375,16 @@ function Resources() {
                   </div>
                   <div className="card-actions-right">
                     <span className="match-badge">{rec.match_score}% match</span>
+                    {rec.url && (
+                      <button
+                        className="icon-btn drive-btn"
+                        onClick={() => handleSaveToDrive(rec)}
+                        title="Save to Google Drive"
+                        disabled={savingDriveTitle === rec.title}
+                      >
+                        <HardDrive size={14} color="#34a853" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -364,6 +442,16 @@ function Resources() {
                       </button>
                     </>
                   )}
+                  {resource.url && (
+                    <button
+                      className="icon-btn drive-btn"
+                      onClick={() => handleSaveToDrive(resource)}
+                      title="Save to Google Drive"
+                      disabled={savingDriveTitle === resource.title}
+                    >
+                      <HardDrive size={14} color="#34a853" />
+                    </button>
+                  )}
                   <button
                     className={`icon-btn bookmark-btn ${resource.user_bookmarked ? 'bookmarked' : ''}`}
                     onClick={() => toggleBookmark(resource.id)}
@@ -398,6 +486,7 @@ function Resources() {
           ))}
         </div>
       )}
+
 
       {/* Edit Modal */}
       {editingResource && (
@@ -466,8 +555,15 @@ function Resources() {
           </div>
         </div>
       )}
+
+      {/* ── Google Workspace Connect Modal ── */}
+      <GoogleConnectModal
+        isOpen={isGoogleModalOpen}
+        onClose={() => setIsGoogleModalOpen(false)}
+      />
     </div>
   )
 }
 
 export default Resources
+

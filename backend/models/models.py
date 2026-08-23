@@ -42,6 +42,8 @@ class Student(Base):
     ai_chats = relationship("AIChat", back_populates="student")
     smart_suggestions = relationship("SmartSuggestion", back_populates="student")
     api_keys = relationship("UserAPIKey", back_populates="student", cascade="all, delete-orphan")
+    google_account = relationship("GoogleAccount", back_populates="student", uselist=False, cascade="all, delete-orphan")
+
 
 
 class AIChat(Base):
@@ -300,6 +302,28 @@ class UserAPIKey(Base):
     __table_args__ = (
         UniqueConstraint('student_id', 'provider', name='unique_student_provider_key'),
     )
+
+
+class GoogleAccount(Base):
+    __tablename__ = "google_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id"), unique=True, nullable=False, index=True)
+    email = Column(String(150), nullable=False)
+    name = Column(String(150), nullable=True)
+    picture = Column(String(500), nullable=True)
+    encrypted_access_token = Column(Text, nullable=False)
+    encrypted_refresh_token = Column(Text, nullable=True)
+    token_expiry = Column(DateTime, nullable=True)
+    scopes = Column(Text, nullable=True)
+    drive_root_folder_id = Column(String(100), nullable=True)
+    calendar_id = Column(String(150), nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("Student", back_populates="google_account")
+
 
 
 # Soft delete before_compile event listener

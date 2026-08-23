@@ -7,20 +7,25 @@ import {
 import { Breadcrumbs } from './Breadcrumbs'
 import PomodoroTimer from './PomodoroTimer'
 import ThemeToggle from './ThemeToggle'
+import { ToastHost } from './Toast'
 import './Layout.css'
 
 
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/resources', icon: BookOpen, label: 'Resources' },
-  //{ to: '/events', icon: Calendar, label: 'Events' },
-  { to: '/journeys', icon: Map, label: 'Journeys' },
   { to: '/planner', icon: CheckSquare, label: 'Planner' },
   { to: '/deadlines', icon: Bell, label: 'Deadlines' },
-  { to: '/anonymous', icon: MessageCircle, label: 'Anonymous' },
   { to: '/ai', icon: Bot, label: 'AI Assistant' },
-  { to: '/emails', icon: Mail, label: 'Email Service' },
+  { to: '/resources', icon: BookOpen, label: 'Resources' },
+]
+
+// Secondary items tucked into a collapsible "More" section to keep the
+// primary surfaces focused. All routes remain reachable.
+const moreNavItems = [
+  { to: '/journeys', icon: Map, label: 'Senior Journeys' },
+  { to: '/anonymous', icon: MessageCircle, label: 'Anonymous Portal' },
+  { to: '/emails', icon: Mail, label: 'Email & Sync' },
 ]
 
 // Primary items for mobile bottom bar
@@ -38,6 +43,14 @@ function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  // Auto-expand "More" when parked on a secondary page so the active item is visible
+  useEffect(() => {
+    if (moreNavItems.some(item => location.pathname.startsWith(item.to))) {
+      setMoreOpen(true)
+    }
+  }, [location.pathname])
 
   const isFullWidth = FULL_WIDTH_ROUTES.some(r => location.pathname.startsWith(r))
 
@@ -146,6 +159,30 @@ function Layout() {
               <span>{label}</span>
             </NavLink>
           ))}
+
+          {/* Collapsible secondary section */}
+          <button
+            className="nav-item nav-more-toggle"
+            onClick={() => setMoreOpen(prev => !prev)}
+            aria-expanded={moreOpen}
+            style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit' }}
+          >
+            <MoreHorizontal size={20} />
+            <span>More {moreOpen ? '▴' : '▾'}</span>
+          </button>
+          {moreOpen && moreNavItems.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }: { isActive: boolean }) =>
+                `nav-item ${isActive ? 'active' : ''}`
+              }
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <Icon size={20} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
         </nav>
 
         <div className="sidebar-footer">
@@ -206,6 +243,9 @@ function Layout() {
 
       {/* ── Global Focus Pomodoro Timer (Logs directly to Planner Telemetry) ── */}
       <PomodoroTimer />
+
+      {/* ── Global Toast Notifications ── */}
+      <ToastHost />
     </div>
   )
 }

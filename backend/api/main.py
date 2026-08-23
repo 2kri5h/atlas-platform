@@ -45,7 +45,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": f"Internal Server Error: {str(exc)}"},
     )
 
-from . import auth, resources, events, journeys, planner, anonymous, ai
+from . import auth, resources, events, journeys, planner, anonymous, ai, integrations
 try:
     from . import campus_events
     has_campus_events = True
@@ -61,6 +61,8 @@ except ImportError:
 app.include_router(auth.router, prefix=f"{settings.API_PREFIX}/auth", tags=["auth"])
 app.include_router(resources.router, prefix=f"{settings.API_PREFIX}/resources", tags=["resources"])
 app.include_router(events.router, prefix=f"{settings.API_PREFIX}/events", tags=["events"])
+app.include_router(integrations.router, prefix=f"{settings.API_PREFIX}/integrations", tags=["integrations"])
+
 
 if has_emails:
     app.include_router(emails.router, prefix="/api/emails", tags=["emails"])

@@ -5,11 +5,14 @@ import {
   X, Loader2, Scan, Copy, RefreshCw, MapPin, Clock,
   CheckSquare, FileText, Calendar as CalendarIcon, Bell
 } from 'lucide-react'
-import api from '../utils/api'
+
+import api, { googleIntegrationsAPI } from '../utils/api'
 import { PlannerEvent, TimetableEntry } from '../utils/api'
 import { usePlannerData } from '../hooks/usePlannerData'
 import { getDeterministicColor, getEventShortLabel } from '../utils/colorPalette'
+import GoogleConnectModal from '../components/GoogleConnectModal'
 import './Planner.css'
+
 
 // ─── Comment & Checkpoint Types ───────────────────────────────────────────────
 export interface CheckpointItem {
@@ -521,6 +524,32 @@ function Planner() {
   const [showUndo, setShowUndo] = useState(false)
   const undoTimer = useRef<ReturnType<typeof setTimeout>>()
 
+  // ── Google Calendar Sync States ──────────────────────────────────────────
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false)
+  const [isSyncingCalendar, setIsSyncingCalendar] = useState(false)
+  const [calendarSyncToast, setCalendarSyncToast] = useState<string | null>(null)
+
+  const handleSyncGoogleCalendar = async () => {
+    try {
+      setIsSyncingCalendar(true)
+      const status = await googleIntegrationsAPI.getStatus()
+      if (!status.is_connected) {
+        setIsGoogleModalOpen(true)
+        return
+      }
+      const [ttRes, dlRes] = await Promise.all([
+        googleIntegrationsAPI.syncTimetableToCalendar(),
+        googleIntegrationsAPI.syncDeadlinesToCalendar(),
+      ])
+      setCalendarSyncToast(`Google Calendar synced: ${ttRes.synced_count} classes, ${dlRes.synced_count} deadlines.`)
+      setTimeout(() => setCalendarSyncToast(null), 5000)
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to sync with Google Calendar')
+    } finally {
+      setIsSyncingCalendar(false)
+    }
+  }
+
   // ── OCR ────────────────────────────────────────────────────────────────────
   const [showOcr, setShowOcr] = useState(false)
   const [timetableImage, setTimetableImage] = useState<string | null>(null)
@@ -530,6 +559,7 @@ function Planner() {
   const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+
 
   const handleDeduplicateEntries = () => {
     const seen = new Set<string>()
@@ -926,6 +956,15 @@ function Planner() {
               <Scan size={15} /> Timetable AI
             </button>
             <button
+              className="ocr-btn"
+              onClick={handleSyncGoogleCalendar}
+              disabled={isSyncingCalendar}
+              title="Sync timetable classes & deadlines to Google Calendar"
+              style={{ background: 'rgba(66, 133, 244, 0.12)', borderColor: 'rgba(66, 133, 244, 0.35)', color: '#60a5fa' }}
+            >
+              <CalendarIcon size={15} /> {isSyncingCalendar ? 'Syncing...' : 'Sync Calendar'}
+            </button>
+            <button
               className="danger-btn clear-tt-btn"
               onClick={handleClearTimetable}
               title="Clear all imported timetable classes"
@@ -935,6 +974,31 @@ function Planner() {
           </div>
         </div>
       </div>
+
+      {/* ── Calendar Sync Toast Notification ── */}
+      {calendarSyncToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          background: '#1e293b',
+          color: '#f8fafc',
+          padding: '12px 20px',
+          borderRadius: '10px',
+          border: '1px solid #3b82f6',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.35)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '13px',
+          fontWeight: 500,
+        }}>
+          <CalendarIcon size={16} color="#60a5fa" />
+          <span>{calendarSyncToast}</span>
+        </div>
+      )}
+
 
       {/* ── Mobile Day Selector Strip (Visible on mobile/tablet) ── */}
       {viewMode !== 'month' && (
@@ -1853,8 +1917,14 @@ function Planner() {
       >
         <Plus size={24} />
       </button>
+
+      {/* ── Google Workspace Connect Modal ── */}
+      <GoogleConnectModal
+        isOpen={isGoogleModalOpen}
+        onClose={() => setIsGoogleModalOpen(false)}
+      />
     </div>
   )
 }
 
-export default Planner
+export default Planner

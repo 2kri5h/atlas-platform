@@ -15,6 +15,7 @@ from .models import (
     AIMessage,
     SmartSuggestion,
     UserAPIKey,
+    GoogleAccount,
 )
 
 __all__ = [
@@ -34,4 +35,6 @@ __all__ = [
     "AIMessage",
     "SmartSuggestion",
     "UserAPIKey",
+    "GoogleAccount",
 ]
+

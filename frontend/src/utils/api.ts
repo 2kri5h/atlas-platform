@@ -1,5 +1,10 @@
 import axios from 'axios'
 
+export const getApiOrigin = () => {
+  const envUrl = (import.meta as any).env?.VITE_API_URL
+  return envUrl ? envUrl.replace(/\/$/, '') : ''
+}
+
 const getBaseUrl = () => {
   const envUrl = (import.meta as any).env?.VITE_API_URL
   if (envUrl) {
@@ -22,6 +27,20 @@ api.interceptors.request.use((config) => {
   }
   return config
 })
+
+// On an expired/invalid session, clear the token and send the user to login
+// instead of leaving them on a page full of failed requests.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && !window.location.pathname.startsWith('/login')) {
+      localStorage.removeItem('token')
+      delete api.defaults.headers.common['Authorization']
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
 
 export default api
 
@@ -226,6 +245,62 @@ export interface DeadlineWithSubtasks extends PlannerEvent {
   subtasks: DeadlineSubtask[]
 }
 
+/* ── Unified Today Dashboard (GET /dashboard/today) ── */
+
+export interface TodayTimetableBlock {
+  id: number
+  title: string
+  start_time: string
+  end_time: string
+  location: string
+  category: string
+  tag: string
+  is_recurring: boolean
+  link: string
+}
+
+export interface TodayDeadline {
+  id: number
+  title: string
+  deadline_date: string | null
+  deadline_label: string
+  overdue: boolean
+}
+
+export interface TodayTask {
+  id: number
+  title: string
+  priority: number
+  estimated_hours: number
+  due_date: string | null
+  overdue: boolean
+}
+
+export interface TodayDashboardData {
+  date: string
+  timetable: TodayTimetableBlock[]
+  deadlines: { overdue: TodayDeadline[]; due_soon: TodayDeadline[] }
+  tasks: { open_count: number; overdue_count: number; next_tasks: TodayTask[] }
+  burnout: {
+    exists: boolean
+    score?: number
+    risk_level?: string
+    ml_score?: number
+    telemetry_score?: number
+    created_at?: string | null
+  }
+  working_hours_today: number
+}
+
+export const dashboardAPI = {
+  getToday: async (horizonHours = 48): Promise<TodayDashboardData> => {
+    const res = await api.get<TodayDashboardData>('/dashboard/today', {
+      params: { horizon_hours: horizonHours },
+    })
+    return res.data
+  },
+}
+
 export const deadlineAPI = {
   getDeadlines: async (): Promise<DeadlineWithSubtasks[]> => {
     const res = await api.get<DeadlineWithSubtasks[]>('/planner/deadlines')
@@ -284,32 +359,101 @@ export const deadlineAPI = {
   },
 }
 
+export interface ExtractedLink {
+  title: string
+  url: string
+  type: 'submission' | 'meeting' | 'form' | 'doc' | 'portal' | 'other' | string
+  email_subject?: string
+}
+
+export interface ActionItem {
+  task: string
+  deadline?: string | null
+  urgency: 'HIGH' | 'MEDIUM' | 'LOW' | string
+  completed?: boolean
+  email_id?: number | string
+  email_subject?: string
+}
+
+export interface DailyDigestSummaryBullet {
+  category: string
+  importance: string
+  subject: string
+  text: string
+  sender: string
+  has_action: boolean
+  has_deadline: boolean
+}
+
+export interface DailyDigest {
+  date: string
+  display_date: string
+  relative_tag: string
+  full_date: string
+  diff_days: number
+  priority_score: 'HIGH' | 'MEDIUM' | 'LOW'
+  priority_label: string
+  email_count: number
+  deadlines_count: number
+  action_items_count: number
+  links_count: number
+  summary_bullets: DailyDigestSummaryBullet[]
+  deadlines: any[]
+  action_items: ActionItem[]
+  key_links: ExtractedLink[]
+}
+
 export interface EmailEvent {
-  id: number
+  id: number | string
   title: string
   event_type: string
   event_date?: string
   event_time?: string
   location?: string
-  confidence: string
+  confidence?: string | number
+  urgency?: string
+  category?: string
 }
 
 export interface EmailRecord {
-  id: number
+  id: number | string
   subject: string
   sender: string
   category: string
   importance: string
   summary: string
+  structured_summary?: string
   body?: string
+  body_snippet?: string
   received_at?: string
   date_received?: string
   date?: string
   created_at?: string
   timestamp?: string
   email_date?: string
+  is_archived?: boolean
+  links?: ExtractedLink[]
+  action_items?: ActionItem[]
   events: EmailEvent[]
 }
+
+export const emailsAPI = {
+  getDailyDigest: async (maxDays = 3): Promise<{ digests: DailyDigest[]; count: number }> => {
+    const res = await api.get<{ digests: DailyDigest[]; count: number }>('/emails/daily-digest', {
+      params: { max_days: maxDays },
+    })
+    return res.data
+  },
+  listEmails: async (): Promise<EmailRecord[]> => {
+    const res = await api.get<EmailRecord[]>('/emails/')
+    return res.data
+  },
+  fetchEmails: async (): Promise<{ status: string; ai_processing: boolean; model?: string }> => {
+    const res = await api.post<{ status: string; ai_processing: boolean; model?: string }>('/emails/fetch')
+    return res.data
+  },
+}
+
 
 export interface UserAPIKey {
   id: number
@@ -364,5 +508,63 @@ export const apiKeysAPI = {
     return res.data
   },
 }
+
+export interface GoogleAccountStatus {
+  is_connected: boolean
+  email?: string
+  name?: string
+  picture?: string
+  scopes: string[]
+  is_sandbox?: boolean
+}
+
+export const googleIntegrationsAPI = {
+  getStatus: async (): Promise<GoogleAccountStatus> => {
+    const res = await api.get<GoogleAccountStatus>('/integrations/google/status')
+    return res.data
+  },
+  getAuthUrl: async (redirectUri?: string): Promise<{ auth_url: string; is_configured: boolean }> => {
+    const res = await api.get<{ auth_url: string; is_configured: boolean }>('/integrations/google/auth-url', {
+      params: { redirect_uri: redirectUri },
+    })
+    return res.data
+  },
+  handleCallback: async (code: string, redirectUri?: string): Promise<{ status: string; message: string; email: string }> => {
+    const res = await api.post<{ status: string; message: string; email: string }>('/integrations/google/callback', {
+      code,
+      redirect_uri: redirectUri,
+    })
+    return res.data
+  },
+  disconnect: async (): Promise<{ status: string; message: string }> => {
+    const res = await api.post<{ status: string; message: string }>('/integrations/google/disconnect')
+    return res.data
+  },
+  getGmailMessages: async (maxResults: number = 20, query?: string): Promise<{ status: string; messages: any[]; count: number; ai_enriched: boolean }> => {
+    const res = await api.get<{ status: string; messages: any[]; count: number; ai_enriched: boolean }>('/integrations/google/gmail/messages', {
+      params: { max_results: maxResults, query },
+    })
+    return res.data
+  },
+  getGmailDailyDigest: async (maxDays = 3): Promise<{ digests: DailyDigest[]; count: number }> => {
+    const res = await api.get<{ digests: DailyDigest[]; count: number }>('/integrations/google/gmail/daily-digest', {
+      params: { max_days: maxDays },
+    })
+    return res.data
+  },
+  exportToDrive: async (payload: { title: string; url: string; course_code: string; year?: number; description?: string }): Promise<{ status: string; file_id: string; web_view_link: string; folder_path: string; message: string }> => {
+    const res = await api.post<{ status: string; file_id: string; web_view_link: string; folder_path: string; message: string }>('/integrations/google/drive/export', payload)
+    return res.data
+  },
+  syncTimetableToCalendar: async (): Promise<{ status: string; calendar_id: string; synced_count: number; message: string }> => {
+    const res = await api.post<{ status: string; calendar_id: string; synced_count: number; message: string }>('/integrations/google/calendar/sync-timetable')
+    return res.data
+  },
+  syncDeadlinesToCalendar: async (): Promise<{ status: string; calendar_id: string; synced_count: number; message: string }> => {
+    const res = await api.post<{ status: string; calendar_id: string; synced_count: number; message: string }>('/integrations/google/calendar/sync-deadlines')
+    return res.data
+  },
+}
+
 
 

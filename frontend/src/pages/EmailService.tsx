@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import api, { apiKeysAPI, UserAPIKey } from '../utils/api'
+import api, { apiKeysAPI, googleIntegrationsAPI, UserAPIKey, GoogleAccountStatus } from '../utils/api'
 import type { EmailRecord } from '../utils/api'
 import ApiKeyVaultModal from '../components/ApiKeyVaultModal'
+import GoogleConnectModal from '../components/GoogleConnectModal'
 import './EmailService.css'
 import { 
   Clock, 
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react'
 
 
+
 export default function EmailService() {
   const [searchParams] = useSearchParams()
   const initialTab = searchParams.get('tab') === 'events' ? 'events' : 'all'
@@ -29,16 +31,20 @@ export default function EmailService() {
   const [imapEmail, setImapEmail] = useState('')
   const [imapToken, setImapToken] = useState('')
   const [emails, setEmails] = useState<EmailRecord[]>([])
+  const [gmailEmails, setGmailEmails] = useState<EmailRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [registered, setRegistered] = useState(false)
   const [tab, setTab] = useState<'all' | 'events'>(initialTab)
+  
+  // Google Workspace Integration States
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false)
+  const [googleStatus, setGoogleStatus] = useState<GoogleAccountStatus | null>(null)
   
   // BYOK Key Vault States
   const [isVaultOpen, setIsVaultOpen] = useState(false)
   const [hasKey, setHasKey] = useState(false)
   const [activeKey, setActiveKey] = useState<UserAPIKey | null>(null)
 
-  
   // Sync tab with URL query parameter changes
   useEffect(() => {
     const tabParam = searchParams.get('tab')
@@ -67,17 +73,64 @@ export default function EmailService() {
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    async function loadExisting() {
-      try {
-        const res = await api.get<EmailRecord[]>('/emails/')
-        setEmails(res.data)
-        setRegistered(true)
-      } catch {
-        // not registered yet
-      }
-    }
     loadExisting()
+    checkGoogleStatus()
   }, [])
+
+  const checkGoogleStatus = async () => {
+    try {
+      const data = await googleIntegrationsAPI.getStatus()
+      setGoogleStatus(data)
+      if (data.is_connected) {
+        fetchGmailMessages()
+      }
+    } catch (err) {
+      console.error('Failed to check Google status', err)
+    }
+  }
+
+  const fetchGmailMessages = async () => {
+    try {
+      const res = await googleIntegrationsAPI.getGmailMessages(30)
+      const mapped: EmailRecord[] = res.messages.map((m: any) => ({
+        id: m.id,
+        subject: m.subject,
+        sender: m.sender_name ? `${m.sender_name} <${m.sender_email}>` : m.sender_email,
+        category: m.category || 'PERSONAL',
+        importance: m.urgency || m.event_urgency || 'MEDIUM',
+        summary: m.body_snippet || m.subject,
+        body: m.body_snippet,
+        received_at: m.date,
+        date_received: m.date,
+        date: m.date,
+        events: m.is_event ? [{
+          id: `${m.id}_ev`,
+          title: m.event_title || m.subject,
+          event_date: m.event_date,
+          event_time: m.event_time,
+          location: m.event_location,
+          event_type: m.event_category,
+          urgency: m.event_urgency,
+          category: m.event_category,
+          confidence: 0.95,
+        }] : [],
+
+      }))
+      setGmailEmails(mapped)
+    } catch (err) {
+      console.error('Failed to fetch Gmail messages', err)
+    }
+  }
+
+  async function loadExisting() {
+    try {
+      const res = await api.get<EmailRecord[]>('/emails/')
+      setEmails(res.data)
+      setRegistered(true)
+    } catch {
+      // not registered yet
+    }
+  }
 
   function showToast(msg: string) {
     setToastMessage(msg)
@@ -109,10 +162,15 @@ export default function EmailService() {
   async function handleFetch() {
     setLoading(true)
     try {
-      await api.post('/emails/fetch')
-      const res = await api.get<EmailRecord[]>('/emails/')
-      setEmails(res.data)
-      showToast('Emails updated!')
+      if (inboxSource === 'iitb') {
+        await api.post('/emails/fetch')
+        const res = await api.get<EmailRecord[]>('/emails/')
+        setEmails(res.data)
+        showToast('IITB Webmail updated!')
+      } else {
+        await fetchGmailMessages()
+        showToast('Personal Gmail updated!')
+      }
     } catch (err) {
       alert('Fetch failed: ' + err)
     } finally {
@@ -188,11 +246,15 @@ export default function EmailService() {
     }
   }
 
+  const activeEmailsList = useMemo(() => {
+    return inboxSource === 'iitb' ? emails : gmailEmails
+  }, [inboxSource, emails, gmailEmails])
+
   const allEvents = useMemo(() => {
-    return emails.flatMap((email) =>
+    return activeEmailsList.flatMap((email) =>
       (email.events || []).map((ev) => ({ ...ev, emailSubject: email.subject }))
     )
-  }, [emails])
+  }, [activeEmailsList])
 
   const filteredEvents = useMemo(() => {
     return allEvents.filter(ev => {
@@ -208,7 +270,7 @@ export default function EmailService() {
   }, [allEvents, eventSearch, eventCategoryFilter])
 
   const filteredEmails = useMemo(() => {
-    return emails.filter(em => {
+    return activeEmailsList.filter(em => {
       const matchesSearch = !emailSearch.trim() ||
         em.subject?.toLowerCase().includes(emailSearch.toLowerCase()) ||
         em.sender?.toLowerCase().includes(emailSearch.toLowerCase()) ||
@@ -219,7 +281,8 @@ export default function EmailService() {
 
       return matchesSearch && matchesCat
     })
-  }, [emails, emailSearch, emailCategoryFilter])
+  }, [activeEmailsList, emailSearch, emailCategoryFilter])
+
 
   // Extract a clean display date directly from email data
   const formatEmailDate = (email: EmailRecord) => {
@@ -454,8 +517,8 @@ export default function EmailService() {
         </div>
       </div>
 
-      {/* Gmail OAuth Coming Soon Banner */}
-      {inboxSource === 'gmail' && (
+      {/* Gmail OAuth View */}
+      {inboxSource === 'gmail' && !googleStatus?.is_connected && (
         <div style={{
           padding: '24px',
           background: 'rgba(99, 102, 241, 0.06)',
@@ -467,24 +530,70 @@ export default function EmailService() {
           <Globe size={32} color="#6366f1" style={{ marginBottom: '8px' }} />
           <h3 style={{ margin: '0 0 6px', color: '#f8fafc' }}>Personal Gmail Integration</h3>
           <p style={{ fontSize: '13px', color: '#94a3b8', maxWidth: '480px', margin: '0 auto 16px' }}>
-            Sync personal Gmail alongside your IIT Bombay Webmail. Auto-categorize course notices, assignment emails, and recruiter updates.
+            Sync personal Gmail alongside your IIT Bombay Webmail. Auto-categorize course notices, assignment emails, and recruiter updates with AI.
           </p>
           <button
             type="button"
-            onClick={() => alert('Google Workspace OAuth integration will be configured in Phase 3. IIT Bombay Webmail (IMAP) is fully active now!')}
+            onClick={() => setIsGoogleModalOpen(true)}
             style={{
-              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              background: 'linear-gradient(135deg, #4285f4, #34a853)',
               color: '#fff',
               border: 'none',
-              padding: '8px 18px',
+              padding: '10px 20px',
               borderRadius: '8px',
               fontSize: '13px',
               fontWeight: 600,
               cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(66, 133, 244, 0.35)',
             }}
           >
             Connect Google Account
           </button>
+        </div>
+      )}
+
+      {/* Gmail Connected Account Bar */}
+      {inboxSource === 'gmail' && googleStatus?.is_connected && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          background: 'rgba(66, 133, 244, 0.08)',
+          border: '1px solid rgba(66, 133, 244, 0.25)',
+          borderRadius: '10px',
+          marginBottom: '16px',
+          flexWrap: 'wrap',
+          gap: '8px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Globe size={18} color="#4285f4" />
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
+                Connected as {googleStatus.name || 'Google User'} ({googleStatus.email})
+              </div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                Gmail, Google Drive & Google Calendar 2-Way Sync Active
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setIsGoogleModalOpen(true)}
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#cbd5e1',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              Manage Google
+            </button>
+          </div>
         </div>
       )}
 
@@ -516,7 +625,7 @@ export default function EmailService() {
       )}
 
       {/* Main Navigation Tabs */}
-      {inboxSource === 'iitb' && (
+      {((inboxSource === 'iitb' && registered) || (inboxSource === 'gmail' && googleStatus?.is_connected)) && (
         <div className="email-nav-tabs">
           <button
             onClick={() => setTab('all')}
@@ -525,7 +634,7 @@ export default function EmailService() {
             <Mail size={16} />
             <span>All Emails</span>
             <span className="email-nav-tab-count">
-              {emails.length}
+              {activeEmailsList.length}
             </span>
           </button>
 
@@ -541,6 +650,7 @@ export default function EmailService() {
           </button>
         </div>
       )}
+
 
 
       {/* ───────────────── TAB 1: ALL EMAILS (CLEAN & RESPONSIVE) ───────────────── */}
@@ -945,6 +1055,19 @@ export default function EmailService() {
         }}
         onKeyUpdated={checkKeys}
       />
+
+      {/* ── Google Workspace Connect Modal ── */}
+      <GoogleConnectModal
+        isOpen={isGoogleModalOpen}
+        onClose={() => setIsGoogleModalOpen(false)}
+        onStatusChange={(status) => {
+          setGoogleStatus(status)
+          if (status.is_connected) {
+            fetchGmailMessages()
+          }
+        }}
+      />
     </div>
   )
-}
+}
+
