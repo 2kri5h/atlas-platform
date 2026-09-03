@@ -529,10 +529,11 @@ export const googleIntegrationsAPI = {
     })
     return res.data
   },
-  handleCallback: async (code: string, redirectUri?: string): Promise<{ status: string; message: string; email: string }> => {
+  handleCallback: async (code: string, redirectUri?: string, state?: string): Promise<{ status: string; message: string; email: string }> => {
     const res = await api.post<{ status: string; message: string; email: string }>('/integrations/google/callback', {
       code,
       redirect_uri: redirectUri,
+      state,
     })
     return res.data
   },

@@ -13,6 +13,7 @@ import Anonymous from './pages/Anonymous'
 import AIAssistant from './pages/AIAssistant'
 import Profile from './pages/Profile'
 import EmailService from './pages/EmailService'
+import GoogleCallback from './pages/GoogleCallback'
 import NotFound from './pages/NotFound'
 import api from './utils/api'
 
@@ -59,6 +60,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/integrations/google/callback" element={<ProtectedRoute><GoogleCallback /></ProtectedRoute>} />
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="resources" element={<Resources />} />

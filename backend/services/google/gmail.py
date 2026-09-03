@@ -251,9 +251,64 @@ def _get_sandbox_gmail_messages() -> List[Dict[str, Any]]:
     ]
 
 
+def _extract_body_from_gmail_payload(payload: Dict[str, Any]) -> tuple[str, str]:
+    """Recursively extract (plain_text, html_text) from a Gmail message payload."""
+    plain_text = ""
+    html_text = ""
+
+    def _decode_data(data_str: str) -> str:
+        if not data_str:
+            return ""
+        try:
+            padded = data_str + "=" * ((4 - len(data_str) % 4) % 4)
+            decoded_bytes = base64.urlsafe_b64decode(padded.replace("-", "+").replace("_", "/"))
+            return decoded_bytes.decode("utf-8", errors="replace")
+        except Exception:
+            return ""
+
+    def _walk_parts(part: Dict[str, Any]):
+        nonlocal plain_text, html_text
+        mime_type = part.get("mimeType", "").lower()
+        body_data = part.get("body", {}).get("data", "")
+
+        if mime_type == "text/plain" and body_data and not plain_text:
+            plain_text = _decode_data(body_data)
+        elif mime_type == "text/html" and body_data and not html_text:
+            html_text = _decode_data(body_data)
+
+        for sub_part in part.get("parts", []):
+            _walk_parts(sub_part)
+
+    # Check top-level payload body first
+    top_mime = payload.get("mimeType", "").lower()
+    top_body = payload.get("body", {}).get("data", "")
+    if top_mime == "text/plain" and top_body:
+        plain_text = _decode_data(top_body)
+    elif top_mime == "text/html" and top_body:
+        html_text = _decode_data(top_body)
+
+    # Check multipart hierarchy
+    _walk_parts(payload)
+
+    if not plain_text and html_text:
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html_text, "html.parser")
+            for tag in soup(["script", "style"]):
+                tag.decompose()
+            plain_text = soup.get_text(separator="\n").strip()
+        except Exception:
+            import re
+            clean = re.sub(r"<(script|style)[^>]*>.*?</\1>", "", html_text, flags=re.DOTALL | re.IGNORECASE)
+            plain_text = re.sub(r"<[^>]+>", " ", clean).strip()
+
+    return plain_text, html_text
+
+
 def _parse_gmail_message_payload(msg_data: Dict[str, Any]) -> Dict[str, Any]:
     """Parse a single Gmail API message into a structured record with links and actions."""
-    headers_list = msg_data.get("payload", {}).get("headers", [])
+    payload = msg_data.get("payload", {})
+    headers_list = payload.get("headers", [])
     headers = {h["name"].lower(): h["value"] for h in headers_list}
 
     subject = headers.get("subject", "No Subject")
@@ -268,10 +323,12 @@ def _parse_gmail_message_payload(msg_data: Dict[str, Any]) -> Dict[str, Any]:
         sender_email = parts[1].replace(">", "").strip()
 
     snippet = msg_data.get("snippet", "")
+    plain_body, html_body = _extract_body_from_gmail_payload(payload)
+    effective_body = plain_body if plain_body.strip() else snippet
 
-    # Extract links and action items heuristically
-    links = extract_links_heuristic(snippet)
-    action_items = extract_action_items_heuristic(snippet, subject)
+    # Extract links and action items from full body (or snippet)
+    links = extract_links_heuristic(effective_body)
+    action_items = extract_action_items_heuristic(effective_body, subject)
 
     return {
         "id": f"gmail_{msg_data.get('id')}",
@@ -283,8 +340,8 @@ def _parse_gmail_message_payload(msg_data: Dict[str, Any]) -> Dict[str, Any]:
         "date": date_header,
         "email_date": date_header,
         "body_snippet": snippet,
-        "body": snippet,
-        "summary": snippet,
+        "body": effective_body,
+        "summary": snippet or (effective_body[:200] + "..."),
         "structured_summary": f"• {subject}\n• From: {sender_name}\n• Date: {date_header}",
         "links": links,
         "action_items": action_items,
@@ -319,14 +376,16 @@ def fetch_recent_gmail_messages(
     headers = {"Authorization": f"Bearer {access_token}"}
     params: Dict[str, Any] = {
         "maxResults": min(max_results, 50),
-        "q": query or "category:primary OR category:updates OR subject:(interview OR assignment OR deadline OR hackathon OR offer OR quiz)",
     }
+    # Only filter by query if explicitly provided; otherwise fetch standard inbox
+    if query:
+        params["q"] = query
 
     try:
         list_resp = requests.get(f"{GMAIL_API_BASE}/messages", headers=headers, params=params, timeout=15)
         if list_resp.status_code != 200:
-            logger.error(f"[Gmail API] Error listing messages: {list_resp.text}")
-            return _get_sandbox_gmail_messages()
+            logger.error(f"[Gmail API] Error listing messages ({list_resp.status_code}): {list_resp.text}")
+            return []
 
         message_ids = [m["id"] for m in list_resp.json().get("messages", [])]
         if not message_ids:
@@ -337,7 +396,7 @@ def fetch_recent_gmail_messages(
             get_resp = requests.get(
                 f"{GMAIL_API_BASE}/messages/{mid}",
                 headers=headers,
-                params={"format": "metadata", "metadataHeaders": ["From", "Subject", "Date", "To"]},
+                params={"format": "full"},
                 timeout=10,
             )
             if get_resp.status_code == 200:
@@ -355,4 +414,4 @@ def fetch_recent_gmail_messages(
         return results
     except Exception as e:
         logger.error(f"[Gmail API] Exception fetching emails: {e}")
-        return _get_sandbox_gmail_messages()
+        return []

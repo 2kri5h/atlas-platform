@@ -50,27 +50,19 @@ export default function GoogleConnectModal({ isOpen, onClose, onStatusChange }: 
     }
   }
 
-  const handleConnect = async (useSandbox: boolean = false) => {
+  const handleConnect = async () => {
     setConnecting(true)
     setError(null)
     setSuccessMsg(null)
     try {
-      if (useSandbox) {
-        // Direct sandbox token exchange for immediate testing
-        const res = await googleIntegrationsAPI.handleCallback('sandbox_demo_code')
-        setSuccessMsg(res.message)
-        await loadStatus()
-      } else {
-        const { auth_url, is_configured } = await googleIntegrationsAPI.getAuthUrl()
-        if (!is_configured) {
-          // Fallback to sandbox mode if client ID is not configured
-          const res = await googleIntegrationsAPI.handleCallback('sandbox_demo_code')
-          setSuccessMsg('Sandbox Connected: ' + res.message)
-          await loadStatus()
-        } else {
-          window.location.href = auth_url
-        }
+      const redirectUri = window.location.origin + '/integrations/google/callback'
+      const { auth_url, is_configured } = await googleIntegrationsAPI.getAuthUrl(redirectUri)
+      if (!is_configured) {
+        setError('Google OAuth is not configured on the server. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.')
+        return
       }
+      // Redirect to Google's official OAuth consent screen
+      window.location.href = auth_url
     } catch (err: any) {
       console.error('Failed to connect Google account', err)
       setError(err.response?.data?.detail || 'Failed to initiate Google connection.')
@@ -234,7 +226,7 @@ export default function GoogleConnectModal({ isOpen, onClose, onStatusChange }: 
                 <button
                   type="button"
                   className="google-primary-connect-btn"
-                  onClick={() => handleConnect(false)}
+                  onClick={handleConnect}
                   disabled={connecting}
                 >
                   <Globe size={18} />
