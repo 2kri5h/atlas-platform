@@ -48,6 +48,14 @@ class BaseLLMAdapter(ABC):
     def validate_key(self) -> Tuple[bool, Optional[str]]:
         pass
 
+    def generate_stream(self, prompt: str, system_prompt: Optional[str] = None):
+        """Yield response text incrementally.
+
+        Default implementation falls back to a single blocking generate() call so
+        every provider works; subclasses override with true SSE streaming.
+        """
+        yield self.generate(prompt, system_prompt=system_prompt)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Google Gemini Adapter (Supports Gemini 2.5 Pro/Flash, 2.0, 1.5)
@@ -127,6 +135,46 @@ class GeminiAdapter(BaseLLMAdapter):
         except Exception as e:
             raise LLMServiceError(f"Gemini generation failed: {str(e)}")
 
+    def generate_stream(self, prompt: str, system_prompt: Optional[str] = None):
+        """Stream via Gemini's SSE endpoint (streamGenerateContent?alt=sse)."""
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}"
+            f":streamGenerateContent?alt=sse&key={self.api_key}"
+        )
+        parts = []
+        if system_prompt:
+            parts.append({"text": f"System Instructions: {system_prompt}\n\n"})
+        parts.append({"text": prompt})
+        payload = {"contents": [{"parts": parts}]}
+        try:
+            with requests.post(
+                url, json=payload, headers={"Content-Type": "application/json"},
+                timeout=180, stream=True,
+            ) as res:
+                if res.status_code != 200:
+                    raise LLMServiceError(
+                        f"Gemini stream error ({res.status_code}): {res.text[:300]}"
+                    )
+                for line in res.iter_lines(decode_unicode=True):
+                    if not line or not line.startswith("data:"):
+                        continue
+                    data_str = line[5:].strip()
+                    if not data_str:
+                        continue
+                    try:
+                        chunk = json.loads(data_str)
+                        candidates = chunk.get("candidates") or [{}]
+                        parts_list = (candidates[0].get("content") or {}).get("parts") or []
+                        text = "".join(p.get("text", "") for p in parts_list)
+                    except Exception:
+                        continue
+                    if text:
+                        yield text
+        except LLMServiceError:
+            raise
+        except Exception as e:
+            raise LLMServiceError(f"Gemini streaming failed: {str(e)}")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Anthropic Claude Adapter (Supports Claude 3.7 Sonnet, 3.5 Sonnet, 3.5 Haiku)
@@ -192,6 +240,49 @@ class AnthropicAdapter(BaseLLMAdapter):
                 raise LLMServiceError(f"Anthropic error ({res.status_code}): {msg}")
         except Exception as e:
             raise LLMServiceError(f"Anthropic call failed: {str(e)}")
+
+    def generate_stream(self, prompt: str, system_prompt: Optional[str] = None):
+        """Stream via Anthropic SSE (message_start / content_block_delta events)."""
+        url = f"{self.base_url.rstrip('/')}/messages"
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }
+        payload = {
+            "model": self.model,
+            "max_tokens": 4096,
+            "stream": True,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        if system_prompt:
+            payload["system"] = system_prompt
+        try:
+            with requests.post(url, json=payload, headers=headers, timeout=180, stream=True) as res:
+                if res.status_code != 200:
+                    raise LLMServiceError(
+                        f"Anthropic stream error ({res.status_code}): {res.text[:300]}"
+                    )
+                for line in res.iter_lines(decode_unicode=True):
+                    if not line or not line.startswith("data:"):
+                        continue
+                    data_str = line[5:].strip()
+                    if not data_str:
+                        continue
+                    try:
+                        event = json.loads(data_str)
+                    except Exception:
+                        continue
+                    if event.get("type") == "content_block_delta":
+                        text = (event.get("delta") or {}).get("text", "")
+                        if text:
+                            yield text
+                    elif event.get("type") == "error":
+                        raise LLMServiceError(f"Anthropic stream error: {event}")
+        except LLMServiceError:
+            raise
+        except Exception as e:
+            raise LLMServiceError(f"Anthropic streaming failed: {str(e)}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -339,6 +430,56 @@ class OpenAICompatibleAdapter(BaseLLMAdapter):
                 raise LLMServiceError(f"{self.provider_id.capitalize()} error ({res.status_code}): {msg}")
         except Exception as e:
             raise LLMServiceError(f"{self.provider_id.capitalize()} call failed: {str(e)}")
+
+    def generate_stream(self, prompt: str, system_prompt: Optional[str] = None):
+        """Stream via OpenAI-compatible SSE (choices[0].delta.content chunks)."""
+        url = self._get_chat_url()
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        is_o_series = self.model.startswith("o1") or self.model.startswith("o3")
+        messages = []
+        if system_prompt:
+            role = "developer" if is_o_series else "system"
+            messages.append({"role": role, "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        payload: Dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "stream": True,
+        }
+
+        try:
+            with requests.post(url, json=payload, headers=headers, timeout=180, stream=True) as res:
+                if res.status_code != 200:
+                    try:
+                        data = res.json()
+                        msg = data.get("error", {}).get("message", res.text)
+                    except Exception:
+                        msg = res.text
+                    raise LLMServiceError(
+                        f"{self.provider_id.capitalize()} stream error ({res.status_code}): {msg[:300]}"
+                    )
+                for line in res.iter_lines(decode_unicode=True):
+                    if not line or not line.startswith("data:"):
+                        continue
+                    data_str = line[5:].strip()
+                    if not data_str or data_str == "[DONE]":
+                        continue
+                    try:
+                        chunk = json.loads(data_str)
+                        delta = (chunk.get("choices") or [{}])[0].get("delta") or {}
+                        text = delta.get("content") or ""
+                    except Exception:
+                        continue
+                    if text:
+                        yield text
+        except LLMServiceError:
+            raise
+        except Exception as e:
+            raise LLMServiceError(f"{self.provider_id.capitalize()} streaming failed: {str(e)}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -554,7 +695,12 @@ def get_user_llm(student_id: int, db: Session) -> Optional[BaseLLMAdapter]:
 # High-Level Feature Runners (Gated by User Key)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def run_chat_with_mentor(student: Student, history: List[AIMessage], resource_context: str, user_llm: BaseLLMAdapter) -> str:
+def build_mentor_prompts(
+    student: Student,
+    history: List[AIMessage],
+    resource_context: str,
+) -> Tuple[str, str]:
+    """Build (system_prompt, user_prompt) for the AI mentor. Shared by sync+stream paths."""
     conversation = ""
     for message in history:
         role = "User" if message.role == "user" else "Assistant"
@@ -577,6 +723,11 @@ Conversation History:
 
 Reply as the Assistant with personalized advice for {student.name}."""
 
+    return system_prompt, user_prompt
+
+
+def run_chat_with_mentor(student: Student, history: List[AIMessage], resource_context: str, user_llm: BaseLLMAdapter) -> str:
+    system_prompt, user_prompt = build_mentor_prompts(student, history, resource_context)
     return user_llm.generate(user_prompt, system_prompt=system_prompt)
 
 

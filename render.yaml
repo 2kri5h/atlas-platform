@@ -1,4 +1,18 @@
 services:
+  # Daily deadline-reminder email sweep (08:00 UTC). Requires CRON_SECRET +
+  # SMTP_* env vars on the backend service for actual email delivery.
+  - type: cron
+    name: itsp-reminders-cron
+    runtime: python
+    schedule: "0 8 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: >
+      sh -c "curl -sf -X POST ${RENDER_EXTERNAL_URL}/api/internal/cron/reminders
+      -H 'X-Cron-Secret: ${CRON_SECRET}' || echo 'reminder sweep failed'"
+    envVars:
+      - key: CRON_SECRET
+        sync: false
+
   - type: web
     name: itsp-backend
     env: python
@@ -22,5 +36,11 @@ services:
         value: sqlite:///./data/itsp.db
       - key: AUTO_SEED_ON_STARTUP
         value: "true"
+      # Must be an explicit comma-separated origin list in production.
+      # Wildcard CORS with credentials is rejected by browsers and unsafe.
       - key: CORS_ORIGINS
-        value: "*"
+        sync: false
+      - key: ENVIRONMENT
+        value: "production"
+      - key: TOKEN_ENCRYPTION_KEY
+        generateValue: true

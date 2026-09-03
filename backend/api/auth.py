@@ -11,14 +11,20 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from typing import Optional
+from fastapi import Request
 from ..core.database import get_db
 from ..core.config import settings
 from ..models import Student
+from ..utils.rate_limit import SlidingWindowLimiter, rate_limit
 from pydantic import BaseModel, Field, field_validator, EmailStr
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+
+# Brute-force protection: 10 login attempts / 5 min and 5 registrations / hour per IP.
+login_limiter = SlidingWindowLimiter(max_requests=10, window_seconds=300)
+register_limiter = SlidingWindowLimiter(max_requests=5, window_seconds=3600)
 
 
 def verify_password(plain_password, hashed_password):
@@ -78,6 +84,7 @@ class StudentResponse(BaseModel):
     email: EmailStr
     branch: str
     year: int
+    role: str = "student"
     domains: str
     goals: str
     weak_subjects: str
@@ -122,8 +129,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     return user
 
 
+def require_admin(current_user: Student = Depends(get_current_user)) -> Student:
+    """Dependency for admin-only endpoints. Role is a server-side DB column."""
+    if getattr(current_user, "role", "student") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return current_user
+
+
 @router.post("/register", response_model=StudentResponse)
-def register(student: StudentCreate, db: Session = Depends(get_db)):
+def register(
+    student: StudentCreate,
+    db: Session = Depends(get_db),
+    _rl: None = Depends(rate_limit(register_limiter, "register")),
+):
     clean_roll = student.roll_number.strip()
     clean_email = student.email.strip().lower()
     existing = db.query(Student).filter(func.lower(Student.roll_number) == clean_roll.lower()).first()
@@ -155,7 +173,11 @@ def register(student: StudentCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/token", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+    _rl: None = Depends(rate_limit(login_limiter, "login")),
+):
     username = form_data.username.strip()
     user = db.query(Student).filter(
         (func.lower(Student.roll_number) == username.lower()) |

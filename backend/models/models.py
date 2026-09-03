@@ -32,6 +32,7 @@ class Student(Base):
     cpi = Column(Float)
     sleep_hours = Column(Float)
     screen_time_hours = Column(Float)
+    role = Column(String(20), default="student", nullable=False)  # "student" | "admin"
     created_at = Column(DateTime, default=datetime.utcnow)
 
     resources = relationship("Resource", back_populates="uploader")
@@ -147,6 +148,19 @@ class SeniorJourney(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     author = relationship("Student", back_populates="journeys")
+
+
+class JourneyUpvote(Base):
+    __tablename__ = "journey_upvotes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    journey_id = Column(Integer, ForeignKey("senior_journeys.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('student_id', 'journey_id', name='unique_user_journey_upvote'),
+    )
 
 
 class AnonymousPost(Base):

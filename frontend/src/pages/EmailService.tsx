@@ -5,11 +5,11 @@ import type { EmailRecord } from '../utils/api'
 import ApiKeyVaultModal from '../components/ApiKeyVaultModal'
 import GoogleConnectModal from '../components/GoogleConnectModal'
 import './EmailService.css'
-import { 
-  Clock, 
-  Sparkles, 
-  RefreshCw, 
-  Flame, 
+import {
+  Clock,
+  Sparkles,
+  RefreshCw,
+  Flame,
   BookmarkCheck,
   Search,
   Mail,
@@ -35,11 +35,11 @@ export default function EmailService() {
   const [loading, setLoading] = useState(false)
   const [registered, setRegistered] = useState(false)
   const [tab, setTab] = useState<'all' | 'events'>(initialTab)
-  
+
   // Google Workspace Integration States
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false)
   const [googleStatus, setGoogleStatus] = useState<GoogleAccountStatus | null>(null)
-  
+
   // BYOK Key Vault States
   const [isVaultOpen, setIsVaultOpen] = useState(false)
   const [hasKey, setHasKey] = useState(false)
@@ -54,13 +54,13 @@ export default function EmailService() {
       setTab('all')
     }
   }, [searchParams])
-  
+
   // Filtering & Search
   const [eventCategoryFilter, setEventCategoryFilter] = useState<string>('ALL')
   const [eventSearch, setEventSearch] = useState<string>('')
   const [emailSearch, setEmailSearch] = useState<string>('')
   const [emailCategoryFilter, setEmailCategoryFilter] = useState<string>('ALL')
-  
+
   // Expanded email body
   const [expandedEmailIds, setExpandedEmailIds] = useState<Set<any>>(new Set())
 
@@ -112,9 +112,7 @@ export default function EmailService() {
           event_type: m.event_category,
           urgency: m.event_urgency,
           category: m.event_category,
-          confidence: 0.95,
         }] : [],
-
       }))
       setGmailEmails(mapped)
     } catch (err) {
@@ -258,7 +256,7 @@ export default function EmailService() {
 
   const filteredEvents = useMemo(() => {
     return allEvents.filter(ev => {
-      const matchesSearch = !eventSearch.trim() || 
+      const matchesSearch = !eventSearch.trim() ||
         ev.title?.toLowerCase().includes(eventSearch.toLowerCase()) ||
         ev.emailSubject?.toLowerCase().includes(eventSearch.toLowerCase())
 
@@ -331,7 +329,7 @@ export default function EmailService() {
     if (!dateStr) return { month: 'TBD', day: '--', dayName: '', relative: '' }
     const parts = dateStr.split('T')[0].split('-')
     if (parts.length !== 3) return { month: 'TBD', day: '--', dayName: '', relative: '' }
-    
+
     const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10))
     const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
     const day = d.getDate().toString().padStart(2, '0')
@@ -383,7 +381,7 @@ export default function EmailService() {
 
   return (
     <div className="email-service-container">
-      
+
       {/* Toast Notification */}
       {toastMessage && (
         <div className="email-toast">
@@ -414,7 +412,7 @@ export default function EmailService() {
             <RefreshCw size={15} className={loading ? 'spinning' : ''} />
             {loading ? 'Syncing...' : 'Fetch Emails'}
           </button>
-          
+
           {registered && (
             <button
               onClick={() => setRegistered(false)}
@@ -796,7 +794,7 @@ export default function EmailService() {
                             >
                               {email.category || 'General'}
                             </span>
-                            
+
                             <span className="email-priority-label">
                               • {email.importance || 'Normal'} priority
                             </span>
@@ -1070,4 +1068,4 @@ export default function EmailService() {
     </div>
   )
 }
-
+

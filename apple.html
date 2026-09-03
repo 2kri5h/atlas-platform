@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob:; media-src data: blob:; script-src 'unsafe-inline' https://code.iconify.design; connect-src https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+
+<meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product-tile whiteout — Design System</title>
+<script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --background:#F5F5F7;
+  --surface:#FFFFFF;
+  --surface-dark:#000000;
+  --text-primary:#1D1D1F;
+  --text-secondary:#2997FF;
+  --accent:#0071E3;
+  --accent-hover:#0076DF;
+  --link:#0066CC;
+  --ice-blue:#D8F0F0;
+  --r-control:980px;
+  --r-card:8px;
+  --r-pill:9999px;
+  --space-base:8px;
+  --gap:12px;
+  --section-padding:44px;
+  --shadow-overlay:rgba(0,0,0,0.22) 3px 5px 30px 0px;
+  --ease-color:cubic-bezier(0.4,0,0.6,1);
+  --font-display:"SF Pro Display",Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-text:"SF Pro Text",Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-condensed:"Arial Narrow",Arial,sans-serif;
+}
+*{box-sizing:border-box;}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+body{margin:0;background:var(--background);color:var(--text-primary);font-family:var(--font-text);font-size:17px;line-height:1.47;}
+img{max-width:100%;display:block;}
+a{color:var(--link);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.container{max-width:1024px;margin:0 auto;padding-left:22px;padding-right:22px;}
+h1,h2,h3{font-family:var(--font-display);margin:0;}
+.eyebrow{font-family:var(--font-text);font-size:17px;font-weight:600;color:var(--accent);letter-spacing:-0.2px;}
+
+/* Nav */
+.topnav{position:sticky;top:0;z-index:50;}
+.glass-strip{height:44px;background:rgba(245,245,247,0.8);backdrop-filter:saturate(1.8) blur(20px);-webkit-backdrop-filter:saturate(1.8) blur(20px);border-bottom:1px solid rgba(0,0,0,0.06);}
+.glass-inner{height:44px;display:flex;align-items:center;gap:18px;}
+.nav-logo{color:var(--text-primary);font-size:20px;display:flex;align-items:center;}
+.nav-items{flex:1;display:flex;justify-content:center;gap:22px;flex-wrap:nowrap;overflow:hidden;}
+.nav-items a{color:var(--text-primary);font-size:12px;font-weight:400;letter-spacing:-0.1px;white-space:nowrap;}
+.nav-items a:hover{color:#000;text-decoration:none;}
+.nav-utils{display:flex;gap:16px;align-items:center;}
+.nav-utils button{background:none;border:0;color:var(--text-primary);cursor:pointer;font-size:16px;display:flex;padding:0;}
+.util-strip{background:var(--surface);text-align:center;padding:9px 0;font-size:12px;}
+.util-strip a{color:var(--link);}
+
+/* Hero */
+#hero{background:var(--background);text-align:center;padding:66px 0 0;overflow:hidden;}
+.hero-headline{font-family:var(--font-display);font-size:56px;font-weight:600;line-height:1.07;letter-spacing:-0.3px;color:var(--text-primary);}
+.hero-headline em{font-style:italic;}
+.hero-sub{font-family:var(--font-display);font-size:28px;font-weight:400;line-height:1.14;color:var(--text-primary);margin:16px auto 0;max-width:640px;}
+.btn-row{display:flex;gap:18px;justify-content:center;margin-top:26px;flex-wrap:wrap;}
+.hero-render{margin-top:44px;height:280px;background:
+  radial-gradient(120% 90% at 50% 0%, #cfe6ff 0%, #eef4fb 45%, var(--background) 80%);
+  display:flex;align-items:flex-end;justify-content:center;}
+.hero-device{width:min(760px,90%);height:230px;background:linear-gradient(160deg,#3a3a3c,#0a0a0a);border-radius:26px 26px 0 0;box-shadow:var(--shadow-overlay);display:flex;align-items:center;justify-content:center;color:#fff;}
+.hero-device iconify-icon{font-size:64px;opacity:0.85;}
+
+/* Buttons */
+.btn{font-family:var(--font-text);font-weight:400;font-size:17px;border-radius:980px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;transition:background-color 0.32s var(--ease-color),color 0.32s var(--ease-color);}
+.btn:hover{text-decoration:none;}
+.btn-primary-hero{height:44px;padding:11px 21px;background:var(--accent);color:#fff;border:1px solid rgba(0,0,0,0);}
+.btn-primary-hero:hover{background:var(--accent-hover);}
+.btn-outline-hero{height:44px;padding:11px 21px;background:transparent;color:var(--accent);border:1px solid var(--accent);}
+.btn-outline-hero:hover{background:rgba(0,113,227,0.06);}
+.btn-primary-mid{height:36px;padding:8px 15px;background:var(--accent);color:#fff;border:1px solid rgba(0,0,0,0);font-size:15px;}
+.btn-primary-mid:hover{background:var(--accent-hover);}
+.btn-outline-mid{height:36px;padding:8px 15px;background:transparent;color:var(--accent);border:1px solid var(--accent);font-size:15px;}
+.btn-outline-mid:hover{background:rgba(0,113,227,0.06);}
+.btn-light{height:44px;padding:11px 21px;background:var(--background);color:#000;border:1px solid rgba(0,0,0,0);}
+.btn-light:hover{background:#fff;}
+.btn-light-sm{height:36px;padding:8px 15px;background:var(--background);color:#000;border:1px solid rgba(0,0,0,0);font-size:15px;}
+.btn-light-sm:hover{background:#fff;}
+
+@media (max-width:768px){
+  .hero-headline{font-size:40px;}
+  .hero-sub{font-size:21px;}
+  .nav-items{display:none;}
+}
+@media (max-width:640px){
+  .hero-headline{font-size:32px;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;}
+}
+</style>
+</head>
+<body>
+
+<header class="topnav">
+  <nav class="glass-strip" aria-label="Primary">
+    <div class="container glass-inner">
+      <span class="nav-logo" aria-label="Brand home"><iconify-icon icon="lucide:command" aria-hidden="true"></iconify-icon></span>
+      <div class="nav-items">
+        <a href="#hero">Store</a>
+        <a href="#palette">Mac</a>
+        <a href="#type-scale">iPad</a>
+        <a href="#components">iPhone</a>
+        <a href="#components">Watch</a>
+        <a href="#composition">Vision</a>
+        <a href="#components">AirPods</a>
+        <a href="#surface-depth">TV &amp; Home</a>
+        <a href="#motion">Entertainment</a>
+        <a href="#components">Accessories</a>
+        <a href="#composition">Support</a>
+      </div>
+      <div class="nav-utils">
+        <button aria-label="Search"><iconify-icon icon="lucide:search" aria-hidden="true"></iconify-icon></button>
+        <button aria-label="Shopping bag"><iconify-icon icon="lucide:shopping-bag" aria-hidden="true"></iconify-icon></button>
+      </div>
+    </div>
+  </nav>
+  <div class="util-strip">
+    <a href="#components">Get the highlights. See what's new across the lineup &rsaquo;</a>
+  </div>
+</header>
+
+<main>
+
+<section id="hero" aria-label="Hero">
+  <div class="container">
+    <h1 class="hero-headline">Whiteout.</h1>
+    <p class="hero-sub">One rationed blue. Endless flat panels. The product, front and center.</p>
+    <div class="btn-row">
+      <a href="#components" class="btn btn-primary-hero">Explore the system</a>
+      <a href="#palette" class="btn btn-outline-hero">See the palette</a>
+    </div>
+  </div>
+  <div class="hero-render" role="img" aria-label="Large multi-device product render bleeding out of frame">
+    <div class="hero-device"><iconify-icon icon="lucide:monitor-smartphone" aria-hidden="true"></iconify-icon></div>
+  </div>
+</section>
+
+<style data-section-styles="palette">
+#palette{padding:88px 0;background:var(--surface);}
+.sec-head{text-align:center;margin-bottom:48px;}
+.sec-head h2{font-size:40px;font-weight:600;line-height:1.1;letter-spacing:-0.3px;}
+.sec-head p{font-family:var(--font-text);font-size:17px;color:var(--text-primary);max-width:600px;margin:14px auto 0;}
+.pal-group{margin-bottom:44px;}
+.pal-group h3{font-family:var(--font-display);font-size:19px;font-weight:600;margin-bottom:16px;letter-spacing:-0.2px;}
+.swatch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.swatch{border:1px solid rgba(0,0,0,0.08);}
+.swatch .chip{height:96px;}
+.checker{background-image:linear-gradient(45deg,#ccc 25%,transparent 25%),linear-gradient(-45deg,#ccc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ccc 75%),linear-gradient(-45deg,transparent 75%,#ccc 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0;}
+.swatch .meta{padding:12px 14px;background:var(--surface);}
+.swatch .meta .name{font-family:var(--font-display);font-weight:600;font-size:15px;}
+.swatch .meta .val{font-family:var(--font-text);font-size:13px;color:#6e6e73;margin-top:2px;}
+.swatch .meta .use{font-family:var(--font-text);font-size:13px;color:var(--text-primary);margin-top:8px;line-height:1.4;}
+</style>
+<section id="palette" aria-label="Palette">
+  <div class="container">
+    <div class="sec-head">
+      <h2>A palette that says almost nothing.</h2>
+      <p>Near-white ground, near-black ink, and a single blue held in reserve for anything you can tap.</p>
+    </div>
+
+    <div class="pal-group">
+      <h3>Surfaces</h3>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="chip" style="background:#F5F5F7"></div><div class="meta"><div class="name">background</div><div class="val">#F5F5F7</div><div class="use">The page's true resting surface — dominant off-white ground.</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.08)"></div><div class="meta"><div class="name">surface</div><div class="val">#FFFFFF</div><div class="use">Pure white for alternating panels.</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#000000"></div><div class="meta"><div class="name">surface-dark</div><div class="val">#000000</div><div class="use">Full-bleed dark contrast-break panels; text inverts to white.</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#D8F0F0"></div><div class="meta"><div class="name">ice-blue wash</div><div class="val">#D8F0F0</div><div class="use">Pale cyan gradient wash behind a single product tile.</div></div></div>
+      </div>
+    </div>
+
+    <div class="pal-group">
+      <h3>Text</h3>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="chip" style="background:#1D1D1F"></div><div class="meta"><div class="name">text-primary</div><div class="val">#1D1D1F</div><div class="use">All headlines and body copy on light panels.</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#000;display:flex;align-items:center;justify-content:center"><span style="color:#2997FF;font-family:var(--font-display);font-weight:600;font-size:18px">Aa</span></div><div class="meta"><div class="name">text-secondary</div><div class="val">#2997FF</div><div class="use">Lighter link tone for dark-panel links and hover.</div></div></div>
+      </div>
+    </div>
+
+    <div class="pal-group">
+      <h3>Accents (rationed to buttons &amp; links)</h3>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="chip" style="background:#0071E3"></div><div class="meta"><div class="name">accent</div><div class="val">#0071E3</div><div class="use">Solid pill fills and pill outlines. Never tints headlines or icons.</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#0066CC"></div><div class="meta"><div class="name">link</div><div class="val">#0066CC</div><div class="use">Inline text links throughout.</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style data-section-styles="type-scale">
+#type-scale{padding:88px 0;background:var(--background);}
+.spec{border-top:1px solid rgba(0,0,0,0.1);padding:32px 0;}
+.spec .metrics{font-family:var(--font-text);font-size:13px;color:#6e6e73;margin-bottom:14px;letter-spacing:0;}
+.sp-display-lg{font-family:var(--font-text);font-size:34px;font-weight:600;line-height:1.47;letter-spacing:-0.4px;color:var(--text-primary);}
+.sp-headline-md{font-family:var(--font-display);font-size:56px;font-weight:600;line-height:1.07;letter-spacing:-0.3px;color:var(--text-primary);}
+.sp-label-md{font-family:var(--font-display);font-size:40px;font-weight:600;line-height:1.1;color:var(--text-primary);}
+.sp-body-md{font-family:var(--font-display);font-size:28px;font-weight:400;line-height:1.14;color:var(--text-primary);}
+.sp-body{font-family:var(--font-text);font-size:17px;font-weight:400;line-height:1.47;color:var(--text-primary);}
+.sp-condensed{font-family:var(--font-condensed);font-weight:700;font-style:italic;font-size:48px;text-transform:uppercase;letter-spacing:1px;color:#fff;background:#000;display:inline-block;padding:16px 24px;}
+@media (max-width:768px){.sp-headline-md{font-size:40px;}.sp-label-md{font-size:30px;}.sp-body-md{font-size:22px;}.sp-display-lg{font-size:26px;}}
+</style>
+<section id="type-scale" aria-label="Type scale">
+  <div class="container">
+    <div class="sec-head">
+      <h2>Weight does the work.</h2>
+      <p>Structure comes from type weight, not borders. SF Pro Display and SF Pro Text, tight leading, negative tracking.</p>
+    </div>
+    <div class="spec">
+      <div class="metrics">headline-md · SF Pro Display · 56px / 600 / lh 1.07 / ls -0.3px</div>
+      <div class="sp-headline-md">Say more with less.</div>
+    </div>
+    <div class="spec">
+      <div class="metrics">label-md · SF Pro Display · 40px / 600 / lh 1.1</div>
+      <div class="sp-label-md">Section heads, one weight lighter than the headline.</div>
+    </div>
+    <div class="spec">
+      <div class="metrics">display-lg · SF Pro Text · 34px / 600 / lh 1.47 / ls -0.4px</div>
+      <div class="sp-display-lg">Secondary display for shorter statements.</div>
+    </div>
+    <div class="spec">
+      <div class="metrics">body-md · SF Pro Display · 28px / 400 / lh 1.14</div>
+      <div class="sp-body-md">A mid-weight subheadline that sits under the big headlines and carries the one-line promise.</div>
+    </div>
+    <div class="spec">
+      <div class="metrics">body · SF Pro Text · 17px / 400 / lh 1.47</div>
+      <div class="sp-body">This is the paragraph and legal role in near-black ink. It carries every run of continuous copy across the whole system, holding its weight against generous whitespace without ever raising its voice. Color is rationed hard, and body text never wears the accent blue except where it becomes a link.</div>
+    </div>
+    <div class="spec">
+      <div class="metrics">accent-condensed · Arial · 700 italic · distressed stencil wordmark — one dark media tile only</div>
+      <span class="sp-condensed">Feature</span>
+    </div>
+  </div>
+</section>
+
+<style data-section-styles="components">
+#components{padding:88px 0 0;background:var(--surface);}
+.comp-block{padding-bottom:72px;}
+.comp-label{font-family:var(--font-display);font-size:28px;font-weight:600;letter-spacing:-0.2px;margin-bottom:6px;}
+.comp-count{font-family:var(--font-text);font-size:13px;color:#6e6e73;margin-bottom:6px;}
+.comp-desc{font-family:var(--font-text);font-size:17px;color:var(--text-primary);max-width:640px;margin-bottom:20px;}
+.spec-card{font-family:var(--font-text);font-size:12px;line-height:1.7;color:#6e6e73;background:var(--background);padding:14px 16px;border-left:2px solid var(--accent);margin-top:20px;}
+.spec-card code{font-family:var(--font-text);color:var(--text-primary);}
+
+/* button matrix */
+.matrix{border-collapse:collapse;width:100%;font-family:var(--font-text);}
+.matrix th,.matrix td{text-align:left;padding:16px 14px;border-bottom:1px solid rgba(0,0,0,0.08);vertical-align:middle;}
+.matrix th{font-size:13px;color:#6e6e73;font-weight:600;}
+.matrix .rowlabel{font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--text-primary);}
+.matrix .dark-cell{background:#000;}
+
+/* nav demo */
+.nav-demo{border:1px solid rgba(0,0,0,0.1);}
+.nav-demo .glass-strip{position:static;}
+
+/* promo panels */
+.promo{padding:56px 0 63px;text-align:center;border-radius:0;}
+.promo.gray{background:var(--background);}
+.promo.ice{background:linear-gradient(180deg,#e4f5f5 0%,#d8f0f0 100%);}
+.promo.dark{background:#000;color:#fff;}
+.promo h3{font-family:var(--font-display);font-size:40px;font-weight:600;line-height:1.1;}
+.promo h3 em{font-style:italic;}
+.promo .sub{font-family:var(--font-display);font-size:24px;font-weight:400;margin:8px 0 20px;}
+.promo.dark .sub,.promo.dark h3{color:#fff;}
+.promo .prow{display:flex;gap:14px;justify-content:center;margin-bottom:34px;flex-wrap:wrap;}
+.promo .render{width:min(560px,80%);height:170px;margin:0 auto;background:linear-gradient(160deg,#5a5a5c,#111);display:flex;align-items:flex-end;justify-content:center;}
+.promo.gray .render{background:linear-gradient(160deg,#c7c7cc,#8e8e93);}
+.promo.ice .render{background:linear-gradient(160deg,#bfe6e6,#7fbcbc);}
+.promo .render iconify-icon{font-size:56px;color:rgba(255,255,255,0.75);margin-bottom:18px;}
+
+/* bento */
+.bento{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.bento .cell{padding:53px 24px 60px;text-align:center;border-radius:0;}
+.bento .cell.gray{background:var(--background);}
+.bento .cell.dark{background:#000;color:#fff;}
+.bento .cell h4{font-family:var(--font-display);font-size:28px;font-weight:600;line-height:1.1;margin:0;}
+.bento .cell .sub{font-family:var(--font-display);font-size:17px;font-weight:400;margin:6px 0 16px;}
+.bento .cell.dark .sub,.bento .cell.dark h4{color:#fff;}
+.bento .prow{display:flex;gap:12px;justify-content:center;margin-bottom:22px;flex-wrap:wrap;}
+.bento .render{height:120px;background:linear-gradient(160deg,#c7c7cc,#8e8e93);}
+.bento .cell.dark .render{background:linear-gradient(160deg,#3a3a3c,#000);}
+.collage{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.collage div{height:80px;background:linear-gradient(160deg,#c7c7cc,#8e8e93);}
+
+/* media collage band */
+.collage-band{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;background:transparent;}
+.cutout{height:220px;display:flex;align-items:flex-end;justify-content:center;}
+.cutout .fig{width:120px;height:200px;background:linear-gradient(180deg,#8e8e93,#48484a);border-radius:60px 60px 8px 8px;position:relative;display:flex;align-items:center;justify-content:center;}
+.cutout .screen{position:absolute;bottom:30px;width:64px;height:88px;background:#111;transform:rotate(-8deg);border-radius:6px;}
+
+/* entertainment rail */
+.rail-featured{display:grid;grid-template-columns:0.5fr 2fr 0.5fr;gap:12px;overflow:hidden;}
+.rail-tile{position:relative;height:280px;overflow:hidden;}
+.rail-tile .vignette{position:absolute;inset:0;background:linear-gradient(rgba(29,29,31,0.4) 0%,rgba(29,29,31,0) 70px,rgba(29,29,31,0) calc(100% - 70px),rgba(29,29,31,0.4) 100%);pointer-events:none;}
+.rail-feat{background:linear-gradient(135deg,#c8702f,#6b2b12);}
+.rail-peek{background:linear-gradient(135deg,#3a3a3c,#0a0a0a);}
+.rail-lockup{position:absolute;left:24px;bottom:24px;color:#fff;z-index:2;}
+.rail-lockup .rtitle{font-family:var(--font-display);font-size:24px;font-weight:600;}
+.rail-lockup .rdesc{font-family:var(--font-text);font-size:13px;margin:4px 0 12px;opacity:0.9;}
+.stencil{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;}
+.stencil span{font-family:var(--font-condensed);font-weight:700;font-style:italic;font-size:54px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:2px;}
+.rail-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:12px;}
+.rail-small{position:relative;height:150px;background:linear-gradient(135deg,#2c2c2e,#000);overflow:hidden;}
+.rail-small .rlabel{position:absolute;left:14px;bottom:12px;color:#fff;}
+.rail-small .rlogo{position:absolute;left:14px;top:12px;color:#fff;font-size:16px;}
+.rail-small .rlabel .lt{font-family:var(--font-text);font-size:12px;margin-bottom:8px;}
+
+/* list/copy panel */
+.list-panel{background:transparent;padding:0 44px 0 0;}
+.list-panel h4{font-family:var(--font-display);font-size:28px;font-weight:600;line-height:1.1;margin:0 0 14px;}
+.list-panel ul{font-family:var(--font-text);font-size:17px;line-height:1.6;padding-left:20px;margin:0 0 14px;}
+.list-panel p{font-family:var(--font-text);font-size:17px;line-height:1.5;}
+.two-copy{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+
+/* footer inventory */
+.foot-inv{background:var(--background);padding:44px 0;}
+.foot-legal{font-family:var(--font-text);font-size:12px;color:#6e6e73;line-height:1.5;max-width:900px;}
+.foot-div{border:0;border-top:1px solid rgba(0,0,0,0.12);margin:22px 0;}
+.foot-cols{display:grid;grid-template-columns:repeat(5,1fr);gap:24px;}
+.foot-cols h5{font-family:var(--font-display);font-size:13px;font-weight:600;margin:0 0 10px;}
+.foot-cols a{display:block;font-family:var(--font-text);font-size:12px;color:#424245;padding:4px 0;}
+.foot-copy{font-family:var(--font-text);font-size:12px;color:#6e6e73;margin-top:22px;}
+
+@media (max-width:768px){
+  .bento,.collage-band,.two-copy{grid-template-columns:1fr;}
+  .rail-featured{grid-template-columns:1fr;}
+  .rail-row{grid-template-columns:1fr 1fr;}
+  .foot-cols{grid-template-columns:1fr 1fr;}
+  .promo h3{font-size:30px;}
+  .list-panel{padding-right:0;}
+}
+</style>
+<section id="components" aria-label="Components">
+  <div class="container">
+    <div class="sec-head">
+      <h2>The inventory.</h2>
+      <p>Flat panels, zero radius, one blue. Every control below traces to a measured token.</p>
+    </div>
+
+    <!-- Navbar -->
+    <div class="comp-block" data-tier-a-component="navbar-glass-strip">
+      <div class="comp-label">Navbar — glass strip</div>
+      <div class="comp-count">×1 · 44px tall · glass exclusive to navbar</div>
+      <div class="comp-desc">Sticky 44px row: leading mark-only logo, centered flat text items, two trailing utility icons, with a slim white utility strip beneath.</div>
+      <div class="nav-demo">
+        <nav class="glass-strip" aria-label="Navbar specimen">
+          <div class="container glass-inner">
+            <span class="nav-logo"><iconify-icon icon="lucide:command" aria-hidden="true"></iconify-icon></span>
+            <div class="nav-items">
+              <a href="#components">Store</a><a href="#components">Mac</a><a href="#components">iPad</a><a href="#components">iPhone</a><a href="#components">Watch</a><a href="#components">Vision</a><a href="#components">AirPods</a><a href="#components">TV</a><a href="#components">Home</a><a href="#components">Music</a><a href="#components">Support</a>
+            </div>
+            <div class="nav-utils">
+              <button aria-label="Search"><iconify-icon icon="lucide:search" aria-hidden="true"></iconify-icon></button>
+              <button aria-label="Shopping bag"><iconify-icon icon="lucide:shopping-bag" aria-hidden="true"></iconify-icon></button>
+            </div>
+          </div>
+        </nav>
+        <div class="util-strip"><a href="#components">Get the highlights. See what's new &rsaquo;</a></div>
+      </div>
+      <div class="spec-card"><code>--navbar · fill rgba(245,245,247,0.8) · backdrop-filter saturate(1.8) blur(20px) · height 44 · nav item type body 12/400 · util-strip surface #FFFFFF · link #0066CC</code></div>
+    </div>
+
+    <!-- Button matrix -->
+    <div class="comp-block" data-tier-a-component="button-hero-primary">
+      <div class="comp-label">Buttons — variant × state matrix</div>
+      <div class="comp-count">hero primary · hero outline · mid-page primary · light secondary pill</div>
+      <div class="comp-desc">Blue is rationed to pill fills, pill outlines, and links. Blue and light pills alternate by panel background — never swapped.</div>
+      <table class="matrix">
+        <thead><tr><th>Variant</th><th>Rest</th><th>Hover</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="rowlabel">Hero primary<br><span style="font-weight:400;color:#6e6e73;font-size:12px">44px · 11px 21px</span></td>
+            <td><a href="#hero" class="btn btn-primary-hero">Buy</a></td>
+            <td><a href="#hero" class="btn btn-primary-hero" style="background:var(--accent-hover)">Buy</a></td>
+          </tr>
+          <tr>
+            <td class="rowlabel">Hero outline<br><span style="font-weight:400;color:#6e6e73;font-size:12px">44px · 11px 21px</span></td>
+            <td><a href="#hero" class="btn btn-outline-hero">Learn more</a></td>
+            <td><a href="#hero" class="btn btn-outline-hero" style="background:rgba(0,113,227,0.06)">Learn more</a></td>
+          </tr>
+          <tr>
+            <td class="rowlabel">Mid-page primary<br><span style="font-weight:400;color:#6e6e73;font-size:12px">36px · 8px 15px</span></td>
+            <td><a href="#hero" class="btn btn-primary-mid">Order now</a></td>
+            <td><a href="#hero" class="btn btn-primary-mid" style="background:var(--accent-hover)">Order now</a></td>
+          </tr>
+          <tr>
+            <td class="rowlabel">Mid-page outline<br><span style="font-weight:400;color:#6e6e73;font-size:12px">36px · 8px 15px</span></td>
+            <td><a href="#hero" class="btn btn-outline-mid">Learn more</a></td>
+            <td><a href="#hero" class="btn btn-outline-mid" style="background:rgba(0,113,227,0.06)">Learn more</a></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="spec-card"><code>--button-primary-hero · fill accent #0071E3 · text #FFFFFF · radius 980 · height 44 · padding 11px 21px · hover #0076DF · motion color 0.32s cubic-bezier(0.4,0,0.6,1)</code></div>
+    </div>
+
+    <div class="comp-block" data-tier-a-component="button-hero-outline">
+      <div class="comp-label">Button — hero outline</div>
+      <div class="comp-count">×1 · secondary action beside hero primary</div>
+      <div class="btn-row" style="justify-content:flex-start"><a href="#hero" class="btn btn-outline-hero">Watch the film</a></div>
+      <div class="spec-card"><code>--button-outline · fill transparent · text accent #0071E3 · border 1px #0071E3 · radius 980 · height 44 · padding 11px 21px</code></div>
+    </div>
+
+    <div class="comp-block" data-tier-a-component="button-midpage-primary">
+      <div class="comp-label">Button — mid-page primary</div>
+      <div class="comp-count">×1 per promo band · scaled to 36px</div>
+      <div class="btn-row" style="justify-content:flex-start"><a href="#hero" class="btn btn-primary-mid">Buy</a><a href="#hero" class="btn btn-outline-mid">Learn more</a></div>
+      <div class="spec-card"><code>--button-primary-midpage · fill accent #0071E3 · text #FFFFFF · radius 980 · height 36 · padding 8px 15px · hover #0076DF</code></div>
+    </div>
+
+    <div class="comp-block" data-tier-a-component="button-secondary-light">
+      <div class="comp-label">Button — light / secondary pill</div>
+      <div class="comp-count">×1 · two heights (44px, 36px) · dark panels only</div>
+      <div class="comp-desc">On dark panels the light pill replaces the blue. Two documented heights, black label, hover to white.</div>
+      <div style="background:#000;padding:28px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <a href="#hero" class="btn btn-light">Buy</a>
+        <a href="#hero" class="btn btn-light" style="background:#fff">Buy · hover</a>
+        <a href="#hero" class="btn btn-light-sm">Order now</a>
+        <a href="#hero" class="btn btn-light-sm" style="background:#fff">Order now · hover</a>
+      </div>
+      <div class="spec-card"><code>--button-secondary-light · fill #F5F5F7 · text #000000 · radius 980 · heights 44 / 36 · hover #FFFFFF</code></div>
+    </div>
+
+    <!-- Full-width promo -->
+    <div class="comp-block" data-tier-a-component="full-width-promo-panel">
+      <div class="comp-label">Full-width promo panel</div>
+      <div class="comp-count">×3 · stacked 100/100/100 · radius 0px · flat &amp; shadowless</div>
+      <div class="comp-desc">Hero-scale bands, each its own flat fill: light gray, ice-blue wash, pure black. Italic accent limited to one word per headline.</div>
+    </div>
+  </div>
+
+  <div class="promo gray">
+    <div class="container">
+      <h3>Pro. <em>Beyond.</em></h3>
+      <div class="sub">Power that follows you everywhere.</div>
+      <div class="prow"><a href="#hero" class="btn btn-primary-mid">Buy</a><a href="#hero" class="btn btn-outline-mid">Learn more</a></div>
+      <div class="render" role="img" aria-label="Centered product render"><iconify-icon icon="lucide:laptop" aria-hidden="true"></iconify-icon></div>
+    </div>
+  </div>
+  <div class="promo ice">
+    <div class="container">
+      <h3>Featherweight <em>flight.</em></h3>
+      <div class="sub">Thin, light, and impossibly capable.</div>
+      <div class="prow"><a href="#hero" class="btn btn-primary-mid">Buy</a><a href="#hero" class="btn btn-outline-mid">Learn more</a></div>
+      <div class="render" role="img" aria-label="Centered product render on ice-blue wash"><iconify-icon icon="lucide:tablet" aria-hidden="true"></iconify-icon></div>
+    </div>
+  </div>
+  <div class="promo dark">
+    <div class="container">
+      <h3>Midnight <em>mode.</em></h3>
+      <div class="sub">Contrast, drawn in true black.</div>
+      <div class="prow"><a href="#hero" class="btn btn-light-sm">Buy</a><a href="#hero" class="btn btn-outline-mid" style="color:#2997FF;border-color:#2997FF">Learn more</a></div>
+      <div class="render" role="img" aria-label="Centered product render on black panel"><iconify-icon icon="lucide:smartphone" aria-hidden="true"></iconify-icon></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="spec-card" style="margin-top:24px;margin-bottom:64px"><code>--card-panel-dark · fill #000000 · radius 0 · padding 56px 0 63px · heading label-md 40/600 · italic accent one word</code></div>
+
+    <!-- Bento -->
+    <div class="comp-block" data-tier-a-component="bento-promo-panel">
+      <div class="comp-label">Bento promo panel</div>
+      <div class="comp-count">×6 items · 49/49 across 3 rows · radius 0px · 12px gutter</div>
+      <div class="comp-desc">Half-scale promo tiles. One panel carries a 3-photo collage strip beneath its copy instead of a single render.</div>
+      <div class="bento">
+        <div class="cell gray"><h4>Watch</h4><div class="sub">Your health, on your wrist.</div><div class="prow"><a href="#hero" class="btn btn-primary-mid">Buy</a><a href="#hero" class="btn btn-outline-mid">Learn more</a></div><div class="render" role="img" aria-label="Product render"></div></div>
+        <div class="cell dark"><h4>AirPods</h4><div class="sub">Sound, redrawn.</div><div class="prow"><a href="#hero" class="btn btn-light-sm">Buy</a><a href="#hero" class="btn btn-outline-mid" style="color:#2997FF;border-color:#2997FF">Learn more</a></div><div class="render" role="img" aria-label="Product render"></div></div>
+        <div class="cell gray"><h4>Vision</h4><div class="sub">Space, computed.</div><div class="prow"><a href="#hero" class="btn btn-primary-mid">Buy</a><a href="#hero" class="btn btn-outline-mid">Learn more</a></div><div class="render" role="img" aria-label="Product render"></div></div>
+        <div class="cell dark"><h4>TV</h4><div class="sub">Cinema, contained.</div><div class="prow"><a href="#hero" class="btn btn-light-sm">Buy</a><a href="#hero" class="btn btn-outline-mid" style="color:#2997FF;border-color:#2997FF">Learn more</a></div><div class="render" role="img" aria-label="Product render"></div></div>
+        <div class="cell gray"><h4>Home</h4><div class="sub">Everything, in tune.</div><div class="prow"><a href="#hero" class="btn btn-primary-mid">Buy</a><a href="#hero" class="btn btn-outline-mid">Learn more</a></div><div class="render" role="img" aria-label="Product render"></div></div>
+        <div class="cell dark"><h4>Accessories</h4><div class="sub">Finishing touches.</div><div class="prow"><a href="#hero" class="btn btn-light-sm">Buy</a><a href="#hero" class="btn btn-outline-mid" style="color:#2997FF;border-color:#2997FF">Learn more</a></div><div class="collage" role="img" aria-label="Three-photo collage strip"><div></div><div></div><div></div></div></div>
+      </div>
+      <div class="spec-card"><code>--card-panel · fill #F5F5F7 / #000000 · radius 0 · padding 53px 0 60px · gap 12 · grid 49/49 · heading body-md 28/600</code></div>
+    </div>
+
+    <!-- Media collage band -->
+    <div class="comp-block" data-tier-a-component="media-collage-band">
+      <div class="comp-label">Media / collage band</div>
+      <div class="comp-count">×1 · transparent · no radius · no padding</div>
+      <div class="comp-desc">Three cut-out figures each holding an angled screen graphic, sitting directly on the page background.</div>
+      <div class="collage-band">
+        <div class="cutout" role="img" aria-label="Cut-out figure holding an angled screen"><div class="fig"><div class="screen"></div></div></div>
+        <div class="cutout" role="img" aria-label="Cut-out figure holding an angled screen"><div class="fig"><div class="screen"></div></div></div>
+        <div class="cutout" role="img" aria-label="Cut-out figure holding an angled screen"><div class="fig"><div class="screen"></div></div></div>
+      </div>
+      <div class="spec-card"><code>--card-bleed · fill transparent · radius 0 · padding 0 · gap 12</code></div>
+    </div>
+
+    <!-- Entertainment rail -->
+    <div class="comp-block" data-tier-a-component="entertainment-rail">
+      <div class="comp-label">Entertainment rail</div>
+      <div class="comp-count">×1 · scrolling-rail-over-uniform-row · transparent tiles · 12px gutter</div>
+      <div class="comp-desc">One oversized featured tile flanked by peeking neighbors, over a row of five uniform tiles. A distressed condensed stencil wordmark lives in one dark tile only. Live video substituted with a color-graded still.</div>
+      <div class="rail-featured">
+        <div class="rail-tile rail-peek"><div class="vignette"></div></div>
+        <div class="rail-tile rail-feat" role="img" aria-label="Featured entertainment tile, color-graded still">
+          <div class="vignette"></div>
+          <div class="rail-lockup">
+            <div class="rtitle">The Last Frontier</div>
+            <div class="rdesc">A new original, streaming now.</div>
+            <a href="#hero" class="btn btn-light-sm">Play</a>
+          </div>
+        </div>
+        <div class="rail-tile rail-peek"><div class="vignette"></div></div>
+      </div>
+      <div class="rail-row">
+        <div class="rail-small"><div class="vignette"></div><span class="rlogo"><iconify-icon icon="lucide:clapperboard" aria-hidden="true"></iconify-icon></span><div class="rlabel"><div class="lt">Documentary</div><a href="#hero" class="btn btn-light-sm">Play</a></div></div>
+        <div class="rail-small" style="background:#111"><div class="stencil"><span>Grit</span></div><div class="vignette"></div><span class="rlogo"><iconify-icon icon="lucide:film" aria-hidden="true"></iconify-icon></span><div class="rlabel"><div class="lt">Drama series</div><a href="#hero" class="btn btn-light-sm">Play</a></div></div>
+        <div class="rail-small"><div class="vignette"></div><span class="rlogo"><iconify-icon icon="lucide:music" aria-hidden="true"></iconify-icon></span><div class="rlabel"><div class="lt">Live sessions</div><a href="#hero" class="btn btn-light-sm">Play</a></div></div>
+        <div class="rail-small"><div class="vignette"></div><span class="rlogo"><iconify-icon icon="lucide:tv" aria-hidden="true"></iconify-icon></span><div class="rlabel"><div class="lt">Comedy special</div><a href="#hero" class="btn btn-light-sm">Play</a></div></div>
+        <div class="rail-small"><div class="vignette"></div><span class="rlogo"><iconify-icon icon="lucide:radio" aria-hidden="true"></iconify-icon></span><div class="rlabel"><div class="lt">Radio, live</div><a href="#hero" class="btn btn-light-sm">Play</a></div></div>
+      </div>
+      <div class="spec-card"><code>--card-bleed · fill transparent · radius 0 · gutter 12 · vignette linear-gradient(rgba(29,29,31,0.4)…) element-local · accent-condensed Arial 700 italic · CTA button-secondary-light 36</code></div>
+    </div>
+
+    <!-- List/copy -->
+    <div class="comp-block" data-tier-a-component="list-copy-panel">
+      <div class="comp-label">List / copy panel</div>
+      <div class="comp-count">×2 · transparent · padding 0px 44px 0px 0px · no imagery</div>
+      <div class="two-copy">
+        <div class="list-panel">
+          <h4>What's in the box</h4>
+          <ul>
+            <li>The device, edge to edge</li>
+            <li>USB-C charge cable</li>
+            <li>Documentation, kept short</li>
+          </ul>
+          <p>Every claim here sits in near-black ink on the resting surface, right-padded 44px to keep the copy off the panel edge.</p>
+        </div>
+        <div class="list-panel">
+          <h4>Built to last</h4>
+          <ul>
+            <li>Recycled aluminium enclosure</li>
+            <li>All-day battery, measured honestly</li>
+            <li>Free software updates for years</li>
+          </ul>
+          <p>Feature-explanation content lives in transparent panels — structure comes from type weight, not from borders or shadow.</p>
+        </div>
+      </div>
+      <div class="spec-card"><code>--card-bleed · fill transparent · padding 0 44px 0 0 · heading body-md 28/600 · body 17/400 · list body 17</code></div>
+    </div>
+  </div>
+</section>
+
+<style data-section-styles="surface-depth">
+#surface-depth{padding:88px 0;background:var(--background);}
+.depth-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;}
+.depth-card{background:var(--surface);padding:28px;}
+.depth-card .cap{font-family:var(--font-text);font-size:13px;color:#6e6e73;margin-top:14px;}
+.depth-card .title{font-family:var(--font-display);font-size:19px;font-weight:600;}
+.r0{border-radius:0;}
+.r8{border-radius:8px;}
+.rpill{border-radius:980px;}
+.overlay-demo{background:var(--surface);padding:20px 24px;box-shadow:var(--shadow-overlay);display:inline-block;border-radius:8px;}
+@media (max-width:768px){#surface-depth h2{font-size:30px;}}
+</style>
+<section id="surface-depth" aria-label="Surface and depth">
+  <div class="container">
+    <div class="sec-head">
+      <h2>Flat by law.</h2>
+      <p>Content panels carry zero radius and no shadow. The one soft elevation token is reserved strictly for floating overlay UI.</p>
+    </div>
+    <div class="depth-grid">
+      <div class="depth-card r0" style="border:1px solid rgba(0,0,0,0.08)"><div class="title">Panel</div><div class="cap">radius 0px · flat, shadowless content surface</div></div>
+      <div class="depth-card r8"><div class="title">Card token</div><div class="cap">radius 8px · the documented card corner</div></div>
+      <div class="depth-card rpill" style="text-align:center"><div class="title">Control</div><div class="cap">radius 980px · pill buttons and outlines</div></div>
+      <div class="depth-card r0" style="background:transparent;border:0;box-shadow:none;padding:28px 0"><div class="overlay-demo"><div class="title" style="font-size:15px">Floating overlay</div><div class="cap" style="margin-top:4px">shadow rgba(0,0,0,0.22) 3px 5px 30px</div></div><div class="cap">Reserved for overlay UI only — never content bands.</div></div>
+    </div>
+  </div>
+</section>
+
+<style data-section-styles="motion">
+#motion{padding:88px 0;background:var(--surface);}
+.motion-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;}
+.motion-card{background:var(--background);padding:28px;}
+.motion-card .title{font-family:var(--font-display);font-size:17px;font-weight:600;margin-bottom:16px;}
+.motion-card .cap{font-family:var(--font-text);font-size:13px;color:#6e6e73;margin-top:16px;}
+.mo-dot{width:36px;height:36px;border-radius:980px;background:var(--accent);}
+.mo-swatch{width:120px;height:36px;border-radius:0;background:#c7c7cc;}
+.mo-play{margin-top:14px;}
+.mo-color.run{background:var(--accent-hover);transition:background-color 0.32s cubic-bezier(0.4,0,0.6,1);}
+.mo-slide.run{transform:translateX(120px);transition:transform 0.24s ease,opacity 0.24s ease;}
+.mo-slide{transition:transform 0.24s ease,opacity 0.24s ease;}
+</style>
+<section id="motion" aria-label="Motion">
+  <div class="container">
+    <div class="sec-head">
+      <h2>Quick, and quiet.</h2>
+      <p>Utilitarian easing. No spring, no overshoot — short directional swaps.</p>
+    </div>
+    <div class="motion-grid">
+      <div class="motion-card">
+        <div class="title">Color transition</div>
+        <div class="mo-swatch mo-color"></div>
+        <button class="btn btn-primary-mid mo-play" data-motion="mo-color">Replay</button>
+        <div class="cap">color 0.32s cubic-bezier(0.4, 0, 0.6, 1)</div>
+      </div>
+      <div class="motion-card">
+        <div class="title">Directional slide</div>
+        <div class="mo-dot mo-slide"></div>
+        <button class="btn btn-primary-mid mo-play" data-motion="mo-slide">Replay</button>
+        <div class="cap">transform 0.24s ease — flyout slide swap</div>
+      </div>
+      <div class="motion-card">
+        <div class="title">Enter / exit</div>
+        <div class="mo-dot mo-fade" style="background:#8e8e93"></div>
+        <button class="btn btn-primary-mid mo-play" data-motion="mo-fade">Replay</button>
+        <div class="cap">opacity-transform 0.22s ease</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style data-section-styles="composition">
+#composition{padding:88px 0;background:var(--background);}
+.mock{border:1px solid rgba(0,0,0,0.1);background:var(--surface);overflow:hidden;}
+.mock .glass-strip{position:static;}
+.mock-hero{text-align:center;padding:48px 20px 0;background:var(--surface);}
+.mock-hero h3{font-family:var(--font-display);font-size:40px;font-weight:600;line-height:1.1;}
+.mock-hero .sub{font-family:var(--font-display);font-size:21px;font-weight:400;margin:8px 0 18px;}
+.mock-hero .render{width:min(480px,90%);height:150px;margin:28px auto 0;background:linear-gradient(160deg,#c7c7cc,#8e8e93);display:flex;align-items:flex-end;justify-content:center;}
+.mock-hero .render iconify-icon{font-size:48px;color:rgba(255,255,255,0.8);margin-bottom:14px;}
+.mock-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:24px;}
+.mock-cards .c{padding:36px 20px;text-align:center;}
+.mock-cards .c.gray{background:var(--background);}
+.mock-cards .c.dark{background:#000;color:#fff;}
+.mock-cards .c h4{font-family:var(--font-display);font-size:24px;font-weight:600;margin:0 0 6px;}
+.mock-cards .c .sub{font-family:var(--font-text);font-size:13px;margin-bottom:14px;}
+.mock-cta{background:#000;text-align:center;padding:48px 20px;}
+.mock-cta h3{font-family:var(--font-display);font-size:34px;font-weight:600;color:#fff;}
+.mock-cta .sub{font-family:var(--font-display);font-size:19px;font-weight:400;color:#fff;margin:8px 0 18px;}
+@media (max-width:768px){.mock-cards{grid-template-columns:1fr;}.mock-hero h3{font-size:28px;}}
+</style>
+<section id="composition" aria-label="In composition">
+  <div class="container">
+    <div class="sec-head">
+      <h2>It holds together.</h2>
+      <p>One screen, assembled entirely from the tokens above.</p>
+    </div>
+    <div class="mock">
+      <nav class="glass-strip" aria-label="Mock navbar">
+        <div class="container glass-inner">
+          <span class="nav-logo"><iconify-icon icon="lucide:command" aria-hidden="true"></iconify-icon></span>
+          <div class="nav-items"><a href="#composition">Store</a><a href="#composition">Mac</a><a href="#composition">iPhone</a><a href="#composition">Watch</a><a href="#composition">Support</a></div>
+          <div class="nav-utils"><button aria-label="Search"><iconify-icon icon="lucide:search" aria-hidden="true"></iconify-icon></button><button aria-label="Shopping bag"><iconify-icon icon="lucide:shopping-bag" aria-hidden="true"></iconify-icon></button></div>
+        </div>
+      </nav>
+      <div class="mock-hero">
+        <h3>New.</h3>
+        <div class="sub">The whole lineup, reset to zero.</div>
+        <div class="btn-row"><a href="#hero" class="btn btn-primary-hero">Buy</a><a href="#hero" class="btn btn-outline-hero">Learn more</a></div>
+        <div class="render" role="img" aria-label="Product render"><iconify-icon icon="lucide:monitor" aria-hidden="true"></iconify-icon></div>
+      </div>
+      <div class="mock-cards">
+        <div class="c gray"><h4>Studio</h4><div class="sub">Built for the work.</div><a href="#hero" class="btn btn-primary-mid">Buy</a></div>
+        <div class="c dark"><h4>Pro</h4><div class="sub">Power in true black.</div><a href="#hero" class="btn btn-light-sm">Buy</a></div>
+      </div>
+      <div class="mock-cta">
+        <h3>Ready when you are.</h3>
+        <div class="sub">Free delivery. Trade-in credit. All rationed to one blue.</div>
+        <a href="#hero" class="btn btn-light">Get started</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style data-section-styles="footer">
+#footer{background:var(--background);padding:0;}
+</style>
+<section id="footer" aria-label="Footer">
+  <div class="foot-inv">
+    <div class="container">
+      <p class="foot-legal">Featured products and pricing shown are illustrative specimens of the Product-tile whiteout design system. Trade-in values vary. Additional terms apply. This footer is the single most information-dense region of the page — five labeled columns of links preceded by legal paragraph text and a divider.</p>
+      <hr class="foot-div">
+      <div class="foot-cols">
+        <div><h5>Shop and Learn</h5><a href="#components">Store</a><a href="#components">Mac</a><a href="#components">iPad</a><a href="#components">iPhone</a><a href="#components">Watch</a><a href="#components">Vision</a><a href="#components">AirPods</a><a href="#components">TV &amp; Home</a><a href="#components">Accessories</a><a href="#components">Gift Cards</a></div>
+        <div><h5>Services</h5><a href="#components">Music</a><a href="#components">TV+</a><a href="#components">Arcade</a><a href="#components">Fitness</a><a href="#components">News</a><a href="#components">Cloud</a><a href="#components">Pay</a><a href="#components">Card</a><a href="#components">Books</a><a href="#components">Podcasts</a></div>
+        <div><h5>Account</h5><a href="#components">Manage Your ID</a><a href="#components">Account</a><a href="#components">Store Account</a><a href="#components">Cloud Account</a><a href="#components">Sign In</a><a href="#components">Recovery</a><a href="#components">Security</a><a href="#components">Devices</a></div>
+        <div><h5>Enterprise</h5><a href="#components">Business</a><a href="#components">Education</a><a href="#components">Healthcare</a><a href="#components">Government</a><a href="#components">Financing</a><a href="#components">Retail</a><a href="#components">Environment</a><a href="#components">Privacy</a></div>
+        <div><h5>Support</h5><a href="#components">Help Center</a><a href="#components">Contact</a><a href="#components">Warranty</a><a href="#components">Repair</a><a href="#components">Trade In</a><a href="#components">Order Status</a><a href="#components">Shipping</a><a href="#components">Returns</a><a href="#components">Accessibility</a><a href="#components">Community</a></div>
+      </div>
+      <hr class="foot-div">
+      <p class="foot-copy">Product-tile whiteout — <a href="https://www.apple.com/">https://www.apple.com/</a><br>Design system captured and rendered by superdesign.dev</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+document.querySelectorAll('.mo-play').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var sel='.'+btn.getAttribute('data-motion');
+    var el=btn.parentElement.querySelector(sel);
+    if(!el)return;
+    if(sel==='.mo-color'){el.classList.remove('run');el.classList.add('mo-color');el.style.transition='background-color 0.32s cubic-bezier(0.4,0,0.6,1)';el.style.background='#0071E3';setTimeout(function(){el.style.background='#c7c7cc';},50);}
+    else if(sel==='.mo-slide'){el.style.transition='none';el.style.transform='translateX(0)';el.getBoundingClientRect();el.style.transition='transform 0.24s ease';el.style.transform='translateX(120px)';setTimeout(function(){el.style.transition='transform 0.24s ease';el.style.transform='translateX(0)';},280);}
+    else if(sel==='.mo-fade'){el.style.transition='none';el.style.opacity='0';el.style.transform='translateY(8px)';el.getBoundingClientRect();el.style.transition='opacity 0.22s ease, transform 0.22s ease';el.style.opacity='1';el.style.transform='translateY(0)';}
+  });
+});
+</script>
+
+</body>
+</html>

@@ -233,3 +233,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local scratch and temp docs
+scratch/
+Writing_*.docx
+

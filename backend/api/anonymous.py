@@ -5,7 +5,7 @@ from typing import Optional, List
 from datetime import datetime
 from ..core.database import get_db
 from ..models import AnonymousPost, PostReply
-from .auth import get_current_user
+from .auth import get_current_user, require_admin
 
 router = APIRouter()
 
@@ -51,6 +51,55 @@ def list_posts(domain: Optional[str] = None, db: Session = Depends(get_db), skip
     return query.order_by(AnonymousPost.created_at.desc()).offset(skip).limit(limit).all()
 
 
+# ── Reporting & Moderation ─────────────────────────────────────────────────
+# NOTE: these MUST be registered before /{post_id} so "/admin/..." is not
+# captured by the dynamic int route.
+
+@router.get("/admin/flagged", response_model=List[PostResponse])
+def list_flagged_posts(
+    admin: object = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Moderation queue: all flagged posts awaiting review."""
+    return db.query(AnonymousPost).filter(AnonymousPost.is_flagged == True).order_by(
+        AnonymousPost.created_at.desc()
+    ).all()
+
+
+@router.post("/admin/{post_id}/approve")
+def approve_post(post_id: int, admin: object = Depends(require_admin), db: Session = Depends(get_db)):
+    """Clear the flag and restore the post to the public feed."""
+    post = db.query(AnonymousPost).filter(AnonymousPost.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    post.is_flagged = False
+    db.commit()
+    return {"message": "Post approved and restored."}
+
+
+@router.delete("/admin/{post_id}")
+def delete_post(post_id: int, admin: object = Depends(require_admin), db: Session = Depends(get_db)):
+    """Remove a violating post entirely."""
+    post = db.query(AnonymousPost).filter(AnonymousPost.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    db.query(PostReply).filter(PostReply.post_id == post_id).delete()
+    db.delete(post)
+    db.commit()
+    return {"message": "Post deleted."}
+
+
+@router.post("/{post_id}/report")
+def report_post(post_id: int, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Any authenticated user can flag a post for moderator review."""
+    post = db.query(AnonymousPost).filter(AnonymousPost.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    post.is_flagged = True
+    db.commit()
+    return {"message": "Post reported for moderation review."}
+
+
 @router.get("/{post_id}", response_model=PostResponse)
 def get_post(post_id: int, db: Session = Depends(get_db)):
     post = db.query(AnonymousPost).filter(AnonymousPost.id == post_id).first()
@@ -83,8 +132,13 @@ def create_reply(post_id: int, reply: ReplyCreate, current_user = Depends(get_cu
     post = db.query(AnonymousPost).filter(AnonymousPost.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    db_reply = PostReply(post_id=post_id, content=reply.content)
+    # Replies from 4th-year+ students are marked senior-verified so juniors can
+    # weigh advice credibility.
+    is_senior = (current_user.year or 0) >= 4
+    db_reply = PostReply(post_id=post_id, content=reply.content, is_senior_verified=is_senior)
     db.add(db_reply)
     db.commit()
     db.refresh(db_reply)
     return db_reply
+
+

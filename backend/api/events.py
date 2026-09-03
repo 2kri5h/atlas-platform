@@ -5,21 +5,14 @@ from typing import Optional, List
 from datetime import datetime, timedelta, date
 import re
 from ..core.database import get_db
-from ..models import PlannerEvent, Event, UserAPIKey
+from ..models import PlannerEvent, UserAPIKey
 from .auth import get_current_user
 from ..core.config import settings
 from ..services.ai_gateway import GeminiGatewayDriver
 from ..services.crypto import decrypt_secret
+from ..services.recurrence import standard_day as _standard_day, parse_exdates
 
 router = APIRouter()
-
-
-def normalize_time(time_str: str) -> str:
-    """Helper to convert H:MM to HH:MM format."""
-    parts = time_str.split(":")
-    if len(parts) == 2:
-        return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
-    return time_str
 
 
 class EventBase(BaseModel):
@@ -118,15 +111,6 @@ class EventUpdate(BaseModel):
         return self
 
 
-class CampusEventCreate(BaseModel):
-    title: str = Field(min_length=1, max_length=200)
-    description: Optional[str] = Field(default="", max_length=5000)
-    event_date: Optional[datetime] = None
-    location: Optional[str] = Field(default="", max_length=200)
-    domain: Optional[str] = Field(default="", max_length=50)
-    organizer: Optional[str] = Field(default="", max_length=200)
-
-
 class EventResponse(BaseModel):
     id: int
     title: str
@@ -195,8 +179,9 @@ def normalize_time(t: str) -> str:
 
 
 # Helper to map python weekday to standard (0=Sun, 1=Mon, ..., 6=Sat)
+# Delegates to services.recurrence — single source of truth for the convention.
 def get_standard_day(dt: date) -> int:
-    return (dt.weekday() + 1) % 7
+    return _standard_day(dt)
 
 
 @router.get("/", response_model=List[EventResponse])
@@ -850,84 +835,8 @@ def scan_timetable(
     # Read the uploaded file contents
     contents = file.file.read()
     mime_type = file.content_type or "image/png"
-    
-    # 1. Check if user configured their own Gemini key
-    user_key_record = db.query(UserAPIKey).filter(
-        UserAPIKey.student_id == current_user.id,
-        UserAPIKey.provider == "gemini",
-        UserAPIKey.is_active == True
-    ).first()
-
-    if user_key_record:
-        try:
-            api_key = decrypt_secret(user_key_record.encrypted_key)
-        except Exception:
-            api_key = settings.GEMINI_API_KEY
-    else:
-        # 2. Fall back to platform team key (permitted for onboarding OCR)
-        api_key = settings.GEMINI_API_KEY
-
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No Gemini API key available. Please add your Gemini key in Settings or contact admin."
-        )
-    
-    try:
-        driver = GeminiGatewayDriver(api_key=api_key)
-        result = driver.parse_timetable_image(contents, mime_type)
-        return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Timetable scan failed: {str(e)}"
-        )
 
 
-
-@router.get("/", response_model=List[EventResponse])
-def list_events(domain: Optional[str] = None, archived: bool = False, db: Session = Depends(get_db), skip: int = 0, limit: int = Query(default=20, le=100)):
-    query = db.query(Event).filter(Event.is_archived == archived)
-    if domain:
-        query = query.filter(Event.domain == domain)
-    return query.order_by(Event.event_date.desc()).offset(skip).limit(limit).all()
-
-
-@router.get("/{event_id}", response_model=EventResponse)
-def get_event(event_id: int, db: Session = Depends(get_db)):
-    event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    return event
-
-
-@router.post("/", response_model=EventResponse)
-def create_event(
-    event: EventCreate,
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    db_event = Event(**event.model_dump())
-    db.add(db_event)
-    db.commit()
-    db.refresh(db_event)
-    return db_event
-
-
-@router.put("/{event_id}/archive", response_model=EventResponse)
-def archive_event(
-    event_id: int,
-    current_user=Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    event = db.query(Event).filter(Event.id == event_id).first()
-
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-
-    event.is_archived = True
-
-    db.commit()
-    db.refresh(event)
-
-    return event
+# NOTE: Campus-event endpoints (list/get/create/archive on the `events` table)
+# live in backend/api/campus_events.py, mounted at /api/campus-events.
+# They were previously duplicated here, which silently shadowed planner routes.

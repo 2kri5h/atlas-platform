@@ -7,7 +7,7 @@ from datetime import datetime
 from ..core.database import get_db
 from ..models import Resource, ResourceUpvote, ResourceBookmark
 from ..services.recommender import get_recommended_resources
-from .auth import get_current_user
+from .auth import get_current_user, require_admin
 
 router = APIRouter()
 
@@ -155,10 +155,13 @@ def get_bookmarks(
 @router.get("/", response_model=List[ResourceResponse])
 def list_resources(
     domain: Optional[str] = None,
+    q: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Show: all curated + all community (public) + user's own private resources
+    """Show: all curated + all community (public) + user's own private resources."""
     query = db.query(Resource).filter(
         or_(
             Resource.is_curated == True,
@@ -168,16 +171,38 @@ def list_resources(
     )
     if domain:
         query = query.filter(Resource.domain == domain)
-    resources = query.order_by(Resource.upvotes.desc()).all()
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            or_(
+                Resource.title.ilike(like),
+                Resource.description.ilike(like),
+                Resource.course.ilike(like),
+            )
+        )
+    resources = (
+        query.order_by(Resource.upvotes.desc())
+        .offset(max(skip, 0))
+        .limit(min(limit, 200))
+        .all()
+    )
     return _add_user_status(resources, current_user.id, db)
 
 
 @router.get("/{resource_id}", response_model=ResourceResponse)
-def get_resource(resource_id: int, db: Session = Depends(get_db)):
+def get_resource(
+    resource_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     resource = db.query(Resource).filter(Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
-    return resource
+    # Private resources are only visible to their uploader (curated ones are public).
+    if resource.is_private and not resource.is_curated and resource.uploader_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    result = _add_user_status([resource], current_user.id, db)
+    return result[0]
 
 
 @router.post("/", response_model=ResourceResponse)
@@ -208,12 +233,11 @@ def update_resource(
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
 
-    # Only the uploader or admin (roll_number starting with 'admin') can edit
+    # Only the uploader or an admin (role column) can edit.
     is_owner = resource.uploader_id == current_user.id
-    is_admin = current_user.roll_number.startswith("admin")
-    is_curated = resource.is_curated and resource.uploader_id is None
+    is_admin = getattr(current_user, "role", "student") == "admin"
 
-    if not (is_owner or is_admin or is_curated):
+    if not (is_owner or is_admin):
         raise HTTPException(status_code=403, detail="You can only edit your own resources")
 
     for key, value in updates.model_dump(exclude_none=True).items():
@@ -235,7 +259,7 @@ def delete_resource(
         raise HTTPException(status_code=404, detail="Resource not found")
 
     is_owner = resource.uploader_id == current_user.id
-    is_admin = current_user.roll_number.startswith("admin")
+    is_admin = getattr(current_user, "role", "student") == "admin"
 
     if not (is_owner or is_admin):
         raise HTTPException(status_code=403, detail="You can only delete your own resources")

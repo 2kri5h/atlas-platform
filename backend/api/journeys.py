@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from ..core.database import get_db
-from ..models import SeniorJourney
+from ..models import SeniorJourney, JourneyUpvote
 from .auth import get_current_user
 
 router = APIRouter()
@@ -61,10 +61,24 @@ def create_journey(
 
 
 @router.post("/{journey_id}/upvote")
-def upvote_journey(journey_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def toggle_upvote_journey(journey_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """Toggle upvote: one vote per student per journey (mirrors resources)."""
     journey = db.query(SeniorJourney).filter(SeniorJourney.id == journey_id).first()
     if not journey:
         raise HTTPException(status_code=404, detail="Journey not found")
-    journey.upvotes += 1
+
+    existing = db.query(JourneyUpvote).filter(
+        JourneyUpvote.student_id == current_user.id,
+        JourneyUpvote.journey_id == journey_id
+    ).first()
+
+    if existing:
+        db.delete(existing)
+        journey.upvotes = max((journey.upvotes or 0) - 1, 0)
+        db.commit()
+        return {"upvotes": journey.upvotes, "user_upvoted": False}
+
+    db.add(JourneyUpvote(student_id=current_user.id, journey_id=journey_id))
+    journey.upvotes = (journey.upvotes or 0) + 1
     db.commit()
-    return {"upvotes": journey.upvotes}
+    return {"upvotes": journey.upvotes, "user_upvoted": True}

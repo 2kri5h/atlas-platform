@@ -1,13 +1,50 @@
-from dotenv import load_dotenv
-load_dotenv()
+"""Secret encryption/decryption for stored API keys and OAuth tokens.
 
+The Fernet key comes from the TOKEN_ENCRYPTION_KEY environment variable.
+In development, if the variable is missing, an ephemeral key is generated so the
+app still runs — but any secrets encrypted with it become undecryptable after a
+restart, so a warning is logged. In production (ENVIRONMENT=production or a
+non-sqlite DATABASE_URL) a missing key is a hard startup error.
+"""
+
+import logging
 import os
-from cryptography.fernet import Fernet
 
-_key = os.environ.get("TOKEN_ENCRYPTION_KEY")
-if not _key:
-    _key = Fernet.generate_key().decode()
-_fernet = Fernet(_key.encode() if isinstance(_key, str) else _key)
+from cryptography.fernet import Fernet
+from dotenv import load_dotenv
+
+# Load both repo-root .env and backend/core/.env (the project's canonical env file).
+load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "core", ".env"))
+
+logger = logging.getLogger(__name__)
+
+
+def _is_production() -> bool:
+    env = (os.environ.get("ENVIRONMENT") or "").lower()
+    db_url = os.environ.get("DATABASE_URL") or ""
+    return env == "production" or (bool(db_url) and not db_url.startswith("sqlite"))
+
+
+def _load_fernet_key() -> bytes:
+    key = os.environ.get("TOKEN_ENCRYPTION_KEY")
+    if key:
+        return key.encode() if isinstance(key, str) else key
+
+    if _is_production():
+        raise RuntimeError(
+            "[Security] TOKEN_ENCRYPTION_KEY must be set in production. Without it, "
+            "stored API keys and OAuth tokens cannot be encrypted/decrypted securely."
+        )
+
+    logger.warning(
+        "[Security] TOKEN_ENCRYPTION_KEY not set. Generating an EPHEMERAL key for this "
+        "session (dev only). Any secrets encrypted now will be undecryptable after restart."
+    )
+    return Fernet.generate_key()
+
+
+_fernet = Fernet(_load_fernet_key())
 
 
 def encrypt_secret(plain_text: str) -> str:
@@ -42,4 +79,4 @@ def decrypt_token(encrypted_token):
     Decrypt a token pulled from the DB back into its plaintext form,
     ready to use for IMAP login.
     """
-    return decrypt_secret(encrypted_token)
+    return decrypt_secret(encrypted_token)

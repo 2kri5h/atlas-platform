@@ -5,6 +5,7 @@ from .models import (
     ResourceBookmark,
     Event,
     SeniorJourney,
+    JourneyUpvote,
     AnonymousPost,
     PostReply,
     TaskLog,
@@ -25,6 +26,7 @@ __all__ = [
     "ResourceBookmark",
     "Event",
     "SeniorJourney",
+    "JourneyUpvote",
     "AnonymousPost",
     "PostReply",
     "TaskLog",
@@ -37,4 +39,3 @@ __all__ = [
     "UserAPIKey",
     "GoogleAccount",
 ]
-

@@ -1,5 +1,7 @@
 """Google OAuth 2.0 Token Lifecycle & Storage Engine."""
 
+import hashlib
+import hmac
 import json
 import logging
 import urllib.parse
@@ -34,6 +36,38 @@ def is_google_oauth_configured() -> bool:
     return bool(settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET)
 
 
+def _sign_state(payload: dict) -> str:
+    """HMAC-sign the OAuth state payload so it cannot be forged (CSRF protection)."""
+    body = json.dumps(payload, sort_keys=True)
+    sig = hmac.new(
+        settings.SECRET_KEY.encode(), body.encode(), hashlib.sha256
+    ).hexdigest()
+    return urllib.parse.quote(json.dumps({"p": payload, "s": sig}))
+
+
+def verify_state(state: Optional[str]) -> Optional[dict]:
+    """Validate a signed state string. Returns the payload or None if invalid."""
+    if not state:
+        return None
+    try:
+        data = json.loads(urllib.parse.unquote(state))
+        payload = data.get("p")
+        sig = data.get("s", "")
+        body = json.dumps(payload, sort_keys=True)
+        expected = hmac.new(
+            settings.SECRET_KEY.encode(), body.encode(), hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(sig, expected):
+            return None
+        ts = datetime.fromisoformat(payload.get("ts"))
+        # State older than 10 minutes is rejected (replay window).
+        if (datetime.utcnow() - ts).total_seconds() > 600:
+            return None
+        return payload
+    except Exception:
+        return None
+
+
 def get_google_auth_url(student_id: int, redirect_uri: Optional[str] = None) -> str:
     """Generate the Google OAuth 2.0 consent URL."""
     r_uri = redirect_uri or settings.GOOGLE_REDIRECT_URI
@@ -42,7 +76,7 @@ def get_google_auth_url(student_id: int, redirect_uri: Optional[str] = None) -> 
         "student_id": student_id,
         "ts": datetime.utcnow().isoformat(),
     }
-    state = urllib.parse.quote(json.dumps(state_data))
+    state = _sign_state(state_data)
 
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID or "demo-client-id",

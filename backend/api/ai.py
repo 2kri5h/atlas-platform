@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List, Any
 import json
+import logging
 import os
 import joblib
 import pandas as pd
@@ -29,6 +31,7 @@ from ..services.llm_router import (
     get_user_llm,
     validate_raw_key,
     run_chat_with_mentor,
+    build_mentor_prompts,
     run_generate_roadmap,
     run_generate_smart_suggestions,
     SUPPORTED_PROVIDERS,
@@ -37,6 +40,10 @@ from ..services.llm_router import (
 )
 from ..services.crypto import encrypt_secret
 from ..services.resource_context import get_resource_library_context
+from ..services.recurrence import occurrence_dates, parse_exdates, last_n_days_endpoints
+from ..services.smart_suggestions import _profile_suggestions
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -180,24 +187,14 @@ def compute_weekly_working_hours(db: Session, student_id: int) -> float:
         PlannerEvent.deletedAt == None,
         PlannerEvent.isRecurring == True,
     ).all()
+    start_date, end_date = last_n_days_endpoints(now, days=7)
     for e in recurring:
         if e.recurrenceDay is None:
             continue
-        # Parse exdates
-        exdates = set()
-        if e.exdates:
-            try:
-                exdates = set(json.loads(e.exdates))
-            except Exception:
-                pass
-        # Check each of the last 7 days
-        for day_offset in range(7):
-            day = (now - timedelta(days=day_offset)).date()
-            if day.weekday() == e.recurrenceDay % 7:
-                date_str = day.isoformat()
-                if date_str not in exdates:
-                    duration = _parse_time_to_minutes(e.endTime) - _parse_time_to_minutes(e.startTime)
-                    total_minutes += max(duration, 0)
+        exdates = parse_exdates(e.exdates)
+        for day in occurrence_dates(start_date, end_date, e.recurrenceDay, exdates):
+            duration = _parse_time_to_minutes(e.endTime) - _parse_time_to_minutes(e.startTime)
+            total_minutes += max(duration, 0)
 
     return round(total_minutes / 60.0, 2)
 
@@ -274,21 +271,14 @@ def compute_sleep_deficit(db: Session, student: Student) -> float:
         if not e.isRecurring:
             duration = _parse_time_to_minutes(e.endTime) - _parse_time_to_minutes(e.startTime)
             actual_minutes += max(duration, 0)
+    start_date, end_date = last_n_days_endpoints(now, days=7)
     for e in recurring_sleep:
         if e.recurrenceDay is None:
             continue
-        exdates = set()
-        if e.exdates:
-            try:
-                exdates = set(json.loads(e.exdates))
-            except Exception:
-                pass
-        for day_offset in range(7):
-            day = (now - timedelta(days=day_offset)).date()
-            if day.weekday() == e.recurrenceDay % 7:
-                if day.isoformat() not in exdates:
-                    duration = _parse_time_to_minutes(e.endTime) - _parse_time_to_minutes(e.startTime)
-                    actual_minutes += max(duration, 0)
+        exdates = parse_exdates(e.exdates)
+        for day in occurrence_dates(start_date, end_date, e.recurrenceDay, exdates):
+            duration = _parse_time_to_minutes(e.endTime) - _parse_time_to_minutes(e.startTime)
+            actual_minutes += max(duration, 0)
 
     actual_hours = actual_minutes / 60.0
     deficit = max(baseline_weekly - actual_hours, 0.0)
@@ -751,6 +741,56 @@ def chat(chat_id: int, request: ChatRequest, current_user=Depends(get_current_us
     return AIResponse(message=reply)
 
 
+@router.post("/chat/{chat_id}/stream")
+def chat_stream(chat_id: int, request: ChatRequest, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Streamed AI mentor reply (plain-text chunked response).
+
+    Persists the user message up-front and the assistant message once streaming
+    completes, so history stays consistent with the non-streaming endpoint.
+    """
+    chat = db.query(AIChat).filter(
+        AIChat.id == chat_id,
+        AIChat.student_id == current_user.id,
+    ).first()
+
+    if not chat:
+        raise HTTPException(status_code=404, detail="No chat found. Create a new chat first.")
+
+    user_llm = get_user_llm(current_user.id, db)
+    if not user_llm:
+        raise HTTPException(
+            status_code=428,
+            detail="AI Mentor requires a personal API key. Please connect your free Google Gemini, OpenAI, Claude, or Grok key in Settings to chat."
+        )
+
+    user_message = AIMessage(chat_id=chat.id, role="user", content=request.message)
+    db.add(user_message)
+    db.commit()
+
+    history = db.query(AIMessage).filter(AIMessage.chat_id == chat.id).order_by(AIMessage.created_at.desc()).limit(12).all()
+    history.reverse()
+    resource_context = get_resource_library_context(db, current_user, request.message)
+    system_prompt, user_prompt = build_mentor_prompts(current_user, history, resource_context)
+
+    def text_stream():
+        collected: list[str] = []
+        try:
+            for chunk in user_llm.generate_stream(user_prompt, system_prompt=system_prompt):
+                collected.append(chunk)
+                yield chunk
+        except LLMServiceError as exc:
+            # chr(10)*2 = blank line separator (avoids escape sequences that
+            # some editors mangle inside streamed payloads).
+            yield chr(10) * 2 + "[AI service error: " + str(exc) + "]"
+        finally:
+            content = "".join(collected).strip()
+            if content:
+                db.add(AIMessage(chat_id=chat.id, role="assistant", content=content))
+                db.commit()
+
+    return StreamingResponse(text_stream(), media_type="text/plain; charset=utf-8")
+
+
 @router.get("/chats")
 def get_chats(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     chats = db.query(AIChat).filter(AIChat.student_id == current_user.id).order_by(AIChat.created_at.desc()).all()
@@ -1010,11 +1050,116 @@ def get_weekly_insights(current_user = Depends(get_current_user), db: Session = 
     )
 
 
-@router.get("/test-gemini")
-def test_gemini():
-    if has_ai_services:
-        return AIResponse(message=generate_test_response())
-    return AIResponse(message="Gemini services disabled")
+@router.get("/conflict-radar")
+def get_conflict_radar(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Cross-reference upcoming deadlines against daily planner capacity.
+
+    Flags days where multiple deadlines land on already-heavy days, plus
+    overdue-task pressure - pure SQL over existing tables, no AI required.
+    """
+    now = datetime.utcnow()
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    horizon_end = today + timedelta(days=7)
+
+    # Deadlines grouped by date for the next 7 days.
+    deadlines = db.query(PlannerEvent).filter(
+        PlannerEvent.userId == current_user.id,
+        PlannerEvent.deadline_date != None,
+        PlannerEvent.isCompleted == False,
+        PlannerEvent.deletedAt == None,
+        PlannerEvent.deadline_date >= today,
+        PlannerEvent.deadline_date < horizon_end,
+    ).all()
+
+    deadlines_by_day: dict = {}
+    for d in deadlines:
+        key = d.deadline_date.date().isoformat()
+        deadlines_by_day.setdefault(key, []).append(d.title)
+
+    # Scheduled working hours per day (non-recurring + recurring, isWorkingHour).
+    def _mins(t: str) -> int:
+        try:
+            h, m = t.split(":")
+            return int(h) * 60 + int(m)
+        except Exception:
+            return 0
+
+    start_date = today.date()
+    end_date = (horizon_end - timedelta(days=1)).date()
+
+    non_recurring = db.query(PlannerEvent).filter(
+        PlannerEvent.userId == current_user.id,
+        PlannerEvent.isWorkingHour == True,
+        PlannerEvent.isRecurring == False,
+        PlannerEvent.deletedAt == None,
+        PlannerEvent.date >= today,
+        PlannerEvent.date < horizon_end,
+    ).all()
+    recurring = db.query(PlannerEvent).filter(
+        PlannerEvent.userId == current_user.id,
+        PlannerEvent.isWorkingHour == True,
+        PlannerEvent.isRecurring == True,
+        PlannerEvent.deletedAt == None,
+    ).all()
+
+    hours_by_day: dict = {}
+    curr = start_date
+    while curr <= end_date:
+        iso = curr.isoformat()
+        minutes = 0
+        for ev in non_recurring:
+            if ev.date and ev.date.date().isoformat() == iso:
+                minutes += max(_mins(ev.endTime) - _mins(ev.startTime), 0)
+        std_day = (curr.weekday() + 1) % 7
+        exd_cache = {}
+        for ev in recurring:
+            if ev.recurrenceDay != std_day:
+                continue
+            if ev.id not in exd_cache:
+                raw = (ev.exdates or "").strip()
+                exd_cache[ev.id] = set(p.strip() for p in raw.split(",") if p.strip()) if raw else set()
+            if iso not in exd_cache[ev.id]:
+                minutes += max(_mins(ev.endTime) - _mins(ev.startTime), 0)
+        hours_by_day[iso] = round(minutes / 60.0, 1)
+        curr += timedelta(days=1)
+
+    waking_hours = getattr(current_user, "wakingHoursPerDay", 16) or 16
+
+    warnings = []
+    for iso in sorted(hours_by_day.keys()):
+        dl_titles = deadlines_by_day.get(iso, [])
+        load_pct = round(hours_by_day[iso] / waking_hours * 100) if waking_hours else 0
+        if len(dl_titles) >= 2 and load_pct >= 60:
+            warnings.append({
+                "type": "deadline_vs_capacity",
+                "date": iso,
+                "severity": "high" if load_pct >= 85 else "medium",
+                "message": f"{len(dl_titles)} deadlines due on a day that's already {load_pct}% loaded.",
+                "deadlines": dl_titles,
+            })
+        elif len(dl_titles) >= 3:
+            warnings.append({
+                "type": "deadline_cluster",
+                "date": iso,
+                "severity": "medium",
+                "message": f"{len(dl_titles)} deadlines cluster on this day.",
+                "deadlines": dl_titles,
+            })
+
+    overdue_tasks = db.query(TaskLog).filter(
+        TaskLog.student_id == current_user.id,
+        TaskLog.completed == False,
+        TaskLog.due_date != None,
+        TaskLog.due_date < now,
+    ).count()
+    if overdue_tasks >= 3:
+        warnings.append({
+            "type": "overdue_backlog",
+            "severity": "medium",
+            "message": f"{overdue_tasks} overdue tasks are adding background pressure.",
+        })
+
+    return {"warnings": warnings, "checked_days": len(hours_by_day)}
 
 
 @router.get("/latest-chat")

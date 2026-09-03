@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta
 from ..core.database import get_db
 from ..models import TaskLog, PlannerEvent, DeadlineSubtask
 from .auth import get_current_user
+from ..services.week_planner import plan_week
 
 try:
     from ..schemas.deadline import (
@@ -243,6 +244,16 @@ def apply_rebalance(changes: ApplyRebalanceRequest, current_user = Depends(get_c
         updated_tasks.append(task)
 
     return updated_tasks
+
+
+@router.post("/plan-week")
+def auto_plan_week(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Auto-schedule study blocks for pending tasks due within 7 days.
+
+    Deterministic interval scheduling: fills free gaps around existing events,
+    respects priority order and a daily cap of 4h of auto-scheduled study.
+    """
+    return plan_week(db, current_user)
 
 
 # ─── Deadline & Subtask Endpoints ─────────────────────────────────────────────

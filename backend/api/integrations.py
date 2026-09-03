@@ -23,6 +23,7 @@ from ..services.google import (
     sync_deadlines_to_google_calendar,
     sync_timetable_to_google_calendar,
 )
+from ..services.google.auth import verify_state
 from ..services.llm_router import get_user_llm
 from .auth import get_current_user
 
@@ -38,6 +39,7 @@ router = APIRouter()
 class GoogleAuthCallbackRequest(BaseModel):
     code: str
     redirect_uri: Optional[str] = None
+    state: Optional[str] = None  # HMAC-signed state from /google/auth-url (CSRF protection)
 
 
 class GoogleDriveExportRequest(BaseModel):
@@ -82,6 +84,12 @@ def handle_oauth_callback(
     db: Session = Depends(get_db),
 ):
     """Exchange authorization code for tokens and securely store credentials."""
+    # Validate signed OAuth state: binds this callback to the authenticated user
+    # and prevents CSRF / account-binding attacks.
+    if payload.state:
+        state_payload = verify_state(payload.state)
+        if not state_payload or int(state_payload.get("student_id", -1)) != current_user.id:
+            raise HTTPException(status_code=400, detail="Invalid or expired OAuth state. Please restart the connection flow.")
     try:
         token_data = exchange_code_for_tokens(payload.code, payload.redirect_uri)
         access_token = token_data.get("access_token", "")
@@ -175,6 +183,34 @@ def get_personal_gmail_messages(
         "messages": messages,
         "count": len(messages),
         "ai_enriched": bool(user_llm),
+    }
+
+
+@router.get("/google/gmail/daily-digest")
+def get_personal_gmail_daily_digest(
+    max_days: int = Query(default=3, le=7),
+    current_user: Student = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Fetch 3-day daily digests for personal Gmail."""
+    token = get_valid_access_token(db, current_user.id)
+    if not token:
+        return {"digests": [], "count": 0, "message": "Google account not connected"}
+
+    user_llm = get_user_llm(current_user.id, db)
+    messages = fetch_recent_gmail_messages(
+        access_token=token,
+        max_results=30,
+        user_llm=user_llm,
+    )
+
+    from ..services.daily_digest import compute_daily_digests
+    digests = compute_daily_digests(messages, max_days=max_days)
+
+    return {
+        "digests": digests,
+        "count": len(digests),
+        "retention_policy": "3-day daily digest rollup, 7-day structured email cache",
     }
 
 

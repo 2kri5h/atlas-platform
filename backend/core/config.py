@@ -14,7 +14,7 @@ if hasattr(bcrypt, "hashpw") and not getattr(bcrypt, "_hashpw_patched", False):
     bcrypt._hashpw_patched = True
 
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from functools import lru_cache
 
 
@@ -32,14 +32,26 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "*"
     AUTO_SEED_ON_STARTUP: bool = True
 
-    supabase_url: str = "https://lcorsvdtqtqpyxiizfyn.supabase.co"
-    supabase_api: str = "sb_publishable_mAJrU7-c8_7kCuvhl9ApiQ_I7HFLFkU"
+    supabase_url: str = ""
+    supabase_api: str = ""
     # Keep credentials in environment variables (or .env), never in source code.
     gemini_api_key_atharva: str = ""
-    token_encryption_key: str = "wQUQ7nxnIIYOxfTLTTHoxGn3Jim3376wnxUTGqKaEFA="
+    token_encryption_key: str = ""
+    # "development" (default) allows insecure fallbacks with warnings;
+    # "production" fails fast on missing secrets.
+    ENVIRONMENT: str = "development"
 
     gemini_api_key_krish: str = ""  # krish-api //krish-api
     gemini_api_key: str = ""  # krish-api //krish-api
+    # Reminder engine: SMTP + cron secret
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_USE_TLS: bool = True
+    REMINDER_FROM: str = ""
+    CRON_SECRET: str = ""  # required to hit /api/internal/cron/* endpoints
+
     # Google OAuth 2.0 Credentials (for Gmail, Google Drive, Google Calendar)
     google_client_id: str = ""
     google_client_secret: str = ""
@@ -89,17 +101,41 @@ class Settings(BaseSettings):
             v = v.replace("postgres://", "postgresql://", 1)
         return v
 
-    @field_validator("SECRET_KEY")
-    @classmethod
-    def secret_key_must_be_set(cls, v: str) -> str:
-        if not v or v in ("your-secret-key-change-in-production", "your-production-secret-key"):
-            import secrets
-            import logging
-            logger = logging.getLogger("backend.core.config")
-            logger.warning("[Security] SECRET_KEY not set in environment. Auto-generating secure token for this session.")
-            return secrets.token_urlsafe(32)
-        return v
+    @model_validator(mode="after")
+    def enforce_secret_key_policy(self):
+        """Fail fast in production; warn + auto-generate in development.
 
+        With multiple gunicorn/uvicorn workers each process would otherwise generate
+        a different key, causing random JWT validation failures across requests.
+        """
+        insecure = not self.SECRET_KEY or self.SECRET_KEY in (
+            "your-secret-key-change-in-production",
+            "your-production-secret-key",
+        )
+        if not insecure:
+            return self
+
+        is_production = (
+            self.ENVIRONMENT.lower() == "production"
+            or (self.DATABASE_URL and not self.DATABASE_URL.startswith("sqlite"))
+        )
+        if is_production:
+            raise RuntimeError(
+                "[Security] SECRET_KEY must be set in the environment when running in "
+                "production (ENVIRONMENT=production or a non-sqlite DATABASE_URL). "
+                "With multiple workers each process would otherwise generate a different "
+                "key, causing random JWT validation failures across requests."
+            )
+
+        import secrets
+        import logging
+        logger = logging.getLogger("backend.core.config")
+        logger.warning(
+            "[Security] SECRET_KEY not set in environment. Auto-generating secure token "
+            "for this session (dev only). Tokens will be invalidated on restart."
+        )
+        self.SECRET_KEY = secrets.token_urlsafe(32)
+        return self
 
     class Config:
         env_file = ("backend/core/.env", ".env")

@@ -89,7 +89,10 @@ def migrate_sqlite_schema():
         return
 
     required_columns = {
-        "students": {"study_hours_per_week": "FLOAT DEFAULT 0"},
+        "students": {
+            "study_hours_per_week": "FLOAT DEFAULT 0",
+            "role": "VARCHAR(20) DEFAULT 'student' NOT NULL",
+        },
         "resources": {
             "is_private": "BOOLEAN DEFAULT 0",
             "is_curated": "BOOLEAN DEFAULT 0",
