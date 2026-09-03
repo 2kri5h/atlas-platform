@@ -7,6 +7,8 @@ restart, so a warning is logged. In production (ENVIRONMENT=production or a
 non-sqlite DATABASE_URL) a missing key is a hard startup error.
 """
 
+import base64
+import hashlib
 import logging
 import os
 
@@ -29,7 +31,14 @@ def _is_production() -> bool:
 def _load_fernet_key() -> bytes:
     key = os.environ.get("TOKEN_ENCRYPTION_KEY")
     if key:
-        return key.encode() if isinstance(key, str) else key
+        key_bytes = key.encode() if isinstance(key, str) else key
+        try:
+            Fernet(key_bytes)
+            return key_bytes
+        except Exception:
+            # If not a standard 32-byte urlsafe-b64 key, derive one deterministically
+            # via SHA-256 so arbitrary passphrases (in dev or CI) work reliably.
+            return base64.urlsafe_b64encode(hashlib.sha256(key_bytes).digest())
 
     if _is_production():
         raise RuntimeError(

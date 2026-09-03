@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
       - name: Run tests
         env:
           SECRET_KEY: ci-test-secret-key-not-for-production
-          TOKEN_ENCRYPTION_KEY: ci-test-encryption-key
+          TOKEN_ENCRYPTION_KEY: Q6JemvQO0B9yP948RRydDToWPtCy1c8jK7Y4JO20clc=
         run: python -m pytest tests/ -q
 
   frontend-build:
