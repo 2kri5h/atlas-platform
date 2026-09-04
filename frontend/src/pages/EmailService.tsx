@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import api, { apiKeysAPI, googleIntegrationsAPI, UserAPIKey, GoogleAccountStatus } from '../utils/api'
 import type { EmailRecord } from '../utils/api'
@@ -501,7 +502,6 @@ export default function EmailService() {
       )}
 
       {/* ── Consolidated Header Bar ── */}
-      {/* ── Consolidated Responsive Header Bar ── */}
       <div className="email-header-bar">
         <div className="email-header-left">
           <div className="email-header-branding">
@@ -1168,8 +1168,8 @@ export default function EmailService() {
       {/* ─────────────────────────────────────────────────────────────────── */}
       {/* ── CONSOLIDATED ACCOUNTS & INTEGRATIONS MODAL ── */}
       {/* ─────────────────────────────────────────────────────────────────── */}
-      {isAccountsModalOpen && (
-        <div className="email-modal-overlay" onClick={() => setIsAccountsModalOpen(false)}>
+      {isAccountsModalOpen && createPortal(
+        <div className="email-modal-overlay" onClick={() => setIsAccountsModalOpen(false)} role="dialog" aria-modal="true">
           <div
             className="accounts-modal-content"
             onClick={(e) => e.stopPropagation()}
@@ -1339,12 +1339,13 @@ export default function EmailService() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Event Modal: Add to Planner ── */}
-      {selected && (
-        <div onClick={() => setSelected(null)} className="email-modal-overlay">
+      {selected && createPortal(
+        <div onClick={() => setSelected(null)} className="email-modal-overlay" role="dialog" aria-modal="true">
           <div onClick={(e) => e.stopPropagation()} className="email-modal-content">
             <button onClick={() => setSelected(null)} className="email-modal-close-btn">
               ✕
@@ -1422,7 +1423,8 @@ export default function EmailService() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Key Vault Modal ── */}

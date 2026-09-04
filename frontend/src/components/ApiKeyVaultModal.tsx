@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Key,
   ShieldCheck,
@@ -162,8 +163,8 @@ export default function ApiKeyVaultModal({ isOpen, onClose, onKeyUpdated }: ApiK
 
   const currentProviderObj = providers.find(p => p.id === selectedProvider)
 
-  return (
-    <div className="vault-modal-overlay" onClick={onClose}>
+  return createPortal(
+    <div className="vault-modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="vault-modal-card" onClick={e => e.stopPropagation()}>
         <div className="vault-modal-header">
           <div className="vault-title-group">
@@ -392,6 +393,7 @@ export default function ApiKeyVaultModal({ isOpen, onClose, onKeyUpdated }: ApiK
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

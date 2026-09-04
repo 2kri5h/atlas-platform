@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Calendar, Clock, AlertCircle, Tag, X } from 'lucide-react'
 import { myLibraryAPI, TaskFromResourcePayload } from '../../utils/api'
 
@@ -102,8 +103,8 @@ export const ResourceTaskModal: React.FC<ResourceTaskModalProps> = ({
     }
   }
 
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
+  return createPortal(
+    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="modal-card task-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title-group">
@@ -252,7 +253,8 @@ export const ResourceTaskModal: React.FC<ResourceTaskModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

@@ -1801,6 +1801,24 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* ── Resource & Drive Modal Backdrop ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: fadeIn 0.18s ease-out;
+}
+
 /* ── Task & Deadline Modal Styling ── */
 .task-modal-card {
   max-width: 520px;

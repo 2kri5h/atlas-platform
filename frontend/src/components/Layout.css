@@ -235,7 +235,7 @@
   width: 100%;
   background: transparent;
   position: relative;
-  z-index: 1;
+  z-index: auto;
   transition: margin-left var(--transition-normal);
 }
 
