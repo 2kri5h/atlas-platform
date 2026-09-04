@@ -237,10 +237,11 @@ export default function GoogleConnectModal({ isOpen, onClose, onStatusChange }: 
                 <div className="google-setup-notice">
                   <div className="setup-notice-header">
                     <Info size={15} className="notice-icon" />
-                    <strong>Google OAuth Server Setup Notice</strong>
+                    <strong>Live Google Sign-In Setup</strong>
                   </div>
                   <p>
-                    Live Google OAuth requires <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> set in your backend server environment (Render dashboard).
+                    Google protects personal accounts by requiring the official <em>"Sign in with Google"</em> consent flow (Google OAuth).
+                    To enable live account sync, add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> to your server settings (Render dashboard).
                   </p>
                 </div>
               )}
