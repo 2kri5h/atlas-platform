@@ -42,3 +42,9 @@
   color: var(--text-primary);
   font-weight: 600;
 }
+
+@media (max-width: 768px) {
+  .breadcrumbs-nav {
+    display: none;
+  }
+}

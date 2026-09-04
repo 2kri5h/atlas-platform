@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 from ..core.database import get_db
-from ..models import Resource, ResourceUpvote, ResourceBookmark
+from ..models import Resource, ResourceUpvote, ResourceBookmark, TaskLog, PlannerEvent
 from ..services.recommender import get_recommended_resources
 from .auth import get_current_user, require_admin
 
@@ -57,6 +57,26 @@ class ResourceResponse(BaseModel):
 class RecommendedResourceResponse(ResourceResponse):
     match_score: float = 0.0
     match_reasons: List[str] = []
+
+
+class LibraryResourceResponse(ResourceResponse):
+    is_owner: bool = False
+    origin: str = "bookmark"  # 'bookmark' | 'upload' | 'note'
+
+
+class TaskFromResourceRequest(BaseModel):
+    resource_id: Optional[int] = None
+    title: str
+    url: Optional[str] = None
+    course_code: Optional[str] = None
+    due_date: Optional[datetime] = None
+    end_time: Optional[str] = "23:59"
+    priority: Optional[int] = 2
+    tag: Optional[str] = "IMPORTANT"  # CRITICAL, IMPORTANT, OPTIONAL
+    custom_tag: Optional[str] = None  # e.g., "Weightage: 20%", "Endsem Exam Prep", handwritten tag
+    notes: Optional[str] = None
+    create_planner_deadline: Optional[bool] = True
+
 
 
 def _add_user_status(resources, user_id: int, db: Session):
@@ -148,6 +168,143 @@ def get_bookmarks(
     ).subquery()
     resources = db.query(Resource).filter(Resource.id.in_(bookmarked_ids)).all()
     return _add_user_status(resources, current_user.id, db)
+
+
+@router.get("/bookmarks/my", response_model=List[ResourceResponse])
+def get_my_bookmarks(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Alias for /bookmarks for frontend compatibility."""
+    return get_bookmarks(current_user=current_user, db=db)
+
+
+@router.get("/library", response_model=List[LibraryResourceResponse])
+def get_user_library(
+    course: Optional[str] = None,
+    type: Optional[str] = None,
+    q: Optional[str] = None,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get combined personal library items for the authenticated user:
+    - All bookmarked resources
+    - All resources uploaded/created by the user (both private notes and public uploads)
+    """
+    bookmarked_ids = [
+        b.resource_id for b in db.query(ResourceBookmark.resource_id).filter(
+            ResourceBookmark.student_id == current_user.id
+        ).all()
+    ]
+
+    query = db.query(Resource).filter(
+        or_(
+            Resource.id.in_(bookmarked_ids),
+            Resource.uploader_id == current_user.id
+        )
+    )
+
+    if course:
+        query = query.filter(Resource.course.ilike(f"%{course}%"))
+    if type and type.lower() != "all":
+        if type.lower() == "notes":
+            query = query.filter(
+                or_(
+                    Resource.resource_type.ilike("%note%"),
+                    Resource.is_private == True
+                )
+            )
+        else:
+            query = query.filter(Resource.resource_type.ilike(f"%{type}%"))
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            or_(
+                Resource.title.ilike(like),
+                Resource.description.ilike(like),
+                Resource.course.ilike(like),
+            )
+        )
+
+    resources = query.order_by(Resource.created_at.desc()).all()
+    status_list = _add_user_status(resources, current_user.id, db)
+
+    result = []
+    bookmarked_set = set(bookmarked_ids)
+    for item in status_list:
+        lib_item = LibraryResourceResponse.model_validate(item)
+        lib_item.is_owner = item.uploader_id == current_user.id
+        if item.uploader_id == current_user.id and item.is_private:
+            lib_item.origin = "note"
+        elif item.id in bookmarked_set:
+            lib_item.origin = "bookmark"
+        else:
+            lib_item.origin = "upload"
+        result.append(lib_item)
+    return result
+
+
+@router.post("/tasks-from-resource")
+def create_task_from_resource(
+    payload: TaskFromResourceRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Seamlessly creates a TaskLog and optional PlannerEvent deadline linked to a resource/drive file.
+    """
+    desc_parts = []
+    if payload.notes:
+        desc_parts.append(payload.notes)
+    if payload.custom_tag:
+        desc_parts.append(f"Tag: {payload.custom_tag}")
+    if payload.course_code:
+        desc_parts.append(f"Course: {payload.course_code}")
+    if payload.url:
+        desc_parts.append(f"Link: {payload.url}")
+
+    full_description = "\n".join(desc_parts)
+
+    task = TaskLog(
+        student_id=current_user.id,
+        title=payload.title,
+        description=full_description,
+        domain=payload.course_code or "academics",
+        priority=payload.priority or 2,
+        due_date=payload.due_date,
+    )
+    db.add(task)
+    db.flush()
+
+    planner_event_id = None
+    if payload.create_planner_deadline and payload.due_date:
+        event = PlannerEvent(
+            userId=current_user.id,
+            title=payload.title,
+            deadline_date=payload.due_date,
+            deadline_label=payload.custom_tag or payload.title,
+            tag=payload.tag or "IMPORTANT",
+            category="EXAM" if "exam" in (payload.custom_tag or "").lower() else "OTHER",
+            startTime="09:00",
+            endTime=payload.end_time or "23:59",
+            description=payload.notes or "",
+            userComment=f"{payload.custom_tag or ''}".strip(),
+            link=payload.url or "",
+            isCompleted=False,
+        )
+        db.add(event)
+        db.flush()
+        planner_event_id = event.id
+
+    db.commit()
+    return {
+        "status": "success",
+        "task_id": task.id,
+        "planner_event_id": planner_event_id,
+        "message": f"Successfully added '{payload.title}' to your Tasks & Deadlines",
+    }
+
 
 
 # --- Standard CRUD endpoints ---

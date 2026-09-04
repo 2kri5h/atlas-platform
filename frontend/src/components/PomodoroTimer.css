@@ -336,12 +336,36 @@
 /* ── Mobile Responsive Overrides ── */
 @media (max-width: 768px) {
   .pomodoro-floating-launcher {
-    bottom: 76px; /* Sits cleanly above the 64px mobile bottom nav bar */
-    right: 16px;
-    padding: 0.45rem 0.85rem;
-    font-size: 0.76rem;
-    box-shadow: 0 4px 14px rgba(124, 92, 252, 0.4);
-    z-index: 85; /* Below modals but above content */
+    bottom: 74px; /* Sits cleanly above the 60px mobile bottom dock */
+    right: 14px;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(124, 92, 252, 0.45);
+    z-index: 85;
+  }
+
+  .pomodoro-floating-launcher:not(.running) .launcher-text,
+  .pomodoro-floating-launcher:not(.running) .session-count-badge {
+    display: none;
+  }
+
+  .pomodoro-floating-launcher.running {
+    width: auto;
+    border-radius: 999px;
+    padding: 0.4rem 0.75rem;
+    gap: 0.4rem;
+  }
+
+  .pomodoro-floating-launcher.running .launcher-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .pomodoro-floating-launcher.running .session-count-badge {
+    display: none;
   }
 
   .pomodoro-widget {

@@ -1563,16 +1563,16 @@
   gap: 4px;
 }
 
-.priority {
+.planner-page .priority {
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 500;
 }
 
-.priority-1 { background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger-border); }
-.priority-2 { background: var(--warning-light); color: var(--warning); border: 1px solid var(--warning-border); }
-.priority-3 { background: var(--success-light); color: var(--success); border: 1px solid var(--success-border); }
+.planner-page .priority-1 { background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger-border); }
+.planner-page .priority-2 { background: var(--warning-light); color: var(--warning); border: 1px solid var(--warning-border); }
+.planner-page .priority-3 { background: var(--success-light); color: var(--success); border: 1px solid var(--success-border); }
 
 
 .hours-tracker {
@@ -2260,10 +2260,11 @@ input:checked+.slider::before {
 /* ── Mobile breakpoint – full redesign ─────────────────────────────────────── */
 @media (max-width: 768px) {
 
-  /* Force the whole page to stay within viewport */
+  /* Allow smooth horizontal scrolling for week view without page blowout */
   .planner-page {
-    overflow-x: hidden;
-    gap: 14px;
+    overflow-x: clip;
+    max-width: 100%;
+    gap: 12px;
   }
 
   /* ── Header ── */
@@ -2376,6 +2377,16 @@ input:checked+.slider::before {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
     border-radius: 10px;
+    position: relative;
+  }
+
+  .timeline-container.is-week-view .time-gutter,
+  .timeline-container.is-week-view .time-gutter-header {
+    position: sticky !important;
+    left: 0 !important;
+    background: var(--surface) !important;
+    z-index: 25 !important;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
   }
 
   .timeline-container.is-week-view .timeline-header,

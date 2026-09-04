@@ -240,3 +240,4 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', 
   )
 }
 
+export { default as AmbientCanvas } from './AmbientCanvas'

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { BookOpen, Calendar, Map, CheckSquare, MessageCircle, Bot, TrendingUp, Clock, Target } from 'lucide-react'
+import { BookOpen, Calendar, Map, CheckSquare, MessageCircle, Bot, TrendingUp, Clock, Target, AlertCircle } from 'lucide-react'
 import api, { dashboardAPI, TodayDashboardData } from '../utils/api'
 import { Student, BurnoutScore, BurnoutHistoryPoint, Task } from '../utils/api'
 import { formatDate } from '../utils/helpers'
@@ -290,7 +290,12 @@ function Dashboard() {
               <ul className="task-list">
                 {today.timetable.map(block => (
                   <li key={block.id} className="task-item">
-                    <div className={`priority priority-${block.tag === 'CRITICAL' ? 1 : block.tag === 'IMPORTANT' ? 2 : 3}`} />
+                    <div
+                      className={`task-badge-icon schedule-icon ${block.tag === 'CRITICAL' ? 'critical' : block.tag === 'IMPORTANT' ? 'important' : 'normal'}`}
+                      title={block.tag ? `${block.tag} Lecture` : 'Course Lecture'}
+                    >
+                      <Clock size={15} />
+                    </div>
                     <div className="task-info">
                       <span className="task-title">{block.title}</span>
                       <span className="task-meta">
@@ -314,10 +319,12 @@ function Dashboard() {
               <ul className="task-list">
                 {today.deadlines.overdue.map(d => (
                   <li key={`o-${d.id}`} className="task-item">
-                    <div className="priority priority-1" />
+                    <div className="task-badge-icon overdue-icon" title="Overdue Deadline">
+                      <AlertCircle size={15} />
+                    </div>
                     <div className="task-info">
                       <span className="task-title">{d.title}</span>
-                      <span className="task-meta" style={{ color: '#ef4444' }}>
+                      <span className="task-meta" style={{ color: 'var(--danger)' }}>
                         Overdue{d.deadline_date && ` · was ${formatDate(d.deadline_date)}`}
                       </span>
                     </div>
@@ -325,7 +332,9 @@ function Dashboard() {
                 ))}
                 {today.deadlines.due_soon.map(d => (
                   <li key={`s-${d.id}`} className="task-item">
-                    <div className="priority priority-2" />
+                    <div className="task-badge-icon due-soon-icon" title="Upcoming Deadline">
+                      <Target size={15} />
+                    </div>
                     <div className="task-info">
                       <span className="task-title">{d.title}</span>
                       <span className="task-meta">
@@ -372,7 +381,9 @@ function Dashboard() {
             <ul className="task-list">
               {tasks.map(task => (
                 <li key={task.id} className="task-item">
-                  <div className={`priority priority-${task.priority}`} />
+                  <div className={`task-badge-icon task-icon priority-${task.priority}`} title={`Priority ${task.priority}`}>
+                    <CheckSquare size={15} />
+                  </div>
                   <div className="task-info">
                     <span className="task-title">{task.title}</span>
                     <span className="task-meta">

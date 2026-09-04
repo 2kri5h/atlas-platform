@@ -4,7 +4,7 @@
 
 .email-service-container {
   width: 100%;
-  max-width: 920px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 8px 0 40px 0;
   box-sizing: border-box;
@@ -52,7 +52,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 16px;
 }
@@ -60,27 +60,17 @@
 .email-header-branding {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .email-header-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   margin: 0;
   color: var(--text-primary);
   letter-spacing: -0.025em;
-}
-
-.email-header-badge {
-  background-color: #e0e7ff;
-  color: #4338ca;
-  font-size: 0.725rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: var(--radius-full);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
 .email-header-subtitle {
@@ -89,17 +79,92 @@
   font-size: 13.5px;
 }
 
+.email-header-status-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.email-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.email-status-pill.active {
+  background: var(--success-light);
+  border-color: var(--success-border);
+  color: #047857;
+}
+
+[data-theme="dark"] .email-status-pill.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.email-status-pill.inactive {
+  background: var(--warning-light);
+  border-color: var(--warning-border);
+  color: #b45309;
+}
+
+[data-theme="dark"] .email-status-pill.inactive {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.email-status-pill.ai-pill {
+  background: var(--primary-light);
+  border-color: var(--primary-border);
+  color: var(--primary);
+}
+
+[data-theme="light"] .email-status-pill.ai-pill {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+}
+
+[data-theme="dark"] .email-status-pill.ai-pill {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #c7d2fe;
+}
+
+.ai-pill-icon {
+  color: inherit;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 .email-header-actions {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .email-sync-btn {
-  background-color: #18181b;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
   color: #ffffff;
   border: none;
-  padding: 9px 16px;
+  padding: 9px 18px;
   border-radius: var(--radius-sm);
   font-weight: 600;
   cursor: pointer;
@@ -107,11 +172,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
   transition: all var(--transition-fast);
 }
 
 .email-sync-btn:hover:not(:disabled) {
-  background-color: #27272a;
+  filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
 .email-sync-btn:disabled {
@@ -128,12 +195,833 @@
   font-weight: 600;
   cursor: pointer;
   font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   transition: all var(--transition-fast);
 }
 
 .email-account-btn:hover {
   background-color: var(--surface-hover);
   border-color: #d4d4d8;
+}
+
+/* ── Apple-Inspired Dual Hub Navigation Switcher ── */
+.email-hub-nav-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 24px;
+}
+
+.email-hub-nav {
+  display: inline-flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  gap: 4px;
+  box-shadow: var(--shadow-xs);
+}
+
+.email-hub-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.email-hub-pill:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.email-hub-pill.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+.email-hub-pill-counter {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.22);
+  color: inherit;
+}
+
+.email-hub-pill:not(.active) .email-hub-pill-counter {
+  background: var(--surface-subtle);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ── Summary Dashboard Controls ── */
+.summary-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.summary-scope-switcher {
+  display: inline-flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  gap: 3px;
+}
+
+.summary-scope-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.summary-scope-btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.summary-scope-btn.active {
+  background: var(--primary-light);
+  border-color: var(--primary-border);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+[data-theme="light"] .summary-scope-btn.active {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+}
+
+[data-theme="dark"] .summary-scope-btn.active {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #c7d2fe;
+}
+
+.summary-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  min-width: 240px;
+}
+
+.summary-search-box input {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+}
+
+.summary-search-box input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ── Summary Bento Grid ── */
+.email-summary-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.stat-bento-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-xs);
+}
+
+.stat-bento-card:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-hover, var(--border));
+  transform: translateY(-1px);
+}
+
+.stat-icon-wrapper {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-icon-wrapper.blue {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+[data-theme="dark"] .stat-icon-wrapper.blue {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+}
+
+.stat-icon-wrapper.red {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+[data-theme="dark"] .stat-icon-wrapper.red {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.stat-icon-wrapper.purple {
+  background: rgba(147, 51, 234, 0.12);
+  color: #7c3aed;
+}
+[data-theme="dark"] .stat-icon-wrapper.purple {
+  background: rgba(168, 85, 247, 0.18);
+  color: #c084fc;
+}
+
+.stat-icon-wrapper.emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+[data-theme="dark"] .stat-icon-wrapper.emerald {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+}
+
+.stat-bento-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-bento-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-bento-label {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+.stat-bento-subtext {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* ── Executive Briefing Digest Bulletin ── */
+.briefing-digest-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+
+.briefing-digest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.briefing-digest-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.briefing-sparkle-icon {
+  color: var(--primary);
+}
+
+.briefing-digest-count {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.briefing-digest-badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2.5px 9px;
+  border-radius: 20px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+}
+
+[data-theme="light"] .briefing-digest-badge {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+.briefing-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.briefing-bullet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  transition: background-color var(--transition-fast);
+  position: relative;
+}
+
+.briefing-bullet-row:last-child {
+  border-bottom: none;
+}
+
+.briefing-bullet-row:hover {
+  background: var(--surface-hover);
+}
+
+.briefing-bullet-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.briefing-bullet-row:hover .briefing-bullet-dot {
+  transform: scale(1.25);
+}
+
+.briefing-bullet-dot.quiz {
+  background: #d97706;
+  box-shadow: 0 0 6px rgba(217, 119, 6, 0.4);
+}
+[data-theme="dark"] .briefing-bullet-dot.quiz {
+  background: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.55);
+}
+
+.briefing-bullet-dot.deadline {
+  background: #dc2626;
+  box-shadow: 0 0 6px rgba(220, 38, 38, 0.4);
+}
+[data-theme="dark"] .briefing-bullet-dot.deadline {
+  background: #f87171;
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.55);
+}
+
+.briefing-bullet-dot.event {
+  background: #2563eb;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.4);
+}
+[data-theme="dark"] .briefing-bullet-dot.event {
+  background: #60a5fa;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.55);
+}
+
+.briefing-bullet-dot.application {
+  background: #059669;
+  box-shadow: 0 0 6px rgba(5, 150, 105, 0.4);
+}
+[data-theme="dark"] .briefing-bullet-dot.application {
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.55);
+}
+
+.briefing-bullet-dot.general {
+  background: var(--primary);
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.35);
+}
+
+.briefing-bullet-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.briefing-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.briefing-type-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.briefing-type-tag.quiz {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+[data-theme="dark"] .briefing-type-tag.quiz {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.briefing-type-tag.deadline {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+[data-theme="dark"] .briefing-type-tag.deadline {
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.briefing-type-tag.event {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+[data-theme="dark"] .briefing-type-tag.event {
+  background: rgba(59, 130, 246, 0.16);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.briefing-type-tag.application {
+  background: #d1fae5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+[data-theme="dark"] .briefing-type-tag.application {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.briefing-type-tag.general {
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+.briefing-urgent-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+[data-theme="dark"] .briefing-urgent-pill {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ── BRIEFING SENTENCE TEXT (High contrast in Light & Dark Mode) ── */
+.briefing-summary-text {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  margin: 0;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.briefing-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 14px;
+}
+
+/* ── Detailed View Button (Crisp in Light & Dark Mode) ── */
+.briefing-view-details-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  white-space: nowrap;
+  outline: none;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-xs);
+}
+
+.briefing-view-details-btn svg {
+  transition: transform 0.15s ease;
+  color: var(--primary);
+}
+
+.briefing-view-details-btn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+  transform: translateY(-1px);
+}
+
+.briefing-view-details-btn:hover svg {
+  transform: translateX(3px);
+  color: #ffffff;
+}
+
+.briefing-view-details-btn:active {
+  transform: scale(0.96);
+}
+
+/* ── Add to Planner Button ── */
+.briefing-planner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid var(--primary-border);
+  cursor: pointer;
+  white-space: nowrap;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+[data-theme="light"] .briefing-planner-btn {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+.briefing-planner-btn:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.briefing-planner-btn:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 768px) {
+  .briefing-bullet-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .briefing-right-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
+}
+
+/* ── Summary Feed Sections ── */
+.summary-feed-section {
+  margin-bottom: 28px;
+}
+
+.summary-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.summary-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+}
+
+.summary-section-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.summary-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.email-summary-card {
+  background: var(--surface, #1e293b);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  padding: 16px 20px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.email-summary-card:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.email-summary-card.critical {
+  border-left: 4px solid #ef4444;
+}
+
+.email-summary-card.high {
+  border-left: 4px solid #f59e0b;
+}
+
+.email-summary-card.academic {
+  border-left: 4px solid #6366f1;
+}
+
+.email-summary-card.placement {
+  border-left: 4px solid #10b981;
+}
+
+.summary-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.summary-tags-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.source-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+}
+
+.source-tag.iitb {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+}
+
+.source-tag.gmail {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+}
+
+[data-theme="dark"] .source-tag.gmail {
+  background: rgba(59, 130, 246, 0.16);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.summary-time {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.summary-card-subject {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  line-height: 1.4;
+}
+
+.summary-card-sender {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.summary-ai-digest {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.summary-ai-digest svg {
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.summary-event-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.summary-event-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .summary-event-info {
+  color: #fca5a5;
+}
+
+.summary-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.view-detail-btn {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  transition: all 0.15s;
+}
+
+.view-detail-btn:hover {
+  text-decoration: underline;
+}
+
+/* ── Accounts Management Modal ── */
+.accounts-modal-content {
+  background-color: var(--surface, #1e293b);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 540px;
+  max-width: 95vw;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.accounts-modal-tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.accounts-tab-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.accounts-tab-btn.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
 }
 
 /* ── Webmail Registration Form ── */
@@ -184,6 +1072,82 @@
   font-size: 13px;
 }
 
+/* ── Detailed Mailbox Source Bar & Switcher ── */
+.detailed-mailbox-source-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+  box-shadow: var(--shadow-xs);
+}
+
+.detailed-mailbox-source-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.detailed-source-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.detailed-source-toggle:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.detailed-source-toggle.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.detailed-mailbox-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detailed-source-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.detailed-source-settings-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-focus);
+}
+
 /* ── Tabs Navigation ── */
 .email-nav-tabs {
   display: flex;
@@ -210,8 +1174,8 @@
 }
 
 .email-nav-tab.active {
-  color: var(--text-primary);
-  border-bottom-color: #18181b;
+  color: var(--primary);
+  border-bottom-color: var(--primary);
   font-weight: 700;
 }
 
@@ -225,7 +1189,7 @@
 }
 
 .email-nav-tab.active .email-nav-tab-count {
-  background-color: #18181b;
+  background-color: var(--primary);
   color: #ffffff;
 }
 
@@ -300,14 +1264,16 @@
 }
 
 .email-pill-btn:hover {
-  border-color: #d4d4d8;
+  border-color: var(--primary);
   color: var(--text-primary);
+  background-color: var(--surface-hover);
 }
 
 .email-pill-btn.active {
-  border-color: #18181b;
-  background-color: #18181b;
+  border-color: var(--primary);
+  background-color: var(--primary);
   color: #ffffff;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
 }
 
 /* ── Feed List ── */
@@ -720,49 +1686,511 @@
   cursor: pointer;
 }
 
-/* ───────────────── MOBILE RESPONSIVE TWEAKS (<= 640px) ───────────────── */
-@media (max-width: 640px) {
+/* ───────────────── DESKTOP DEFAULTS FOR LABELS & CHIPS ───────────────── */
+.scope-btn-label-desktop {
+  display: inline;
+}
+
+.scope-btn-label-mobile {
+  display: none;
+}
+
+.hub-label-desktop {
+  display: inline;
+}
+
+.hub-label-mobile {
+  display: none;
+}
+
+.summary-category-filter-strip {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.category-filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ───────────────── MOBILE RESPONSIVE OVERHAUL (<= 768px) ───────────────── */
+@media (max-width: 768px) {
   .email-service-container {
     padding: 0 0 32px 0;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
 
+  /* ── Header: Title & Actions on Same Compact Bar ── */
   .email-header-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    width: 100%;
+    box-sizing: border-box;
   }
 
+  .email-header-left {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .email-header-branding {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    margin-bottom: 0;
+  }
+
+  .email-header-title {
+    font-size: 16px;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+  }
+
+  .email-header-subtitle {
+    display: none !important;
+  }
+
+  /* Compact Micro Status Dots Strip */
+  .email-header-status-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    flex-wrap: nowrap;
+  }
+
+  .email-status-pill {
+    padding: 1.5px 6px;
+    font-size: 9.5px;
+    font-weight: 600;
+    border-radius: 999px;
+    line-height: 1;
+    gap: 4px;
+  }
+
+  .status-pill-text {
+    font-size: 9px;
+  }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  /* ── Compact Tactile Actions (32px height, reduced size!) ── */
   .email-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .email-sync-btn {
+    padding: 6px 11px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    min-height: 32px;
+    height: 32px;
+    gap: 5px;
+    box-shadow: var(--shadow-xs);
+    white-space: nowrap;
+  }
+
+  .email-account-btn {
+    padding: 6px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    min-height: 32px;
+    height: 32px;
+    gap: 5px;
+    background: var(--surface);
+    white-space: nowrap;
+  }
+
+  /* ── Apple-Style 50/50 Dual Hub Navigation Switcher ── */
+  .email-hub-nav-container {
+    margin-bottom: 10px;
     width: 100%;
   }
 
-  .email-sync-btn,
-  .email-account-btn {
+  .email-hub-nav {
+    display: flex;
+    width: 100%;
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
+    padding: 3px;
+    border-radius: var(--radius-sm);
+    gap: 3px;
+    box-sizing: border-box;
+  }
+
+  .email-hub-pill {
+    flex: 1 1 50%;
+    min-width: 0;
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius-xs);
+    gap: 6px;
+    min-height: 32px;
+    height: 32px;
+  }
+
+  .hub-label-desktop {
+    display: none !important;
+  }
+
+  .hub-label-mobile {
+    display: inline !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .email-hub-pill-counter {
+    font-size: 10px;
+    padding: 1.5px 5px;
+    border-radius: 999px;
+  }
+
+  /* ── Scope Switcher: 3 Compact Pills (All, Webmail, Gmail) ── */
+  .summary-controls-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .summary-scope-switcher {
+    display: flex;
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    gap: 2px;
+    box-sizing: border-box;
+  }
+
+  .summary-scope-btn {
+    flex: 1 1 33.33%;
+    min-width: 0;
+    justify-content: center;
+    padding: 5px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: var(--radius-xs);
+    gap: 4px;
+    min-height: 28px;
+    height: 28px;
+  }
+
+  .scope-btn-label-desktop {
+    display: none !important;
+  }
+
+  .scope-btn-label-mobile {
+    display: inline !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Sleek Compact Search Box ── */
+  .summary-search-box {
+    width: 100%;
+    min-width: 0;
+    padding: 6px 10px;
+    min-height: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    box-sizing: border-box;
+    font-size: 12.5px;
+  }
+
+  .summary-search-box input {
+    font-size: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* ── High-Impact 4-Column Metric Strip (Linear tap-to-filter) ── */
+  .email-summary-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .stat-bento-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 3px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+    min-width: 0;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .stat-bento-card:active {
+    transform: scale(0.96);
+  }
+
+  .stat-bento-card.selected-stat {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+
+  .stat-icon-wrapper {
+    display: none !important; /* Hide icon on 4-column mobile chips to maximize number presence */
+  }
+
+  .stat-bento-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .stat-bento-val {
+    font-size: 15px;
+    font-weight: 750;
+    line-height: 1.1;
+    color: var(--text-primary);
+  }
+
+  .stat-bento-card:nth-child(2) .stat-bento-val {
+    color: #ef4444;
+  }
+
+  .stat-bento-card:nth-child(3) .stat-bento-val {
+    color: #a855f7;
+  }
+
+  .stat-bento-card:nth-child(4) .stat-bento-val {
+    color: #10b981;
+  }
+
+  .stat-bento-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .stat-bento-subtext {
+    display: none !important;
+  }
+
+  /* ── Touch-Scrollable Category Strip (Zero Wrap, 0 horizontal blowout) ── */
+  .summary-category-filter-strip {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    margin-bottom: 12px;
+    gap: 5px;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .summary-category-filter-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .category-filter-label {
+    display: none !important;
+  }
+
+  .email-pill-btn {
+    flex: 0 0 auto;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 550;
+    border-radius: 999px;
+    min-height: 26px;
+    height: 26px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* ── Briefing Digest Feed (Directly above fold!) ── */
+  .briefing-digest-container {
+    margin-bottom: 16px;
+    border-radius: var(--radius-md);
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .briefing-digest-header {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .briefing-digest-title {
+    font-size: 12.5px;
+    gap: 6px;
+  }
+
+  .briefing-sparkle-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .briefing-digest-badge {
+    display: none !important;
+  }
+
+  .briefing-digest-count {
+    font-size: 10.5px;
+  }
+
+  .briefing-bullet-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 10px 11px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .briefing-bullet-body {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .briefing-summary-text {
+    font-size: 12.5px;
+    line-height: 1.45;
+    word-break: break-word;
+  }
+
+  .briefing-right-actions {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 0;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border-subtle);
+  }
+
+  .briefing-planner-btn,
+  .briefing-view-details-btn {
     flex: 1;
     justify-content: center;
+    padding: 5px 8px;
+    font-size: 11px;
+    min-height: 30px;
+    height: 30px;
+    gap: 4px;
+  }
+
+  /* ── Detailed Mailbox View on Mobile ── */
+  .detailed-mailbox-source-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .detailed-mailbox-source-group {
+    width: 100%;
+    display: flex;
+  }
+
+  .detailed-source-toggle {
+    flex: 1;
+    justify-content: center;
+    padding: 6px 10px;
+    font-size: 11.5px;
+    min-height: 30px;
+    height: 30px;
+  }
+
+  .detailed-source-settings-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 6px 10px;
+    min-height: 30px;
+    height: 30px;
   }
 
   .email-toolbar {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .email-search-wrapper {
-    min-width: 100%;
+    width: 100%;
+    min-width: 0;
   }
 
   .email-card {
-    padding: 14px 12px;
+    padding: 12px 10px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .email-card-inner {
-    gap: 10px;
+    gap: 8px;
   }
 
   .email-card-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 12px;
+    width: 30px;
+    height: 30px;
+    font-size: 11.5px;
   }
 
   .email-card-header {
@@ -772,51 +2200,57 @@
   }
 
   .email-card-date {
-    font-size: 11px;
+    font-size: 10.5px;
     margin-bottom: 2px;
   }
 
   .email-card-title {
-    font-size: 13.5px;
+    font-size: 13px;
+    word-break: break-word;
   }
 
-  /* ── Event Card on Mobile: Stack Vertically so Title NEVER truncates into "I..." ── */
   .email-event-card {
     flex-direction: column;
     align-items: stretch;
-    padding: 14px 12px;
-    gap: 10px;
+    padding: 12px 10px;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .email-event-card-main {
     align-items: flex-start;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
   }
 
   .email-event-date-box {
-    width: 44px;
-    height: 46px;
+    width: 40px;
+    height: 42px;
   }
 
   .email-event-day {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .email-event-title {
-    font-size: 13.5px;
+    font-size: 13px;
     white-space: normal;
+    word-break: break-word;
   }
 
   .email-event-origin {
     max-width: 100%;
     white-space: normal;
+    word-break: break-word;
   }
 
   .email-event-action-btn {
     width: 100%;
     justify-content: center;
-    padding: 9px 12px;
+    padding: 7px 10px;
     margin-top: 4px;
+    min-height: 32px;
+    height: 32px;
   }
 }

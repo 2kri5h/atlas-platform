@@ -567,5 +567,125 @@ export const googleIntegrationsAPI = {
   },
 }
 
+export interface DriveItem {
+  id: string
+  name: string
+  mimeType: string
+  size: string
+  modifiedTime?: string
+  webViewLink?: string
+  iconLink?: string
+  thumbnailLink?: string
+  is_folder: boolean
+}
+
+export interface DriveFolderContent {
+  current_folder_id: string
+  current_folder_name: string
+  breadcrumbs: Array<{ id: string; name: string }>
+  folders: DriveItem[]
+  files: DriveItem[]
+}
+
+export interface LibraryResource extends Resource {
+  is_owner: boolean
+  origin: 'bookmark' | 'upload' | 'note'
+}
+
+export interface TaskFromResourcePayload {
+  resource_id?: number
+  file_id?: string
+  title: string
+  url?: string
+  course_code?: string
+  due_date?: string
+  end_time?: string
+  priority?: number
+  tag?: string
+  custom_tag?: string
+  notes?: string
+  create_planner_deadline?: boolean
+}
+
+export const googleDriveAPI = {
+  browse: async (folderId?: string): Promise<DriveFolderContent> => {
+    const res = await api.get<DriveFolderContent>('/integrations/google/drive/browse', {
+      params: folderId ? { folder_id: folderId } : {},
+    })
+    return res.data
+  },
+  createFolder: async (folderName: string, parentId?: string): Promise<DriveItem> => {
+    const res = await api.post<DriveItem>('/integrations/google/drive/folder', {
+      folder_name: folderName,
+      parent_id: parentId,
+    })
+    return res.data
+  },
+  rename: async (fileId: string, newName: string): Promise<{ id: string; name: string; status: string }> => {
+    const res = await api.patch<{ id: string; name: string; status: string }>('/integrations/google/drive/rename', {
+      file_id: fileId,
+      new_name: newName,
+    })
+    return res.data
+  },
+  move: async (fileId: string, destinationFolderId: string): Promise<{ id: string; destination: string; status: string }> => {
+    const res = await api.post<{ id: string; destination: string; status: string }>('/integrations/google/drive/move', {
+      file_id: fileId,
+      destination_folder_id: destinationFolderId,
+    })
+    return res.data
+  },
+  deleteFile: async (fileId: string): Promise<{ id: string; status: string }> => {
+    const res = await api.delete<{ id: string; status: string }>(`/integrations/google/drive/file/${fileId}`)
+    return res.data
+  },
+  ensureFolderPath: async (folderPath: string, parentId?: string): Promise<{ folder_id: string; folder_path: string }> => {
+    const res = await api.post<{ folder_id: string; folder_path: string }>('/integrations/google/drive/folder-path', {
+      folder_path: folderPath,
+      parent_id: parentId,
+    })
+    return res.data
+  },
+  uploadFile: async (
+    file: File,
+    folderId?: string,
+    relativePath?: string,
+    onProgress?: (percent: number) => void
+  ): Promise<DriveItem> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (folderId) {
+      formData.append('folder_id', folderId)
+    }
+    if (relativePath) {
+      formData.append('relative_path', relativePath)
+    }
+    const res = await api.post<DriveItem>('/integrations/google/drive/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          onProgress(percent)
+        }
+      },
+    })
+    return res.data
+  },
+}
+
+export const myLibraryAPI = {
+  getLibrary: async (params?: { course?: string; type?: string; q?: string }): Promise<LibraryResource[]> => {
+    const res = await api.get<LibraryResource[]>('/resources/library', { params })
+    return res.data
+  },
+  createTaskFromResource: async (payload: TaskFromResourcePayload): Promise<{ status: string; task_id: number; planner_event_id?: number; message: string }> => {
+    const res = await api.post<{ status: string; task_id: number; planner_event_id?: number; message: string }>('/resources/tasks-from-resource', payload)
+    return res.data
+  },
+}
+
+
 
 

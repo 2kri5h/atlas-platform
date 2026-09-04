@@ -3,31 +3,39 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  background: var(--background);
+  background-image: radial-gradient(circle at 50% 10%, rgba(99, 102, 241, 0.08) 0%, transparent 60%);
+  padding: 24px 16px;
+  position: relative;
 }
 
 .auth-card {
   background: var(--surface);
-  border-radius: 12px;
-  padding: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 36px 32px;
   width: 100%;
-  max-width: 400px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  max-width: 420px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 1;
 }
 
 .auth-card h1 {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--primary);
+  font-size: 24px;
+  font-weight: 800;
+  font-family: 'Plus Jakarta Sans', var(--font-sans);
+  color: var(--text-primary);
   text-align: center;
-  margin-bottom: 4px;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.03em;
 }
 
 .auth-subtitle {
   text-align: center;
-  color: var(--text-secondary);
-  margin-bottom: 32px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  margin: 0 0 28px 0;
 }
 
 .form-group {

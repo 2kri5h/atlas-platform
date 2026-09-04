@@ -386,6 +386,9 @@
 @media (max-width: 768px) {
   .deadlines-page {
     overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .deadlines-header {

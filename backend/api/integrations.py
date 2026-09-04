@@ -3,13 +3,16 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..core.database import get_db
 from ..models import GoogleAccount, PlannerEvent, Resource, Student
 from ..services.google import (
+    browse_drive_folder,
+    create_drive_folder,
+    delete_drive_item,
     disconnect_google_account,
     exchange_code_for_tokens,
     export_resource_to_google_drive,
@@ -17,11 +20,15 @@ from ..services.google import (
     get_google_account,
     get_google_auth_url,
     get_google_user_info,
+    get_or_create_nested_folder_path,
     get_valid_access_token,
     is_google_oauth_configured,
+    move_drive_item,
+    rename_drive_item,
     save_or_update_google_account,
     sync_deadlines_to_google_calendar,
     sync_timetable_to_google_calendar,
+    upload_drive_file,
 )
 from ..services.google.auth import verify_state
 from ..services.llm_router import get_user_llm
@@ -49,6 +56,22 @@ class GoogleDriveExportRequest(BaseModel):
     course_code: str
     year: Optional[int] = 2026
     description: Optional[str] = None
+
+
+class GoogleDriveFolderCreateRequest(BaseModel):
+    folder_name: str
+    parent_id: Optional[str] = None
+
+
+class GoogleDriveRenameRequest(BaseModel):
+    file_id: str
+    new_name: str
+
+
+class GoogleDriveMoveRequest(BaseModel):
+    file_id: str
+    destination_folder_id: str
+
 
 
 class GoogleStatusResponse(BaseModel):
@@ -245,6 +268,184 @@ def export_to_drive(
     except Exception as e:
         logger.error(f"[Google Drive Export Error] {e}")
         raise HTTPException(status_code=500, detail=f"Failed to export to Google Drive: {str(e)}")
+
+
+@router.get("/google/drive/browse")
+def browse_drive(
+    folder_id: Optional[str] = None,
+    current_user: Student = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Browse academic drive folders and files for the authenticated student."""
+    token = get_valid_access_token(db, current_user.id)
+    if not token:
+        raise HTTPException(
+            status_code=404,
+            detail="Google account not connected. Please connect your Google account to browse Drive.",
+        )
+
+    try:
+        return browse_drive_folder(access_token=token, folder_id=folder_id)
+    except Exception as e:
+        logger.error(f"[Google Drive Browse Error] {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to browse Google Drive: {str(e)}")
+
+
+@router.post("/google/drive/folder")
+def create_folder(
+    payload: GoogleDriveFolderCreateRequest,
+    current_user: Student = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new folder directly in Google Drive."""
+    token = get_valid_access_token(db, current_user.id)
+    if not token:
+        raise HTTPException(
+            status_code=404,
+            detail="Google account not connected. Please connect your Google account first.",
+        )
+
+    try:
+        return create_drive_folder(
+            access_token=token,
+            folder_name=payload.folder_name,
+            parent_id=payload.parent_id,
+        )
+    except Exception as e:
+        logger.error(f"[Google Drive Create Folder Error] {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create Google Drive folder: {str(e)}")
+
+
+@router.patch("/google/drive/rename")
+def rename_item(
+    payload: GoogleDriveRenameRequest,
+    current_user: Student = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Rename a file or folder in Google Drive."""
+    token = get_valid_access_token(db, current_user.id)
+    if not token:
+        raise HTTPException(
+            status_code=404,
+            detail="Google account not connected. Please connect your Google account first.",
+        )
+
+    try:
+        return rename_drive_item(
+            access_token=token,
+            file_id=payload.file_id,
+            new_name=payload.new_name,
+        )
+    except Exception as e:
+        logger.error(f"[Google Drive Rename Error] {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to rename Google Drive item: {str(e)}")
+
+
+@router.post("/google/drive/move")
+def move_item(
+    payload: GoogleDriveMoveRequest,
+    current_user: Student = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Move a file or folder to another destination folder in Google Drive."""
+    token = get_valid_access_token(db, current_user.id)
+    if not token:
+        raise HTTPException(
+            status_code=404,
+            detail="Google account not connected. Please connect your Google account first.",
+        )
+
+    try:
+        return move_drive_item(
+            access_token=token,
+            file_id=payload.file_id,
+            destination_folder_id=payload.destination_folder_id,
+        )
+    except Exception as e:
+        logger.error(f"[Google Drive Move Error] {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to move Google Drive item: {str(e)}")
+
+
+@router.delete("/google/drive/file/{file_id}")
+def delete_item(
+    file_id: str,
+    current_user: Student = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Soft-delete (trash) a file or folder in Google Drive."""
+    token = get_valid_access_token(db, current_user.id)
+    if not token:
+        raise HTTPException(
+            status_code=404,
+            detail="Google account not connected. Please connect your Google account first.",
+        )
+
+    try:
+        return delete_drive_item(access_token=token, file_id=file_id)
+    except Exception as e:
+        logger.error(f"[Google Drive Delete Error] {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete Google Drive item: {str(e)}")
+
+
+class EnsureFolderPathRequest(BaseModel):
+    folder_path: str
+    parent_id: Optional[str] = None
+
+
+@router.post("/google/drive/folder-path")
+def ensure_folder_path_endpoint(
+    body: EnsureFolderPathRequest,
+    current_user: Student = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Ensure a nested folder path exists and return the target folder id."""
+    token = get_valid_access_token(db, current_user.id)
+    if not token:
+        raise HTTPException(
+            status_code=404,
+            detail="Google account not connected. Please connect your Google account first.",
+        )
+    try:
+        folder_id = get_or_create_nested_folder_path(token, body.folder_path, parent_id=body.parent_id)
+        return {"folder_id": folder_id, "folder_path": body.folder_path, "status": "success"}
+    except Exception as e:
+        logger.error(f"[Google Drive Folder Path Error] {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to ensure folder path: {str(e)}")
+
+
+@router.post("/google/drive/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    folder_id: Optional[str] = Form(None),
+    relative_path: Optional[str] = Form(None),
+    current_user: Student = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Directly upload a file to the specified Google Drive folder, preserving relative folder paths."""
+    token = get_valid_access_token(db, current_user.id)
+    if not token:
+        raise HTTPException(
+            status_code=404,
+            detail="Google account not connected. Please connect your Google account first.",
+        )
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    try:
+        return upload_drive_file(
+            access_token=token,
+            file_bytes=file_bytes,
+            filename=file.filename or "untitled_document",
+            content_type=file.content_type or "application/octet-stream",
+            parent_folder_id=folder_id,
+            relative_path=relative_path,
+        )
+    except Exception as e:
+        logger.error(f"[Google Drive Upload Error] {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file to Google Drive: {str(e)}")
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

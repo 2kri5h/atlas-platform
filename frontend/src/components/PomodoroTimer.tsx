@@ -194,12 +194,15 @@ export default function PomodoroTimer({ onSessionLogged }: PomodoroTimerProps) {
       {/* Floating Launcher Pill when closed */}
       {!isOpen && (
         <button
-          className="pomodoro-floating-launcher"
+          className={`pomodoro-floating-launcher ${isRunning ? 'running' : ''}`}
           onClick={() => setIsOpen(true)}
           title="Open Focus Timer"
+          aria-label="Open Focus Timer"
         >
           <Timer size={18} className={isRunning ? 'spin-icon' : ''} />
-          <span>{isRunning ? formatTime(timeLeft) : 'Focus Timer'}</span>
+          <span className={`launcher-text ${isRunning ? 'timer-running' : ''}`}>
+            {isRunning ? formatTime(timeLeft) : 'Focus Timer'}
+          </span>
           {completedSessions > 0 && (
             <span className="session-count-badge">
               <Flame size={12} /> {completedSessions}
