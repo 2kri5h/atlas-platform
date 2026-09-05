@@ -339,6 +339,15 @@ class GoogleAccount(Base):
     student = relationship("Student", back_populates="google_account")
 
 
+class RevokedToken(Base):
+    __tablename__ = "revoked_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    jti = Column(String(64), unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 
 # Soft delete before_compile event listener
 from sqlalchemy import event

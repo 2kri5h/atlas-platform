@@ -17,6 +17,7 @@ from .models import (
     SmartSuggestion,
     UserAPIKey,
     GoogleAccount,
+    RevokedToken,
 )
 
 __all__ = [
@@ -38,4 +39,5 @@ __all__ = [
     "SmartSuggestion",
     "UserAPIKey",
     "GoogleAccount",
+    "RevokedToken",
 ]

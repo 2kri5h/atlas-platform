@@ -10,6 +10,7 @@ import PomodoroTimer from './PomodoroTimer'
 import ThemeToggle from './ThemeToggle'
 import { ToastHost } from './Toast'
 import AmbientCanvas from './ui/AmbientCanvas'
+import api from '../utils/api'
 import './Layout.css'
 
 interface NavSection {
@@ -109,9 +110,15 @@ function Layout() {
     }
   }, [mobileSheetOpen])
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    navigate('/login')
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // Ignore network/server errors during signout
+    } finally {
+      localStorage.removeItem('token')
+      navigate('/login')
+    }
   }
 
   // Get active page name for mobile top bar

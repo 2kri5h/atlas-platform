@@ -12,11 +12,17 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from typing import Optional
 from fastapi import Request
+import uuid
+import logging
 from ..core.database import get_db
 from ..core.config import settings
-from ..models import Student
+from ..models import Student, RevokedToken
 from ..utils.rate_limit import SlidingWindowLimiter, rate_limit
 from pydantic import BaseModel, Field, field_validator, EmailStr
+
+logger = logging.getLogger(__name__)
+# Constant-time dummy hash for nonexistent users to prevent timing side-channel attacks
+DUMMY_PASSWORD_HASH = "$2b$12$QfH4AL1zb8swOwTm77hH8uzhMYe3lbE4CB/lhGGZ0c6JzIZyAItyW"
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -43,6 +49,8 @@ def get_password_hash(password):
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    if "jti" not in to_encode:
+        to_encode["jti"] = uuid.uuid4().hex
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
@@ -82,16 +90,16 @@ class StudentResponse(BaseModel):
     roll_number: str
     name: str
     email: EmailStr
-    branch: str
-    year: int
+    branch: Optional[str] = ""
+    year: int = 1
     role: str = "student"
-    domains: str
-    goals: str
-    weak_subjects: str
-    cpi: float = 0
-    sleep_hours: float = 0
-    screen_time_hours: float = 0
-    study_hours_per_week: float = 0.0
+    domains: Optional[str] = ""
+    goals: Optional[str] = ""
+    weak_subjects: Optional[str] = ""
+    cpi: Optional[float] = 0.0
+    sleep_hours: Optional[float] = 0.0
+    screen_time_hours: Optional[float] = 0.0
+    study_hours_per_week: Optional[float] = 0.0
 
     class Config:
         from_attributes = True
@@ -119,8 +127,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         roll_number: str = payload.get("sub")
+        jti: str = payload.get("jti")
         if roll_number is None:
             raise credentials_exception
+        if jti:
+            revoked = db.query(RevokedToken).filter(RevokedToken.jti == jti).first()
+            if revoked:
+                raise credentials_exception
     except JWTError:
         raise credentials_exception
     user = db.query(Student).filter(Student.roll_number == roll_number).first()
@@ -183,10 +196,38 @@ def login(
         (func.lower(Student.roll_number) == username.lower()) |
         (func.lower(Student.email) == username.lower())
     ).first()
-    if not user or not verify_password(form_data.password, user.password_hash):
+    if not user:
+        # Run dummy verification to ensure constant-time response and prevent user enumeration
+        verify_password(form_data.password, DUMMY_PASSWORD_HASH)
         raise HTTPException(status_code=400, detail="Incorrect roll number/email or password")
+
+    if not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect roll number/email or password")
+
     access_token = create_access_token(data={"sub": user.roll_number})
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/logout")
+def logout(
+    token: str = Depends(oauth2_scheme),
+    current_user: Student = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Real server-side session termination: revokes JWT immediately."""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        expires_at = datetime.utcfromtimestamp(exp) if exp else datetime.utcnow() + timedelta(hours=1)
+        if jti:
+            existing = db.query(RevokedToken).filter(RevokedToken.jti == jti).first()
+            if not existing:
+                db.add(RevokedToken(jti=jti, expires_at=expires_at))
+                db.commit()
+    except Exception as e:
+        logger.warning(f"Failed to record revoked token: {e}")
+    return {"message": "Successfully logged out on server"}
 
 
 @router.get("/me", response_model=StudentResponse)
