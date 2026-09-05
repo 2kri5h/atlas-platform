@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 
 from .crypto import decrypt_secret
 from ..models import UserAPIKey, Student, Resource, AIMessage
+from ..core.config import settings
+from ..utils.ssrf import validate_safe_url
 
 logger = logging.getLogger(__name__)
 
@@ -328,6 +330,15 @@ class OpenAICompatibleAdapter(BaseLLMAdapter):
         return defaults.get(self.provider_id, "gpt-4o")
 
     def _get_chat_url(self) -> str:
+        if self.base_url:
+            is_prod = (
+                settings.ENVIRONMENT.lower() == "production"
+                or (settings.DATABASE_URL and not settings.DATABASE_URL.startswith("sqlite"))
+            )
+            is_safe, err = validate_safe_url(self.base_url, allow_localhost=not is_prod)
+            if not is_safe:
+                raise LLMServiceError(f"Security policy rejected endpoint URL: {err}")
+
         base = self.base_url.rstrip("/")
         if base.endswith("/chat/completions"):
             return base
@@ -659,6 +670,14 @@ def create_adapter(provider: str, api_key: str, model: Optional[str] = None, bas
 def validate_raw_key(provider: str, api_key: str, model: Optional[str] = None, base_url: Optional[str] = None) -> Tuple[bool, Optional[str]]:
     """Test an API key or custom endpoint against the live provider."""
     try:
+        if base_url:
+            is_prod = (
+                settings.ENVIRONMENT.lower() == "production"
+                or (settings.DATABASE_URL and not settings.DATABASE_URL.startswith("sqlite"))
+            )
+            is_safe, err = validate_safe_url(base_url, allow_localhost=not is_prod)
+            if not is_safe:
+                return False, f"Endpoint URL rejected by security policy: {err}"
         adapter = create_adapter(provider=provider, api_key=api_key, model=model, base_url=base_url)
         return adapter.validate_key()
     except Exception as e:

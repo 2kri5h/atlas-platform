@@ -1,11 +1,29 @@
 {
   "version": 1,
   "skills": {
+    "api-security-testing": {
+      "source": "usestrix/strix",
+      "sourceType": "github",
+      "skillPath": "skills/api-security-testing/SKILL.md",
+      "computedHash": "f1ae8b66cf139807a78dde2b50167ae628635a6c026c17edd864b6c6a65cec5c"
+    },
+    "application-security-testing": {
+      "source": "usestrix/strix",
+      "sourceType": "github",
+      "skillPath": "skills/application-security-testing/SKILL.md",
+      "computedHash": "3869b05bff8e91d2eee9ec98845e5a0fe0a73cca74ceef8c80b7dadc011431ff"
+    },
     "better-ui": {
       "source": "jakubkrehel/skills",
       "sourceType": "github",
       "skillPath": "skills/better-ui/SKILL.md",
       "computedHash": "907e6137d2019fe2b7de2357246ad8041d1b8318ba5c085cd0cb560ebb97025a"
+    },
+    "ci-security-scanning-with-strix": {
+      "source": "usestrix/strix",
+      "sourceType": "github",
+      "skillPath": "skills/ci-security-scanning-with-strix/SKILL.md",
+      "computedHash": "ac3b8d18690ee68dcf178f3156caac1006da4377f4e3a02a55cb7ebe99566d9f"
     },
     "core-web-vitals": {
       "source": "addyosmani/web-quality-skills",
@@ -18,6 +36,18 @@
       "sourceType": "github",
       "skillPath": "skills/taste-skill/SKILL.md",
       "computedHash": "899b84384f74f540ea5284d9b2e9234e050998b42eacc805410b518d4226c0b3"
+    },
+    "find-security-vulnerabilities-in-code": {
+      "source": "usestrix/strix",
+      "sourceType": "github",
+      "skillPath": "skills/find-security-vulnerabilities-in-code/SKILL.md",
+      "computedHash": "b9aaebedb74653bed108ad54790be164fc70e60ca6fbca844e379cb0408498cf"
+    },
+    "fix-security-vulnerabilities-with-strix": {
+      "source": "usestrix/strix",
+      "sourceType": "github",
+      "skillPath": "skills/fix-security-vulnerabilities-with-strix/SKILL.md",
+      "computedHash": "1f91d165671877f77b0c23f34a4596375dc425de388f5b17d2a4742194a8bfb8"
     },
     "frontend-ui-engineering": {
       "source": "addyosmani/agent-skills",
@@ -37,11 +67,29 @@
       "skillPath": ".agents/skills/impeccable/SKILL.md",
       "computedHash": "6474ede01f84ce15e3dc864a44304ca261fa002f7266b42761497db83aa7cd1c"
     },
+    "managed-pentesting-with-strix": {
+      "source": "usestrix/strix",
+      "sourceType": "github",
+      "skillPath": "skills/managed-pentesting-with-strix/SKILL.md",
+      "computedHash": "64c0544b9c50750f3d417cae3fdc5cb8710ca0a0d6ac29ed3b81807e37d63ee1"
+    },
     "minimalist-ui": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
       "skillPath": "skills/minimalist-skill/SKILL.md",
       "computedHash": "7e88897e0371184e97a82b8d9ef080323c13f21eb067b58ef71eb05173a08ac2"
+    },
+    "owasp-top-10-testing": {
+      "source": "usestrix/strix",
+      "sourceType": "github",
+      "skillPath": "skills/owasp-top-10-testing/SKILL.md",
+      "computedHash": "82a5e167fd58e3641e61097f9206c8ecaab30e18bbf932499c85a4f58a6a49ba"
+    },
+    "penetration-testing-with-strix": {
+      "source": "usestrix/strix",
+      "sourceType": "github",
+      "skillPath": "skills/penetration-testing-with-strix/SKILL.md",
+      "computedHash": "a765131ca550714b55260cca234eeb5e09ae5dc32412d0aa6fc5d03860c13667"
     },
     "redesign-existing-projects": {
       "source": "Leonxlnx/taste-skill",
@@ -54,6 +102,12 @@
       "sourceType": "github",
       "skillPath": "skills/threejs-animation/SKILL.md",
       "computedHash": "457900cae6babbe092e3226a2ac9ae5d09a84199c1b3d5050ed400d4f56a9d82"
+    },
+    "web-app-penetration-testing": {
+      "source": "usestrix/strix",
+      "sourceType": "github",
+      "skillPath": "skills/web-app-penetration-testing/SKILL.md",
+      "computedHash": "4a26881a2e8d289611e12557aea27f729facfa4aef777ddcb43a6b6f7d6fe2ee"
     }
   }
 }

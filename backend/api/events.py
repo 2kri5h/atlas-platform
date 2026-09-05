@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 from datetime import datetime, timedelta, date
 import re
+import logging
 from ..core.database import get_db
 from ..models import PlannerEvent, UserAPIKey
 from .auth import get_current_user
@@ -12,6 +13,7 @@ from ..services.ai_gateway import GeminiGatewayDriver
 from ..services.crypto import decrypt_secret
 from ..services.recurrence import standard_day as _standard_day, parse_exdates
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -826,15 +828,64 @@ def import_timetable(payload: TimetableImportRequest, current_user=Depends(get_c
     }
 
 
+MAX_TIMETABLE_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+ALLOWED_TIMETABLE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"}
+
+
 @router.post("/scan-timetable")
-def scan_timetable(
+async def scan_timetable(
     file: UploadFile = File(...),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Read the uploaded file contents
-    contents = file.file.read()
-    mime_type = file.content_type or "image/png"
+    """Parse timetable image using Gemini OCR with input validation and memory bounds."""
+    mime_type = (file.content_type or "image/png").lower()
+    if mime_type not in ALLOWED_TIMETABLE_MIME_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported image format '{mime_type}'. Supported: PNG, JPEG, WEBP."
+        )
+
+    # Read bounded content to prevent memory exhaustion DoS
+    contents = await file.read(MAX_TIMETABLE_IMAGE_BYTES + 1)
+    if len(contents) > MAX_TIMETABLE_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded timetable image is too large (max 10MB)."
+        )
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    # Determine Gemini API key: prefer user's vault key, fallback to server key
+    gemini_key = None
+    user_key_record = db.query(UserAPIKey).filter(
+        UserAPIKey.student_id == current_user.id,
+        UserAPIKey.provider == "gemini",
+        UserAPIKey.is_active == True
+    ).first()
+
+    if user_key_record and user_key_record.encrypted_key:
+        try:
+            gemini_key = decrypt_secret(user_key_record.encrypted_key)
+        except Exception as e:
+            logger.warning(f"Could not decrypt student {current_user.id} Gemini key: {e}")
+
+    if not gemini_key:
+        gemini_key = settings.GEMINI_API_KEY
+
+    if not gemini_key:
+        raise HTTPException(
+            status_code=400,
+            detail="No Gemini API key configured. Please add your Gemini API key in Settings > API Keys."
+        )
+
+    try:
+        driver = GeminiGatewayDriver(api_key=gemini_key)
+        result = driver.parse_timetable_image(contents, mime_type)
+        return result
+    except Exception as e:
+        logger.error(f"[Scan Timetable Error] {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse timetable image: {str(e)}")
 
 
 # NOTE: Campus-event endpoints (list/get/create/archive on the `events` table)

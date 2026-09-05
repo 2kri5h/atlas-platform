@@ -194,6 +194,13 @@ def get_me(current_user: Student = Depends(get_current_user)):
     return current_user
 
 
+ALLOWED_PROFILE_FIELDS = {
+    "name", "branch", "year", "domains", "goals",
+    "weak_subjects", "cpi", "sleep_hours", "screen_time_hours",
+    "study_hours_per_week", "wakingHoursPerDay"
+}
+
+
 @router.put("/me", response_model=StudentResponse)
 def update_me(
     updates: StudentUpdate,
@@ -201,7 +208,7 @@ def update_me(
     db: Session = Depends(get_db)
 ):
     for key, value in updates.model_dump(exclude_none=True).items():
-        if hasattr(current_user, key):
+        if key in ALLOWED_PROFILE_FIELDS and hasattr(current_user, key):
             setattr(current_user, key, value)
     db.commit()
     db.refresh(current_user)

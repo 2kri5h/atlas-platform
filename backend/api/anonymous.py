@@ -6,8 +6,12 @@ from datetime import datetime
 from ..core.database import get_db
 from ..models import AnonymousPost, PostReply
 from .auth import get_current_user, require_admin
+from ..utils.rate_limit import SlidingWindowLimiter, rate_limit
 
 router = APIRouter()
+
+# Rate limit post reporting: 5 reports per 5 minutes per user/IP
+report_limiter = SlidingWindowLimiter(max_requests=5, window_seconds=300)
 
 MENTAL_HEALTH_KEYWORDS = ["depressed", "suicide", "anxious", "stress", "burnout", "hopeless", "failure", "worthless"]
 
@@ -90,11 +94,18 @@ def delete_post(post_id: int, admin: object = Depends(require_admin), db: Sessio
 
 
 @router.post("/{post_id}/report")
-def report_post(post_id: int, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Any authenticated user can flag a post for moderator review."""
+def report_post(
+    post_id: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _rl: None = Depends(rate_limit(report_limiter, "report")),
+):
+    """Any authenticated user can flag a post for moderator review (rate limited)."""
     post = db.query(AnonymousPost).filter(AnonymousPost.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
+    if post.is_flagged:
+        return {"message": "Post is already pending moderation review."}
     post.is_flagged = True
     db.commit()
     return {"message": "Post reported for moderation review."}
@@ -103,7 +114,7 @@ def report_post(post_id: int, current_user = Depends(get_current_user), db: Sess
 @router.get("/{post_id}", response_model=PostResponse)
 def get_post(post_id: int, db: Session = Depends(get_db)):
     post = db.query(AnonymousPost).filter(AnonymousPost.id == post_id).first()
-    if not post:
+    if not post or post.is_flagged:
         raise HTTPException(status_code=404, detail="Post not found")
     return post
 
@@ -124,14 +135,17 @@ def create_post(post: PostCreate, current_user = Depends(get_current_user), db: 
 
 @router.get("/{post_id}/replies", response_model=List[ReplyResponse])
 def list_replies(post_id: int, db: Session = Depends(get_db)):
+    post = db.query(AnonymousPost).filter(AnonymousPost.id == post_id).first()
+    if not post or post.is_flagged:
+        raise HTTPException(status_code=404, detail="Post not found")
     return db.query(PostReply).filter(PostReply.post_id == post_id).order_by(PostReply.created_at.asc()).all()
 
 
 @router.post("/{post_id}/replies", response_model=ReplyResponse)
 def create_reply(post_id: int, reply: ReplyCreate, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     post = db.query(AnonymousPost).filter(AnonymousPost.id == post_id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
+    if not post or post.is_flagged:
+        raise HTTPException(status_code=404, detail="Post not found or unavailable for replies")
     # Replies from 4th-year+ students are marked senior-verified so juniors can
     # weigh advice credibility.
     is_senior = (current_user.year or 0) >= 4

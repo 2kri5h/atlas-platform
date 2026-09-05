@@ -57,6 +57,19 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Inject defensive HTTP security headers against MIME sniffing, clickjacking, and XSS."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    if _is_production:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Log the full traceback server-side; return a generic message to clients.

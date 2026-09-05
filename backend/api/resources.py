@@ -397,8 +397,10 @@ def update_resource(
     if not (is_owner or is_admin):
         raise HTTPException(status_code=403, detail="You can only edit your own resources")
 
+    ALLOWED_RESOURCE_UPDATE_FIELDS = {"title", "description", "url", "content", "domain", "course", "resource_type", "is_private"}
     for key, value in updates.model_dump(exclude_none=True).items():
-        setattr(resource, key, value)
+        if key in ALLOWED_RESOURCE_UPDATE_FIELDS:
+            setattr(resource, key, value)
 
     db.commit()
     db.refresh(resource)
@@ -438,6 +440,8 @@ def toggle_upvote(
     resource = db.query(Resource).filter(Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
+    if resource.is_private and not resource.is_curated and resource.uploader_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Resource not found")
 
     existing = db.query(ResourceUpvote).filter(
         ResourceUpvote.student_id == current_user.id,
@@ -465,6 +469,8 @@ def toggle_bookmark(
 ):
     resource = db.query(Resource).filter(Resource.id == resource_id).first()
     if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    if resource.is_private and not resource.is_curated and resource.uploader_id != current_user.id:
         raise HTTPException(status_code=404, detail="Resource not found")
 
     existing = db.query(ResourceBookmark).filter(

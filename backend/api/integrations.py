@@ -1,6 +1,7 @@
 """Google Workspace & External Integrations API Router."""
 
 import logging
+import os
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
@@ -413,6 +414,9 @@ def ensure_folder_path_endpoint(
         raise HTTPException(status_code=500, detail=f"Failed to ensure folder path: {str(e)}")
 
 
+MAX_DRIVE_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+
+
 @router.post("/google/drive/upload")
 async def upload_file(
     file: UploadFile = File(...),
@@ -429,18 +433,31 @@ async def upload_file(
             detail="Google account not connected. Please connect your Google account first.",
         )
 
-    file_bytes = await file.read()
+    file_bytes = await file.read(MAX_DRIVE_UPLOAD_BYTES + 1)
+    if len(file_bytes) > MAX_DRIVE_UPLOAD_BYTES:
+        raise HTTPException(status_code=400, detail="File too large (max 25MB).")
     if not file_bytes:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    # Sanitize filename and relative path against path traversal
+    safe_filename = os.path.basename(file.filename or "untitled_document").replace("\x00", "")
+    safe_relative_path = None
+    if relative_path:
+        clean_parts = [
+            p for p in relative_path.replace("\\", "/").split("/")
+            if p and p not in (".", "..")
+        ]
+        if clean_parts:
+            safe_relative_path = "/".join(clean_parts)
 
     try:
         return upload_drive_file(
             access_token=token,
             file_bytes=file_bytes,
-            filename=file.filename or "untitled_document",
+            filename=safe_filename,
             content_type=file.content_type or "application/octet-stream",
             parent_folder_id=folder_id,
-            relative_path=relative_path,
+            relative_path=safe_relative_path,
         )
     except Exception as e:
         logger.error(f"[Google Drive Upload Error] {e}")
