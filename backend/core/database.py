@@ -80,22 +80,23 @@ def get_db():
 
 
 def migrate_sqlite_schema():
-    """Add merge-era columns to an existing local SQLite database.
+    """Add merge-era columns to an existing database (SQLite or PostgreSQL).
 
     SQLAlchemy's create_all creates missing tables but does not alter tables that
     already exist.
     """
-    if "sqlite" not in db_url:
-        return
-
     required_columns = {
         "students": {
             "study_hours_per_week": "FLOAT DEFAULT 0",
-            "role": "VARCHAR(20) DEFAULT 'student' NOT NULL",
+            "role": "VARCHAR(20) DEFAULT 'student'",
+            "wakingHoursPerDay": "INTEGER DEFAULT 16",
+            "cpi": "FLOAT",
+            "sleep_hours": "FLOAT",
+            "screen_time_hours": "FLOAT",
         },
         "resources": {
-            "is_private": "BOOLEAN DEFAULT 0",
-            "is_curated": "BOOLEAN DEFAULT 0",
+            "is_private": "BOOLEAN DEFAULT FALSE",
+            "is_curated": "BOOLEAN DEFAULT FALSE",
         },
         "burnout_scores": {
             "risk_level": "VARCHAR(50)",
@@ -113,14 +114,25 @@ def migrate_sqlite_schema():
         },
     }
 
-    inspector = inspect(engine)
-    with engine.begin() as connection:
-        for table_name, columns in required_columns.items():
-            if not inspector.has_table(table_name):
-                continue
-            existing = {column["name"] for column in inspector.get_columns(table_name)}
-            for column_name, definition in columns.items():
-                if column_name not in existing:
-                    connection.execute(text(
-                        f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}"
-                    ))
+    try:
+        inspector = inspect(engine)
+        with engine.begin() as connection:
+            for table_name, columns in required_columns.items():
+                if not inspector.has_table(table_name):
+                    continue
+                existing = {column["name"].lower() for column in inspector.get_columns(table_name)}
+                for column_name, definition in columns.items():
+                    if column_name.lower() not in existing:
+                        try:
+                            quoted_col = f'"{column_name}"' if any(c.isupper() for c in column_name) else column_name
+                            connection.execute(text(
+                                f"ALTER TABLE {table_name} ADD COLUMN {quoted_col} {definition}"
+                            ))
+                            print(f"[Migration] Added missing column {table_name}.{column_name}")
+                        except Exception as col_err:
+                            print(f"[Migration Warning] Could not add column {table_name}.{column_name}: {col_err}")
+    except Exception as e:
+        print(f"[Migration Warning] Database schema migration error: {e}")
+
+
+migrate_db_schema = migrate_sqlite_schema

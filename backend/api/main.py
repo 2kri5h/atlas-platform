@@ -5,6 +5,8 @@ if not hasattr(bcrypt, "__about__"):
 import logging
 import uuid
 
+logger = logging.getLogger("backend.api.main")
+
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,7 +25,7 @@ if settings.AUTO_SEED_ON_STARTUP:
         from init_db import init_db
         init_db()
     except Exception as e:
-        print(f"[Startup Warning] Failed to seed initial database: {e}")
+        logger.warning(f"[Startup Warning] Failed to seed initial database: {e}")
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
@@ -53,8 +55,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=1024)
-
-logger = logging.getLogger("backend.api.main")
 
 
 @app.exception_handler(Exception)
