@@ -70,7 +70,7 @@ def verify_state(state: Optional[str]) -> Optional[dict]:
 
 def get_google_auth_url(student_id: int, redirect_uri: Optional[str] = None) -> str:
     """Generate the Google OAuth 2.0 consent URL."""
-    r_uri = redirect_uri or settings.GOOGLE_REDIRECT_URI
+    r_uri = (redirect_uri or settings.GOOGLE_REDIRECT_URI).strip()
 
     state_data = {
         "student_id": student_id,
@@ -78,8 +78,12 @@ def get_google_auth_url(student_id: int, redirect_uri: Optional[str] = None) -> 
     }
     state = _sign_state(state_data)
 
+    client_id = settings.GOOGLE_CLIENT_ID or "demo-client-id"
+    if "GOOGLE_CLIENT_ID=" in client_id:
+        client_id = client_id.split("GOOGLE_CLIENT_ID=")[-1].strip()
+
     params = {
-        "client_id": settings.GOOGLE_CLIENT_ID or "demo-client-id",
+        "client_id": client_id,
         "redirect_uri": r_uri,
         "response_type": "code",
         "scope": " ".join(GOOGLE_SCOPES),
@@ -93,7 +97,7 @@ def get_google_auth_url(student_id: int, redirect_uri: Optional[str] = None) -> 
 
 def exchange_code_for_tokens(code: str, redirect_uri: Optional[str] = None) -> Dict[str, Any]:
     """Exchange authorization code for access & refresh tokens."""
-    r_uri = redirect_uri or settings.GOOGLE_REDIRECT_URI
+    r_uri = (redirect_uri or settings.GOOGLE_REDIRECT_URI).strip()
 
     if not is_google_oauth_configured():
         # Sandbox / Dev mode fallback when credentials are not configured in .env

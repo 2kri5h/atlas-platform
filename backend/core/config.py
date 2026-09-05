@@ -1,3 +1,5 @@
+import os
+from typing import Any
 import bcrypt
 
 # Patch passlib compatibility with bcrypt >= 4.0
@@ -16,6 +18,20 @@ if hasattr(bcrypt, "hashpw") and not getattr(bcrypt, "_hashpw_patched", False):
 from pydantic_settings import BaseSettings
 from pydantic import field_validator, model_validator
 from functools import lru_cache
+
+
+def _clean_env_val(val: Any, prefix: str = "") -> str:
+    """Clean environment variable values that may have been pasted with key names, quotes or newlines."""
+    if not val:
+        return ""
+    v = str(val).strip().strip('"').strip("'").strip()
+    if prefix and v.lower().startswith(f"{prefix.lower()}="):
+        v = v[len(prefix) + 1:].strip().strip('"').strip("'").strip()
+    elif "=" in v and not (v.startswith("http://") or v.startswith("https://") or v.startswith("sqlite") or v.startswith("postgresql")):
+        parts = v.split("=", 1)
+        if parts[0].replace("_", "").isalnum():
+            v = parts[1].strip().strip('"').strip("'").strip()
+    return v
 
 
 class Settings(BaseSettings):
@@ -59,15 +75,23 @@ class Settings(BaseSettings):
 
     @property
     def GOOGLE_CLIENT_ID(self) -> str:
-        return self.google_client_id
+        raw = self.google_client_id or os.environ.get("GOOGLE_CLIENT_ID", "")
+        return _clean_env_val(raw, "GOOGLE_CLIENT_ID")
 
     @property
     def GOOGLE_CLIENT_SECRET(self) -> str:
-        return self.google_client_secret
+        raw = self.google_client_secret or os.environ.get("GOOGLE_CLIENT_SECRET", "")
+        return _clean_env_val(raw, "GOOGLE_CLIENT_SECRET")
 
     @property
     def GOOGLE_REDIRECT_URI(self) -> str:
-        return self.google_redirect_uri or "http://localhost:3000/integrations/google/callback"
+        raw = self.google_redirect_uri or os.environ.get("GOOGLE_REDIRECT_URI", "")
+        clean = _clean_env_val(raw, "GOOGLE_REDIRECT_URI")
+        if clean:
+            return clean
+        if self.ENVIRONMENT.lower() == "production" or (self.DATABASE_URL and not self.DATABASE_URL.startswith("sqlite")):
+            return "https://atlas-platform-gamma.vercel.app/integrations/google/callback"
+        return "http://localhost:3000/integrations/google/callback"
 
     # Use the lower-latency Flash-Lite model for interactive mentor chat.
     GEMINI_MODEL: str = "gemini-3.1-flash-lite"
@@ -75,15 +99,18 @@ class Settings(BaseSettings):
 
     @property
     def GEMINI_API_KEY(self) -> str:
-        return self.gemini_api_key or self.gemini_api_key_krish or self.gemini_api_key_atharva
+        raw = self.gemini_api_key or self.gemini_api_key_krish or self.gemini_api_key_atharva or os.environ.get("GEMINI_API_KEY", "")
+        return _clean_env_val(raw, "GEMINI_API_KEY")
 
     @property
     def GEMINI_API_KEY_KRISH(self) -> str:
-        return self.gemini_api_key_krish or self.gemini_api_key
+        raw = self.gemini_api_key_krish or self.gemini_api_key or os.environ.get("GEMINI_API_KEY_KRISH", "")
+        return _clean_env_val(raw, "GEMINI_API_KEY_KRISH")
 
     @property
     def GEMINI_API_KEY_ATHARVA(self) -> str:
-        return self.gemini_api_key_atharva
+        raw = self.gemini_api_key_atharva or os.environ.get("GEMINI_API_KEY_ATHARVA", "")
+        return _clean_env_val(raw, "GEMINI_API_KEY_ATHARVA")
 
     @property
     def cors_origins_list(self) -> list:
@@ -91,15 +118,21 @@ class Settings(BaseSettings):
             return ["*"]
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
-    @field_validator("DATABASE_URL")
+    @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def sanitize_database_url(cls, v: str) -> str:
+        v = _clean_env_val(v, "DATABASE_URL")
         if not v:
             return "sqlite:///./data/itsp.db"
         # Standardize legacy postgres:// to postgresql:// for SQLAlchemy 2.0
         if v.startswith("postgres://"):
             v = v.replace("postgres://", "postgresql://", 1)
         return v
+
+    @field_validator("SECRET_KEY", mode="before")
+    @classmethod
+    def sanitize_secret_key(cls, v: str) -> str:
+        return _clean_env_val(v, "SECRET_KEY")
 
     @model_validator(mode="after")
     def enforce_secret_key_policy(self):
