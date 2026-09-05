@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, BookOpen, Map, CheckSquare,
@@ -9,9 +9,10 @@ import { Breadcrumbs } from './Breadcrumbs'
 import PomodoroTimer from './PomodoroTimer'
 import ThemeToggle from './ThemeToggle'
 import { ToastHost } from './Toast'
-import AmbientCanvas from './ui/AmbientCanvas'
-import api from '../utils/api'
+import api, { setAuthToken } from '../utils/api'
 import './Layout.css'
+
+const AmbientCanvas = lazy(() => import('./ui/AmbientCanvas'))
 
 interface NavSection {
   title?: string
@@ -116,7 +117,7 @@ function Layout() {
     } catch {
       // Ignore network/server errors during signout
     } finally {
-      localStorage.removeItem('token')
+      await setAuthToken(null)
       navigate('/login')
     }
   }
@@ -131,7 +132,9 @@ function Layout() {
   return (
     <div className="layout">
       {/* ── Background Three.js ATLAS Celestial Armillary Astrolabe ── */}
-      <AmbientCanvas className="layout-ambient-canvas" />
+      <Suspense fallback={null}>
+        <AmbientCanvas className="layout-ambient-canvas" />
+      </Suspense>
 
       {/* ── Mobile Top App Bar (Visible on <= 1024px) ── */}
       <header className="mobile-top-bar">

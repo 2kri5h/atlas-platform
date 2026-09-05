@@ -116,7 +116,12 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list:
         if not self.CORS_ORIGINS or self.CORS_ORIGINS.strip() == "*":
             return ["*"]
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        # Ensure native mobile Capacitor WebView origins are permitted
+        for cap_origin in ("https://localhost", "capacitor://localhost"):
+            if cap_origin not in origins:
+                origins.append(cap_origin)
+        return origins
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod

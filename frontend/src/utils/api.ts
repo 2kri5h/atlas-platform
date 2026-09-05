@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { secureStorage } from './storage'
 
 export const getApiOrigin = () => {
   const envUrl = (import.meta as any).env?.VITE_API_URL
@@ -20,10 +21,40 @@ const api = axios.create({
   },
 })
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+// Token cache kept in-memory so the synchronous axios interceptor never
+// blocks on an async Preferences read.  The cache is populated on login
+// and on the initial secureStorage.get() call from ProtectedRoute.
+let _tokenCache: string | null = null
+try {
+  _tokenCache = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+} catch {
+  _tokenCache = null
+}
+
+/** Expose a helper so Login/Logout pages can update the cache + storage. */
+export async function setAuthToken(token: string | null) {
+  _tokenCache = token
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    await secureStorage.set('token', token)
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  } else {
+    await secureStorage.remove('token')
+    delete api.defaults.headers.common['Authorization']
+  }
+}
+
+/** Hydrate cache from native storage (call once at startup). */
+export async function hydrateAuthToken() {
+  const token = await secureStorage.get('token')
+  _tokenCache = token
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  }
+}
+
+api.interceptors.request.use((config) => {
+  if (_tokenCache) {
+    config.headers.Authorization = `Bearer ${_tokenCache}`
   }
   return config
 })
@@ -32,15 +63,15 @@ api.interceptors.request.use((config) => {
 // instead of leaving them on a page full of failed requests.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401 && !window.location.pathname.startsWith('/login')) {
-      localStorage.removeItem('token')
-      delete api.defaults.headers.common['Authorization']
+      await setAuthToken(null)
       window.location.href = '/login'
     }
     return Promise.reject(error)
   }
 )
+
 
 export default api
 

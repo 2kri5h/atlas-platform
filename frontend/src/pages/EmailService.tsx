@@ -16,7 +16,6 @@ import {
   Search,
   Mail,
   ChevronDown,
-  ChevronUp,
   Inbox,
   Key,
   Building2,
@@ -27,6 +26,11 @@ import {
   ArrowRight,
   X,
   Layers,
+  GraduationCap,
+  Briefcase,
+  Tag,
+  Copy,
+  Check,
 } from 'lucide-react'
 
 export default function EmailService() {
@@ -68,8 +72,9 @@ export default function EmailService() {
   const [hasKey, setHasKey] = useState(false)
   const [activeKey, setActiveKey] = useState<UserAPIKey | null>(null)
 
-  // Expandable Email IDs
+  // Expandable Email IDs & Clipboard feedback
   const [expandedEmailIds, setExpandedEmailIds] = useState<Set<any>>(new Set())
+  const [copiedEmailId, setCopiedEmailId] = useState<number | string | null>(null)
 
   // Event Edit & Add to Planner Modal
   const [selected, setSelected] = useState<any>(null)
@@ -460,35 +465,104 @@ export default function EmailService() {
     return { month, day, dayName, relative, diffDays }
   }
 
-  const getImportanceColor = (importance?: string) => {
-    const imp = importance?.toLowerCase()
-    if (imp === 'high' || imp === 'critical') return '#ef4444'
-    if (imp === 'medium') return '#f59e0b'
-    return '#cbd5e1'
+  // Helper to parse sender strings into name, email address, and single-letter initial
+  const parseSender = (senderStr?: string) => {
+    if (!senderStr) return { name: 'Unknown Sender', email: '', initial: '?' }
+    const clean = senderStr.replace(/["']/g, '').trim()
+    const match = clean.match(/^(.*?)\s*<([^>]+)>/)
+    if (match) {
+      const name = match[1].trim() || match[2].split('@')[0]
+      const email = match[2].trim()
+      const initial = name.charAt(0).toUpperCase() || 'M'
+      return { name, email, initial }
+    }
+    const initial = clean.charAt(0).toUpperCase() || 'M'
+    return { name: clean, email: '', initial }
   }
 
-  const getCategoryBadge = (category?: string) => {
-    const cat = category?.toLowerCase()
-    if (cat === 'academic' || cat === 'class') return { bg: '#eef2ff', color: '#4338ca' }
-    if (cat === 'event') return { bg: '#ecfdf5', color: '#047857' }
-    if (cat === 'placement') return { bg: '#fffbeb', color: '#b45309' }
-    if (cat === 'administrative') return { bg: '#f8fafc', color: '#475569' }
-    return { bg: '#f8fafc', color: '#475569' }
+  // Deterministic vibrant avatar styles per sender
+  const getSenderAvatar = (name: string) => {
+    const avatarPalettes = [
+      { bg: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', glow: 'rgba(79, 70, 229, 0.35)' },
+      { bg: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', glow: 'rgba(16, 185, 129, 0.35)' },
+      { bg: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)', glow: 'rgba(2, 132, 199, 0.35)' },
+      { bg: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)', glow: 'rgba(217, 119, 6, 0.35)' },
+      { bg: 'linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)', glow: 'rgba(225, 29, 72, 0.35)' },
+      { bg: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)', glow: 'rgba(124, 58, 237, 0.35)' },
+      { bg: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)', glow: 'rgba(13, 148, 136, 0.35)' },
+      { bg: 'linear-gradient(135deg, #ea580c 0%, #fb923c 100%)', glow: 'rgba(234, 88, 12, 0.35)' },
+    ]
+    let hash = 0
+    for (let i = 0; i < name.length; i++) {
+      hash = (hash * 31 + name.charCodeAt(i)) % avatarPalettes.length
+    }
+    return avatarPalettes[Math.abs(hash)]
   }
+
+  // Parse institutional bracketed tags e.g. [S.Events]
+  const parseSubject = (subject: string) => {
+    if (!subject) return { tag: null, title: 'No Subject' }
+    const match = subject.match(/^(\[[^\]]+\])\s*(.*)$/)
+    if (match) {
+      return { tag: match[1], title: match[2].trim() || match[1] }
+    }
+    return { tag: null, title: subject }
+  }
+
+  // Semantic category metadata with formatted labels and Lucide icon components
+  const getCategoryInfo = (category?: string) => {
+    const cat = (category || '').toLowerCase()
+    if (cat === 'academic' || cat === 'class') {
+      return { label: 'Academic', icon: GraduationCap, className: 'cat-academic' }
+    }
+    if (cat === 'event') {
+      return { label: 'Campus Event', icon: Calendar, className: 'cat-event' }
+    }
+    if (cat === 'placement') {
+      return { label: 'Placement', icon: Briefcase, className: 'cat-placement' }
+    }
+    if (cat === 'deadline') {
+      return { label: 'Deadline', icon: Flame, className: 'cat-deadline' }
+    }
+    if (cat === 'administrative' || cat === 'institute') {
+      return { label: 'Administrative', icon: Building2, className: 'cat-admin' }
+    }
+    return {
+      label: category ? category.charAt(0).toUpperCase() + category.slice(1).toLowerCase() : 'General Notice',
+      icon: Tag,
+      className: 'cat-general',
+    }
+  }
+
+  // Semantic importance metadata with formatted labels and pulse classes
+  const getImportanceInfo = (importance?: string) => {
+    const imp = (importance || '').toLowerCase()
+    if (imp === 'critical' || imp === 'high') {
+      return { label: 'High Priority', className: 'prio-high', color: '#ef4444' }
+    }
+    if (imp === 'medium') {
+      return { label: 'Medium Priority', className: 'prio-medium', color: '#f59e0b' }
+    }
+    return { label: 'Normal Priority', className: 'prio-normal', color: '#64748b' }
+  }
+
 
   const getEventTypeMeta = (typeRaw?: string) => {
     const type = (typeRaw || 'OTHER').toUpperCase()
     switch (type) {
       case 'DEADLINE':
-        return { bg: '#fee2e2', color: '#b91c1c', border: '#fecaca', badge: 'Deadline' }
+        return { badgeClass: 'badge-deadline', badge: 'Deadline' }
       case 'WORKSHOP':
-        return { bg: '#f3e8ff', color: '#7e22ce', border: '#e9d5ff', badge: 'Workshop' }
+        return { badgeClass: 'badge-workshop', badge: 'Workshop' }
       case 'TALK':
-        return { bg: '#e0f2fe', color: '#0369a1', border: '#bae6fd', badge: 'Talk' }
+        return { badgeClass: 'badge-talk', badge: 'Talk' }
       case 'EVENT':
-        return { bg: '#ecfdf5', color: '#047857', border: '#a7f3d0', badge: 'Event' }
+        return { badgeClass: 'badge-event', badge: 'Event' }
       default:
-        return { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', badge: typeRaw || 'General' }
+        return {
+          badgeClass: 'badge-general',
+          badge: typeRaw ? typeRaw.charAt(0).toUpperCase() + typeRaw.slice(1).toLowerCase() : 'General',
+        }
     }
   }
 
@@ -952,55 +1026,103 @@ export default function EmailService() {
                   </div>
                 ) : (
                   filteredDetailedEmails.map((email) => {
-                    const senderInitial = (email.sender || 'M')
-                      .replace(/["']/g, '')
-                      .trim()
-                      .charAt(0)
-                      .toUpperCase()
-                    const categoryBadge = getCategoryBadge(email.category)
-                    const importanceColor = getImportanceColor(email.importance)
+                    const parsedSender = parseSender(email.sender)
+                    const avatarStyle = getSenderAvatar(parsedSender.name)
+                    const parsedSubject = parseSubject(email.subject)
+                    const catInfo = getCategoryInfo(email.category)
+                    const prioInfo = getImportanceInfo(email.importance)
+                    const CatIcon = catInfo.icon
                     const isExpanded = expandedEmailIds.has(email.id)
                     const dateText = formatEmailDate(email)
+                    const isCopied = copiedEmailId === email.id
 
                     return (
                       <div
                         key={email.id}
-                        className="email-card"
-                        style={{ borderLeft: `4px solid ${importanceColor}` }}
+                        className={`email-card ${prioInfo.className}`}
                       >
+                        {/* Priority accent stripe along the left edge */}
+                        <div className={`email-card-accent-stripe ${prioInfo.className}`} />
+
                         <div className="email-card-inner">
-                          {/* Avatar */}
-                          <div className="email-card-avatar">{senderInitial}</div>
+                          {/* Dynamic Squircle Avatar */}
+                          <div
+                            className="email-card-avatar"
+                            style={{
+                              background: avatarStyle.bg,
+                              boxShadow: `0 3px 10px ${avatarStyle.glow}`,
+                            }}
+                          >
+                            <span className="email-card-avatar-text">{parsedSender.initial}</span>
+                          </div>
 
                           {/* Content Area */}
                           <div className="email-card-content">
                             <div className="email-card-header">
-                              <h3 className="email-card-title">{email.subject}</h3>
-                              {dateText && <span className="email-card-date">{dateText}</span>}
+                              <h3 className="email-card-title">
+                                {parsedSubject.tag && (
+                                  <span className="email-subject-tag">{parsedSubject.tag}</span>
+                                )}
+                                <span className="email-subject-text">{parsedSubject.title}</span>
+                              </h3>
+                              {dateText && (
+                                <span className="email-card-date">
+                                  <Clock size={11} className="email-date-icon" />
+                                  <span className="tabular-nums">{dateText}</span>
+                                </span>
+                              )}
                             </div>
 
-                            <div className="email-card-sender">From: {email.sender}</div>
+                            <div className="email-card-sender-row">
+                              <span className="email-sender-label">From:</span>
+                              <span className="email-sender-name">{parsedSender.name}</span>
+                              {parsedSender.email && (
+                                <span className="email-sender-address">&lt;{parsedSender.email}&gt;</span>
+                              )}
+                            </div>
 
                             <p className="email-card-summary">{email.summary}</p>
 
+                            {/* Mini Extracted Event Chips if available */}
+                            {email.events && email.events.length > 0 && (
+                              <div className="email-card-events-strip">
+                                {email.events.map((ev, evIdx) => (
+                                  <button
+                                    key={ev.id || evIdx}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelected(ev)
+                                      setEditDate(ev.event_date || '')
+                                      setEditTime(ev.event_time || '09:00')
+                                      setComment('')
+                                      setIsDeadline(ev.event_type?.toUpperCase() === 'DEADLINE')
+                                    }}
+                                    className="email-card-event-pill"
+                                    title="Add extracted event to Student Planner"
+                                  >
+                                    <Sparkles size={11} className="event-pill-icon" />
+                                    <span className="event-pill-title">{ev.title}</span>
+                                    {ev.event_date && (
+                                      <span className="event-pill-date">• {ev.event_date}</span>
+                                    )}
+                                    <span className="event-pill-add">+ Planner</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
                             <div className="email-card-footer">
                               <div className="email-card-badges">
-                                <span
-                                  className="email-card-category"
-                                  style={{
-                                    backgroundColor: categoryBadge.bg,
-                                    color: categoryBadge.color,
-                                  }}
-                                >
-                                  {email.category || 'General'}
+                                {/* Semantic Category Pill */}
+                                <span className={`email-badge-pill category-pill ${catInfo.className}`}>
+                                  <CatIcon size={12} className="badge-icon" />
+                                  <span>{catInfo.label}</span>
                                 </span>
 
-                                <span className="email-card-importance">
-                                  <span
-                                    className="importance-dot"
-                                    style={{ backgroundColor: importanceColor }}
-                                  />
-                                  {email.importance || 'Normal'}
+                                {/* Priority Pill with Breathing Pulse Indicator */}
+                                <span className={`email-badge-pill priority-pill ${prioInfo.className}`}>
+                                  <span className="priority-pulse-dot" />
+                                  <span>{prioInfo.label}</span>
                                 </span>
                               </div>
 
@@ -1009,16 +1131,45 @@ export default function EmailService() {
                                   type="button"
                                   onClick={() => toggleExpandEmail(email.id)}
                                   className="email-toggle-body-btn"
+                                  aria-expanded={isExpanded}
                                 >
-                                  {isExpanded ? 'Hide original message' : 'View original message'}
-                                  {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                  <span>{isExpanded ? 'Hide message' : 'View original message'}</span>
+                                  <span className={`email-chevron-wrapper ${isExpanded ? 'rotated' : ''}`}>
+                                    <ChevronDown size={13} />
+                                  </span>
                                 </button>
                               )}
                             </div>
 
-                            {/* Expandable Body */}
+                            {/* Expandable Original Message Body */}
                             {isExpanded && email.body && (
-                              <div className="email-body-expanded">{email.body}</div>
+                              <div className="email-body-expanded">
+                                <div className="email-body-header">
+                                  <span className="email-body-heading">Original Message Body</span>
+                                  <button
+                                    type="button"
+                                    className="email-body-copy-btn"
+                                    onClick={() => {
+                                      navigator.clipboard?.writeText(email.body || '')
+                                      setCopiedEmailId(email.id)
+                                      setTimeout(() => setCopiedEmailId(null), 2000)
+                                    }}
+                                  >
+                                    {isCopied ? (
+                                      <>
+                                        <Check size={12} color="#10b981" />
+                                        <span style={{ color: '#10b981' }}>Copied</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy size={12} />
+                                        <span>Copy Text</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                                <div className="email-body-text">{email.body}</div>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -1085,44 +1236,27 @@ export default function EmailService() {
                           setComment('')
                           setIsDeadline(isDeadlineType)
                         }}
-                        className="email-event-card"
+                        className={`email-event-card ${isDeadlineType ? 'is-deadline' : ''}`}
                       >
                         <div className="email-event-card-main">
-                          <div className="email-event-date-box">
-                            <div
-                              className="email-event-month"
-                              style={{
-                                backgroundColor: isDeadlineType ? '#fee2e2' : '#e0e7ff',
-                                color: isDeadlineType ? '#b91c1c' : '#4338ca',
-                              }}
-                            >
-                              {dateInfo.month}
-                            </div>
+                          <div className={`email-event-date-box ${isDeadlineType ? 'deadline-date' : ''}`}>
+                            <div className="email-event-month">{dateInfo.month}</div>
                             <div className="email-event-day">{dateInfo.day}</div>
                           </div>
 
                           <div className="email-event-details">
                             <div className="email-event-badges">
-                              <span
-                                className="email-event-type-badge"
-                                style={{
-                                  backgroundColor: typeMeta.bg,
-                                  color: typeMeta.color,
-                                  border: `1px solid ${typeMeta.border}`,
-                                }}
-                              >
+                              <span className={`email-event-type-badge ${typeMeta.badgeClass}`}>
                                 {typeMeta.badge}
                               </span>
 
                               {dateInfo.relative && (
                                 <span
-                                  className="email-event-relative"
-                                  style={{
-                                    color:
-                                      dateInfo.diffDays !== undefined && dateInfo.diffDays < 0
-                                        ? '#ef4444'
-                                        : '#0284c7',
-                                  }}
+                                  className={`email-event-relative ${
+                                    dateInfo.diffDays !== undefined && dateInfo.diffDays < 0
+                                      ? 'overdue'
+                                      : 'upcoming'
+                                  }`}
                                 >
                                   • {dateInfo.relative}
                                 </span>
@@ -1135,11 +1269,14 @@ export default function EmailService() {
                               {ev.event_time && (
                                 <span>
                                   <Clock size={12} />
-                                  {ev.event_time}
+                                  <span className="tabular-nums">{ev.event_time}</span>
                                 </span>
                               )}
                               {ev.emailSubject && (
-                                <span className="email-event-origin">✉️ {ev.emailSubject}</span>
+                                <span className="email-event-origin" title={ev.emailSubject}>
+                                  <Mail size={12} />
+                                  <span>{ev.emailSubject}</span>
+                                </span>
                               )}
                             </div>
                           </div>
@@ -1148,12 +1285,9 @@ export default function EmailService() {
                         <button
                           type="button"
                           className="email-event-action-btn"
-                          style={{
-                            color: isDeadlineType ? '#b91c1c' : '#4338ca',
-                          }}
                         >
                           <BookmarkCheck size={14} />
-                          {isDeadlineType ? 'Add Deadline' : 'Add to Planner'}
+                          <span>{isDeadlineType ? 'Add Deadline' : 'Add to Planner'}</span>
                         </button>
                       </div>
                     )

@@ -606,16 +606,24 @@
 
   .mobile-top-bar {
     display: flex;
+    padding-top: env(safe-area-inset-top, 0px);
+    height: calc(52px + env(safe-area-inset-top, 0px));
   }
 
   .mobile-bottom-dock {
     display: flex;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* When virtual keyboard is open, hide bottom dock so it doesn't obstruct inputs */
+  body.keyboard-open .mobile-bottom-dock {
+    display: none !important;
   }
 
   .main-content {
     margin-left: 0;
-    padding-top: 52px;
-    padding-bottom: 72px;
+    padding-top: calc(52px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
     min-width: 0;
     max-width: 100%;
     width: 100%;
@@ -623,7 +631,7 @@
   }
 
   .container {
-    padding: 14px 12px 36px 12px;
+    padding: 14px 12px calc(36px + env(safe-area-inset-bottom, 0px)) 12px;
     max-width: 100%;
     width: 100%;
     box-sizing: border-box;

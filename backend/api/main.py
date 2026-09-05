@@ -48,7 +48,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_origin_regex=(
-        None if _is_production else r"https://.*\.vercel\.app|http://localhost:\d+"
+        r"https://localhost|capacitor://localhost" if _is_production else r"https://.*\.vercel\.app|https?://localhost(:\d+)?|capacitor://localhost"
     ),
     allow_credentials=True,
     allow_methods=["*"],

@@ -203,7 +203,11 @@
 
 .email-account-btn:hover {
   background-color: var(--surface-hover);
-  border-color: #d4d4d8;
+  border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
+}
+
+.email-account-btn:active {
+  transform: scale(0.96);
 }
 
 /* ── Apple-Inspired Dual Hub Navigation Switcher ── */
@@ -1304,42 +1308,100 @@
   font-size: 14px;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Enhanced Email Feed & Event Cards (Per 'better-ui' & Modern Nordic Dark Theme)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.email-feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
 /* ── Email Item Card ── */
 .email-card {
-  background-color: var(--surface);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0) 100%), var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 16px 18px;
-  box-shadow: var(--shadow-xs);
-  transition: all var(--transition-fast);
+  border-radius: var(--radius-card);
+  padding: 18px 20px 18px 22px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.15s ease;
   box-sizing: border-box;
+  width: 100%;
 }
 
 .email-card:hover {
-  border-color: #d4d4d8;
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-1.5px);
+  border-color: rgba(99, 102, 241, 0.32);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Left Edge Priority Accent Stripe (Concentric Border-Radius Preserved) ── */
+.email-card-accent-stripe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-top-left-radius: var(--radius-card);
+  border-bottom-left-radius: var(--radius-card);
+  transition: width 0.15s ease;
+}
+
+.email-card:hover .email-card-accent-stripe {
+  width: 5px;
+}
+
+.email-card-accent-stripe.prio-high {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+}
+
+.email-card-accent-stripe.prio-medium {
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+
+.email-card-accent-stripe.prio-normal {
+  background: linear-gradient(180deg, #64748b 0%, #475569 100%);
 }
 
 .email-card-inner {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   align-items: flex-start;
   width: 100%;
 }
 
+/* ── Dynamic Squircle Sender Avatar ── */
 .email-card-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background-color: var(--surface-subtle);
-  color: var(--text-secondary);
-  font-weight: 700;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 13px;
-  border: 1px solid var(--border-light);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  user-select: none;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.email-card:hover .email-card-avatar {
+  transform: scale(1.04);
+}
+
+.email-card-avatar-text {
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .email-card-content {
@@ -1347,22 +1409,46 @@
   min-width: 0;
 }
 
+/* ── Email Header & Title ── */
 .email-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 4px;
+  gap: 14px;
+  margin-bottom: 5px;
 }
 
 .email-card-title {
   margin: 0;
+  font-size: 14.5px;
   font-weight: 700;
   color: var(--text-primary);
-  font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.45;
+  letter-spacing: -0.015em;
   word-break: break-word;
   flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.email-subject-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  background: var(--surface-subtle);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.email-subject-text {
+  color: var(--text-primary);
 }
 
 .email-card-date {
@@ -1371,150 +1457,415 @@
   font-weight: 500;
   white-space: nowrap;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
 }
 
-.email-card-sender {
-  font-size: 12px;
+.email-date-icon {
+  opacity: 0.75;
+}
+
+/* ── Sender Metadata Row ── */
+.email-card-sender-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 9px;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.email-sender-label {
   color: var(--text-muted);
-  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 11.5px;
+}
+
+.email-sender-name {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.email-sender-address {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  opacity: 0.85;
   word-break: break-all;
 }
 
+/* ── Summary Snippet ── */
 .email-card-summary {
-  margin: 0 0 10px 0;
+  margin: 0 0 12px 0;
   color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 13.5px;
+  line-height: 1.6;
   word-break: break-word;
 }
 
-/* ── Mini Event Chips inside Email Card ── */
-.email-events-wrapper {
-  margin: 10px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
-
-.email-events-label {
-  font-size: 11.5px;
-  font-weight: 650;
-  color: var(--text-secondary);
-}
-
-.email-events-chips {
+/* ── Extracted Event Mini Chips in Email Card ── */
+.email-card-events-strip {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  width: 100%;
+  margin: 0 0 12px 0;
 }
 
-.email-event-chip {
-  background-color: var(--surface-subtle);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 5px 10px;
+.email-card-event-pill {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  border-radius: 6px;
+  padding: 4px 10px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all var(--transition-fast);
-  max-width: 100%;
-  box-sizing: border-box;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.15s ease,
+              border-color 0.15s ease;
 }
 
-.email-event-chip:hover {
-  background-color: var(--surface-hover);
-  border-color: #d4d4d8;
+.email-card-event-pill:hover {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: rgba(99, 102, 241, 0.45);
+  transform: translateY(-1px);
 }
 
-.email-event-chip-tag {
-  padding: 1px 5px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
+.email-card-event-pill:active {
+  transform: scale(0.96);
+}
+
+.event-pill-icon {
+  color: var(--primary);
   flex-shrink: 0;
 }
 
-.email-event-chip-title {
-  font-size: 12.5px;
+.event-pill-title {
   font-weight: 600;
   color: var(--text-primary);
-  word-break: break-word;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.email-event-chip-date {
-  font-size: 11.5px;
+.event-pill-date {
   color: var(--text-muted);
-  flex-shrink: 0;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
-.email-event-chip-add {
-  font-size: 11.5px;
-  color: #4f46e5;
+.event-pill-add {
+  color: var(--primary);
   font-weight: 700;
+  font-size: 11px;
   margin-left: 2px;
-  flex-shrink: 0;
 }
 
+/* ── Footer Row: Badges & View Message Button ── */
 .email-card-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 6px;
   flex-wrap: wrap;
+  gap: 10px;
+}
+
+.email-card-badges {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
-.email-category-pill {
-  padding: 2px 7px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.email-priority-label {
+/* ── Refined Pill Badges (Category & Priority) ── */
+.email-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
   font-size: 11.5px;
-  color: var(--text-muted);
-  text-transform: capitalize;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s ease;
+  user-select: none;
 }
 
+.email-badge-pill .badge-icon {
+  flex-shrink: 0;
+}
+
+/* Category Badge Themes (Dark Mode Default) */
+.category-pill.cat-academic {
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.28);
+}
+
+.category-pill.cat-event {
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.category-pill.cat-placement {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.category-pill.cat-deadline {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.category-pill.cat-admin {
+  background: rgba(14, 165, 233, 0.12);
+  color: #7dd3fc;
+  border: 1px solid rgba(14, 165, 233, 0.28);
+}
+
+.category-pill.cat-general {
+  background: rgba(148, 163, 184, 0.1);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+/* Light Mode Overrides for Category Badges */
+[data-theme="light"] .category-pill.cat-academic {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+[data-theme="light"] .category-pill.cat-event {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+[data-theme="light"] .category-pill.cat-placement {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+[data-theme="light"] .category-pill.cat-deadline {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+[data-theme="light"] .category-pill.cat-admin {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+[data-theme="light"] .category-pill.cat-general {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+/* Priority Badge Themes */
+.priority-pill.prio-high {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.priority-pill.prio-medium {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.priority-pill.prio-normal {
+  background: rgba(148, 163, 184, 0.08);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="light"] .priority-pill.prio-high {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+[data-theme="light"] .priority-pill.prio-medium {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+[data-theme="light"] .priority-pill.prio-normal {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+/* Breathing Pulse Indicator Dot */
+.priority-pulse-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.prio-high .priority-pulse-dot {
+  background-color: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+  animation: prioPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.prio-medium .priority-pulse-dot {
+  background-color: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+}
+
+.prio-normal .priority-pulse-dot {
+  background-color: #94a3b8;
+}
+
+@keyframes prioPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.85);
+  }
+}
+
+/* ── Interactive View Original Message Button ── */
 .email-toggle-body-btn {
-  background: none;
-  border: none;
-  color: #4f46e5;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease,
+              color 0.15s ease,
+              border-color 0.15s ease;
 }
 
+.email-toggle-body-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
+}
+
+.email-toggle-body-btn:active {
+  transform: scale(0.96);
+}
+
+.email-chevron-wrapper {
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.email-chevron-wrapper.rotated {
+  transform: rotate(180deg);
+}
+
+/* ── Expanded Message Body ── */
 .email-body-expanded {
-  margin-top: 10px;
-  padding: 12px;
+  margin-top: 14px;
+  padding: 14px 16px;
   background-color: var(--surface-subtle);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+  animation: emailBodySlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes emailBodySlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.email-body-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.email-body-heading {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.email-body-copy-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.email-body-copy-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
+}
+
+.email-body-copy-btn:active {
+  transform: scale(0.96);
+}
+
+.email-body-text {
+  font-family: inherit;
   font-size: 12.5px;
   color: var(--text-secondary);
-  line-height: 1.55;
+  line-height: 1.6;
   white-space: pre-wrap;
-  max-height: 280px;
+  max-height: 320px;
   overflow-y: auto;
   word-break: break-word;
 }
 
 /* ───────────────── EXTRACTED EVENTS TAB CARDS ───────────────── */
 .email-event-card {
-  background-color: var(--surface);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0) 100%), var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-card);
   padding: 14px 18px;
   display: flex;
   align-items: center;
@@ -1522,29 +1873,36 @@
   gap: 16px;
   cursor: pointer;
   box-shadow: var(--shadow-xs);
-  transition: all var(--transition-fast);
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.15s ease;
   box-sizing: border-box;
   width: 100%;
 }
 
 .email-event-card:hover {
-  border-color: #d4d4d8;
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-1.5px);
+  border-color: rgba(99, 102, 241, 0.32);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.email-event-card.is-deadline {
+  border-left: 3.5px solid #ef4444;
 }
 
 .email-event-card-main {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   flex: 1;
   min-width: 0;
 }
 
 .email-event-date-box {
   width: 48px;
-  height: 50px;
+  height: 52px;
   background-color: var(--surface-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: 9px;
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -1560,13 +1918,34 @@
   font-weight: 800;
   text-align: center;
   padding: 2px 0;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.deadline-date .email-event-month {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+[data-theme="light"] .email-event-month {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+[data-theme="light"] .deadline-date .email-event-month {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .email-event-day {
   font-size: 18px;
   font-weight: 800;
   color: var(--text-primary);
-  line-height: 1.15;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
 }
 
 .email-event-details {
@@ -1578,16 +1957,77 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   flex-wrap: wrap;
 }
 
 .email-event-type-badge {
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.email-event-type-badge.badge-deadline {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.email-event-type-badge.badge-workshop {
+  background: rgba(168, 85, 247, 0.15);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.email-event-type-badge.badge-talk {
+  background: rgba(14, 165, 233, 0.15);
+  color: #7dd3fc;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.email-event-type-badge.badge-event {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.email-event-type-badge.badge-general {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+[data-theme="light"] .email-event-type-badge.badge-deadline {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+[data-theme="light"] .email-event-type-badge.badge-workshop {
+  background: #faf5ff;
+  color: #7e22ce;
+  border-color: #e9d5ff;
+}
+
+[data-theme="light"] .email-event-type-badge.badge-talk {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+[data-theme="light"] .email-event-type-badge.badge-event {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+[data-theme="light"] .email-event-type-badge.badge-general {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
 }
 
 .email-event-relative {
@@ -1595,20 +2035,28 @@
   font-weight: 600;
 }
 
+.email-event-relative.overdue {
+  color: #f87171;
+}
+
+.email-event-relative.upcoming {
+  color: #38bdf8;
+}
+
 .email-event-title {
   margin: 0;
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.35;
+  line-height: 1.4;
   word-break: break-word;
 }
 
 .email-event-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 14px;
+  margin-top: 5px;
   font-size: 12px;
   color: var(--text-muted);
   flex-wrap: wrap;
@@ -1617,21 +2065,23 @@
 .email-event-meta span {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .email-event-origin {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 260px;
+  max-width: 280px;
+  color: var(--text-muted);
 }
 
 .email-event-action-btn {
   background-color: var(--surface-subtle);
   border: 1px solid var(--border);
-  padding: 7px 12px;
-  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 8px 14px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 12px;
   cursor: pointer;
@@ -1639,12 +2089,16 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
 }
 
 .email-event-action-btn:hover {
   background-color: var(--surface-hover);
-  border-color: #d4d4d8;
+  border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
+}
+
+.email-event-action-btn:active {
+  transform: scale(0.96);
 }
 
 /* ── Modal Dialog ── */
@@ -2267,35 +2721,54 @@
   }
 
   .email-card {
-    padding: 12px 10px;
+    padding: 14px 14px 14px 16px;
     width: 100%;
     box-sizing: border-box;
   }
 
   .email-card-inner {
-    gap: 8px;
+    gap: 12px;
   }
 
   .email-card-avatar {
-    width: 30px;
-    height: 30px;
-    font-size: 11.5px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+
+  .email-card-avatar-text {
+    font-size: 13px;
   }
 
   .email-card-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
+    gap: 3px;
   }
 
   .email-card-date {
-    font-size: 10.5px;
+    font-size: 11px;
     margin-bottom: 2px;
   }
 
   .email-card-title {
-    font-size: 13px;
+    font-size: 13.5px;
     word-break: break-word;
+  }
+
+  .email-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .email-card-badges {
+    width: 100%;
+  }
+
+  .email-toggle-body-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .email-event-card {

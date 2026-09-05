@@ -567,10 +567,30 @@
   color: var(--text-muted);
 }
 
+@media (max-width: 768px) {
+  .ai-main-content {
+    height: calc(100vh - 210px - var(--keyboard-height, 0px));
+    min-height: 280px;
+  }
+  .chat-form {
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  }
+  .chat-form input {
+    height: 44px; /* 44px touch target standard */
+    font-size: 16px; /* Prevents iOS/Android auto-zoom on input focus */
+  }
+  .chat-form .primary {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+}
+
 @media (max-width: 640px) {
   .quick-prompts-grid {
     grid-template-columns: 1fr;
   }
 }
+
 
 

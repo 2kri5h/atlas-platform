@@ -12,9 +12,18 @@ export default function AmbientCanvas({ className = '' }: AmbientCanvasProps) {
     const container = containerRef.current
     if (!container) return
 
-    // 1. Respect prefers-reduced-motion
+    // 1. Performance guards: reduced motion or low-end device
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (prefersReducedMotion) return
+
+    const nav = typeof navigator !== 'undefined' ? (navigator as any) : null
+    const isLowEndDevice = Boolean(
+      (nav?.hardwareConcurrency && nav.hardwareConcurrency <= 2) ||
+      (nav?.deviceMemory && nav.deviceMemory <= 2)
+    )
+    if (isLowEndDevice) return
+
+    const isMobile = window.innerWidth < 768 || (typeof window !== 'undefined' && 'ontouchstart' in window)
 
     let animationFrameId: number
     let isVisible = true
@@ -29,11 +38,12 @@ export default function AmbientCanvas({ className = '' }: AmbientCanvasProps) {
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
-      antialias: true,
+      antialias: !isMobile, // Disable MSAA on mobile WebViews for significant GPU savings
       powerPreference: 'low-power',
     })
     renderer.setSize(width, height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+    // On mobile, cap pixel ratio to 1.0 to prevent heavy GPU fillrate on high-DPI phone screens
+    renderer.setPixelRatio(isMobile ? 1.0 : Math.min(window.devicePixelRatio, 1.5))
     container.appendChild(renderer.domElement)
 
     // 3. Theme-aware Material Palette Manager
@@ -95,8 +105,9 @@ export default function AmbientCanvas({ className = '' }: AmbientCanvasProps) {
       return mat
     }
 
+    const radSegs = isMobile ? 8 : 12
     // A. Outer Gimbal / Horizon Ring (Radius 98)
-    const horizonGeo = new THREE.TorusGeometry(98, 0.65, 12, 100)
+    const horizonGeo = new THREE.TorusGeometry(98, 0.65, radSegs, isMobile ? 48 : 100)
     const horizonMat = createRingMaterial(
       currentPalette.ringColor,
       currentPalette.ringOpacity * 0.9,
@@ -106,7 +117,7 @@ export default function AmbientCanvas({ className = '' }: AmbientCanvasProps) {
     astrolabe.add(horizonRing)
 
     // B. Celestial Meridian Ring (Radius 82, rotated 90° on X)
-    const meridianGeo = new THREE.TorusGeometry(82, 0.55, 12, 90)
+    const meridianGeo = new THREE.TorusGeometry(82, 0.55, radSegs, isMobile ? 40 : 90)
     const meridianMat = createRingMaterial(
       currentPalette.ringColor,
       currentPalette.ringOpacity,
@@ -117,7 +128,7 @@ export default function AmbientCanvas({ className = '' }: AmbientCanvasProps) {
     astrolabe.add(meridianRing)
 
     // C. Ecliptic / Zodiac Ring (Radius 68, true 23.4° axial obliquity + 45° tilt)
-    const eclipticGeo = new THREE.TorusGeometry(68, 0.75, 12, 80)
+    const eclipticGeo = new THREE.TorusGeometry(68, 0.75, radSegs, isMobile ? 36 : 80)
     const eclipticMat = createRingMaterial(
       currentPalette.coreColor,
       currentPalette.ringOpacity * 1.15,
@@ -128,7 +139,7 @@ export default function AmbientCanvas({ className = '' }: AmbientCanvasProps) {
     astrolabe.add(eclipticRing)
 
     // D. Polar Coordinate Ring (Radius 52)
-    const polarGeo = new THREE.TorusGeometry(52, 0.45, 12, 70)
+    const polarGeo = new THREE.TorusGeometry(52, 0.45, radSegs, isMobile ? 30 : 70)
     const polarMat = createRingMaterial(
       currentPalette.ringColor,
       currentPalette.ringOpacity * 0.75,
@@ -215,15 +226,21 @@ export default function AmbientCanvas({ className = '' }: AmbientCanvasProps) {
       blending: currentPalette.ringBlending,
     })
 
-    const chrononConfigs = [
-      { ring: 'horizon' as const, radius: 98, speed: 0.32, angle: 0 },
-      { ring: 'horizon' as const, radius: 98, speed: 0.32, angle: Math.PI },
-      { ring: 'meridian' as const, radius: 82, speed: -0.45, angle: 0.8 },
-      { ring: 'meridian' as const, radius: 82, speed: -0.45, angle: 0.8 + Math.PI },
-      { ring: 'ecliptic' as const, radius: 68, speed: 0.58, angle: 0.4 },
-      { ring: 'ecliptic' as const, radius: 68, speed: 0.58, angle: 0.4 + Math.PI },
-      { ring: 'polar' as const, radius: 52, speed: -0.65, angle: 1.2 },
-    ]
+    const chrononConfigs = isMobile
+      ? [
+          { ring: 'horizon' as const, radius: 98, speed: 0.32, angle: 0 },
+          { ring: 'meridian' as const, radius: 82, speed: -0.45, angle: 0.8 },
+          { ring: 'ecliptic' as const, radius: 68, speed: 0.58, angle: 0.4 },
+        ]
+      : [
+          { ring: 'horizon' as const, radius: 98, speed: 0.32, angle: 0 },
+          { ring: 'horizon' as const, radius: 98, speed: 0.32, angle: Math.PI },
+          { ring: 'meridian' as const, radius: 82, speed: -0.45, angle: 0.8 },
+          { ring: 'meridian' as const, radius: 82, speed: -0.45, angle: 0.8 + Math.PI },
+          { ring: 'ecliptic' as const, radius: 68, speed: 0.58, angle: 0.4 },
+          { ring: 'ecliptic' as const, radius: 68, speed: 0.58, angle: 0.4 + Math.PI },
+          { ring: 'polar' as const, radius: 52, speed: -0.65, angle: 1.2 },
+        ]
 
     chrononConfigs.forEach((cfg) => {
       const mesh = new THREE.Mesh(sphereGeo, chrononMat)

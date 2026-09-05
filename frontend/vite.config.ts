@@ -15,4 +15,24 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    // Capacitor loads from local assets — keep sourcemaps for debugging
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split heavy vendor libraries into separate chunks so the
+          // initial bundle is small and subsequent loads benefit from
+          // browser / WebView cache.
+          'vendor-react': [
+            'react',
+            'react-dom',
+            'react-router-dom',
+          ],
+          'vendor-charts': ['recharts'],
+          'vendor-three': ['three'],
+        },
+      },
+    },
+  },
 })

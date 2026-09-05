@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../utils/api'
+import api, { setAuthToken } from '../utils/api'
 import './Auth.css'
 
 const getErrorMessage = (detail: any): string => {
@@ -33,7 +33,7 @@ function Login() {
       const res = await api.post('/auth/token', formData.toString(), {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
-      localStorage.setItem('token', res.data.access_token)
+      await setAuthToken(res.data.access_token)
       navigate('/')
     } catch (err: any) {
       setError(getErrorMessage(err.response?.data?.detail))

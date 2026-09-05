@@ -238,3 +238,18 @@ __marimo__/
 scratch/
 Writing_*.docx
 
+# Android / Capacitor
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/local.properties
+frontend/android/app/release/
+*.keystore
+*.jks
+*.aab
+*.apk
+
+# Capacitor auto-generated
+frontend/android/app/src/main/assets/public/
+frontend/android/app/src/main/assets/capacitor.config.json
+
