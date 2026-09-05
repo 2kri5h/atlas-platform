@@ -1,8 +1,6 @@
 from .database_connect import get_client
 from .crypto import encrypt_token, decrypt_token
 
-client = get_client()
-
 
 def register_student(imap_email, imap_token, platform_user_id=None):
     """
@@ -22,6 +20,11 @@ def register_student(imap_email, imap_token, platform_user_id=None):
         "imap_token_encrypted": encrypt_token(imap_token),
         "platform_user_id": platform_user_id,
     }
+
+    client = get_client()
+    if not client:
+        print("[DB ERROR] Supabase client is not configured. Please set SUPABASE_URL and SUPABASE_API in environment.")
+        return None
 
     try:
         response = (
@@ -48,6 +51,9 @@ def get_student(student_id):
     Returns a dict: {id, imap_email, imap_token, platform_user_id}
     or None if not found / decryption fails.
     """
+    client = get_client()
+    if not client:
+        return None
     try:
         response = (
             client
@@ -80,6 +86,9 @@ def get_student_by_platform_id(platform_user_id):
     Used to check if they've already set up the email service,
     and to resolve which student_id to sync when they hit 'Fetch Emails'.
     """
+    client = get_client()
+    if not client:
+        return None
     try:
         response = (
             client
@@ -104,6 +113,9 @@ def get_all_students():
     Fetch all registered students with decrypted credentials.
     Useful for admin/debug purposes
     """
+    client = get_client()
+    if not client:
+        return []
     try:
         response = client.table("students").select("*").execute()
 

@@ -82,20 +82,18 @@ try:
 except ImportError:
     has_campus_events = False
 
-try:
-    from . import emails
-    has_emails = True
-except ImportError:
-    has_emails = False
-
 app.include_router(auth.router, prefix=f"{settings.API_PREFIX}/auth", tags=["auth"])
 app.include_router(resources.router, prefix=f"{settings.API_PREFIX}/resources", tags=["resources"])
 app.include_router(events.router, prefix=f"{settings.API_PREFIX}/events", tags=["events"])
 app.include_router(integrations.router, prefix=f"{settings.API_PREFIX}/integrations", tags=["integrations"])
 
+try:
+    from . import emails
+    app.include_router(emails.router, prefix=f"{settings.API_PREFIX}/emails", tags=["emails"])
+    logger.info("[Router] Registered /api/emails router successfully.")
+except Exception as e:
+    logger.exception(f"[Router Warning] Could not register emails router: {e}")
 
-if has_emails:
-    app.include_router(emails.router, prefix="/api/emails", tags=["emails"])
 if has_campus_events:
     app.include_router(campus_events.router, prefix=f"{settings.API_PREFIX}/campus-events", tags=["campus-events"])
 

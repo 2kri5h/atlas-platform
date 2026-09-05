@@ -40,6 +40,14 @@ def _load_fernet_key() -> bytes:
             # via SHA-256 so arbitrary passphrases (in dev or CI) work reliably.
             return base64.urlsafe_b64encode(hashlib.sha256(key_bytes).digest())
 
+    secret_key = os.environ.get("SECRET_KEY", "")
+    if secret_key:
+        logger.warning(
+            "[Security] TOKEN_ENCRYPTION_KEY not set in environment; "
+            "deriving encryption key deterministically from SECRET_KEY."
+        )
+        return base64.urlsafe_b64encode(hashlib.sha256(secret_key.encode()).digest())
+
     if _is_production():
         raise RuntimeError(
             "[Security] TOKEN_ENCRYPTION_KEY must be set in production. Without it, "
