@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Annotated, Optional, List
 from datetime import datetime, date, timedelta
 from ..core.database import get_db
 from ..models import TaskLog, PlannerEvent, DeadlineSubtask
@@ -44,8 +44,8 @@ class TaskUpdate(BaseModel):
 class TaskResponse(BaseModel):
     id: int
     title: str
-    description: str
-    domain: str
+    description: Optional[str] = ""
+    domain: Optional[str] = ""
     priority: int
     estimated_hours: float
     actual_hours: float
@@ -85,6 +85,8 @@ class ApplyRebalanceRequest(BaseModel):
 def list_tasks(
     completed: Optional[bool] = None,
     domain: Optional[str] = None,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -93,7 +95,7 @@ def list_tasks(
         query = query.filter(TaskLog.completed == completed)
     if domain:
         query = query.filter(TaskLog.domain == domain)
-    return query.order_by(TaskLog.due_date.asc()).all()
+    return query.order_by(TaskLog.due_date.asc()).offset(skip).limit(limit).all()
 
 
 @router.post("/", response_model=TaskResponse)
@@ -237,7 +239,10 @@ def apply_rebalance(changes: ApplyRebalanceRequest, current_user = Depends(get_c
             continue
 
         if new_due_date:
-            task.due_date = datetime.fromisoformat(new_due_date)
+            try:
+                task.due_date = datetime.fromisoformat(new_due_date)
+            except (ValueError, TypeError):
+                continue
 
         db.commit()
         db.refresh(task)

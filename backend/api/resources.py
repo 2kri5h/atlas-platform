@@ -1,15 +1,31 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, field_validator
+from typing import Annotated, Optional, List
 from datetime import datetime
 from ..core.database import get_db
 from ..models import Resource, ResourceUpvote, ResourceBookmark, TaskLog, PlannerEvent
 from ..services.recommender import get_recommended_resources
 from .auth import get_current_user, require_admin
+from ..utils.rate_limit import SlidingWindowLimiter, rate_limit
 
 router = APIRouter()
+resource_create_limiter = SlidingWindowLimiter(max_requests=20, window_seconds=300)
+
+
+def validate_http_url(v: Optional[str]) -> Optional[str]:
+    """Prevent stored XSS by rejecting javascript:, data:, and non-http(s) schemes."""
+    if not v:
+        return ""
+    clean = v.strip()
+    if clean:
+        lower = clean.lower()
+        if lower.startswith("javascript:") or lower.startswith("data:") or lower.startswith("vbscript:"):
+            raise ValueError("Dangerous URL scheme not allowed.")
+        if not (lower.startswith("http://") or lower.startswith("https://") or lower.startswith("/")):
+            raise ValueError("URL must start with http://, https://, or /")
+    return clean
 
 
 class ResourceCreate(BaseModel):
@@ -22,6 +38,11 @@ class ResourceCreate(BaseModel):
     resource_type: Optional[str] = ""
     is_private: bool = False
 
+    @field_validator("url")
+    @classmethod
+    def check_url(cls, v):
+        return validate_http_url(v)
+
 
 class ResourceUpdate(BaseModel):
     title: Optional[str] = None
@@ -32,6 +53,11 @@ class ResourceUpdate(BaseModel):
     course: Optional[str] = None
     resource_type: Optional[str] = None
     is_private: Optional[bool] = None
+
+    @field_validator("url")
+    @classmethod
+    def check_url(cls, v):
+        return validate_http_url(v)
 
 
 class ResourceResponse(BaseModel):
@@ -77,6 +103,11 @@ class TaskFromResourceRequest(BaseModel):
     notes: Optional[str] = None
     create_planner_deadline: Optional[bool] = True
 
+    @field_validator("url")
+    @classmethod
+    def check_url(cls, v):
+        return validate_http_url(v)
+
 
 
 def _add_user_status(resources, user_id: int, db: Session):
@@ -116,6 +147,8 @@ def _add_user_status(resources, user_id: int, db: Session):
 def search_resources(
     q: str,
     domain: Optional[str] = None,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -135,7 +168,7 @@ def search_resources(
     )
     if domain:
         query = query.filter(Resource.domain == domain)
-    resources = query.order_by(Resource.upvotes.desc()).all()
+    resources = query.order_by(Resource.upvotes.desc()).offset(skip).limit(limit).all()
     return _add_user_status(resources, current_user.id, db)
 
 
@@ -159,6 +192,8 @@ def get_recommendations(
 
 @router.get("/bookmarks", response_model=List[ResourceResponse])
 def get_bookmarks(
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -166,17 +201,19 @@ def get_bookmarks(
     bookmarked_ids = db.query(ResourceBookmark.resource_id).filter(
         ResourceBookmark.student_id == current_user.id
     ).subquery()
-    resources = db.query(Resource).filter(Resource.id.in_(bookmarked_ids)).all()
+    resources = db.query(Resource).filter(Resource.id.in_(bookmarked_ids)).offset(skip).limit(limit).all()
     return _add_user_status(resources, current_user.id, db)
 
 
 @router.get("/bookmarks/my", response_model=List[ResourceResponse])
 def get_my_bookmarks(
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Alias for /bookmarks for frontend compatibility."""
-    return get_bookmarks(current_user=current_user, db=db)
+    return get_bookmarks(skip=skip, limit=limit, current_user=current_user, db=db)
 
 
 @router.get("/library", response_model=List[LibraryResourceResponse])
@@ -184,6 +221,8 @@ def get_user_library(
     course: Optional[str] = None,
     type: Optional[str] = None,
     q: Optional[str] = None,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -227,7 +266,7 @@ def get_user_library(
             )
         )
 
-    resources = query.order_by(Resource.created_at.desc()).all()
+    resources = query.order_by(Resource.created_at.desc()).offset(skip).limit(limit).all()
     status_list = _add_user_status(resources, current_user.id, db)
 
     result = []
@@ -313,8 +352,8 @@ def create_task_from_resource(
 def list_resources(
     domain: Optional[str] = None,
     q: Optional[str] = None,
-    skip: int = 0,
-    limit: int = 100,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -339,8 +378,8 @@ def list_resources(
         )
     resources = (
         query.order_by(Resource.upvotes.desc())
-        .offset(max(skip, 0))
-        .limit(min(limit, 200))
+        .offset(skip)
+        .limit(limit)
         .all()
     )
     return _add_user_status(resources, current_user.id, db)
@@ -366,7 +405,8 @@ def get_resource(
 def create_resource(
     resource: ResourceCreate,
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _rl: None = Depends(rate_limit(resource_create_limiter, "create_resource")),
 ):
     db_resource = Resource(
         **resource.model_dump(),

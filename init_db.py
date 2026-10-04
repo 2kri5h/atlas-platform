@@ -592,6 +592,13 @@ His strategy was highly targeted. Instead of mass-emailing, he applied to only o
 
         db.commit()
         print("Sample data seeded successfully!")
+
+        try:
+            from backend.utils.seed_anonymous_v2 import seed_anonymous_v2
+            seed_anonymous_v2()
+        except Exception as seed_err:
+            print(f"[Warning] Anonymous V2 seed failed: {seed_err}")
+
         print("\nTest accounts:")
         print("  Roll: 21001001, Password: password123 (4th year, CS)")
         print("  Roll: 21001002, Password: password123 (3rd year, Electrical)")

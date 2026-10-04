@@ -10,6 +10,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,7 @@ from ..core.database import get_db
 from .auth import get_current_user
 from ..models import Resource
 from ..services.lecture_service import (
+    MAX_AUDIO_BYTES,
     LectureNotes,
     LectureServiceError,
     process_lecture_audio,
@@ -62,7 +64,13 @@ async def transcribe_lecture(
     db: Session = Depends(get_db),
 ):
     """Upload lecture audio; get back a transcript plus structured notes."""
-    audio_bytes = await file.read()
+    # Read bounded content to prevent memory exhaustion DoS
+    audio_bytes = await file.read(MAX_AUDIO_BYTES + 1)
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail="Audio file too large (max 25MB). Trim or compress the recording."
+        )
     try:
         validate_audio_upload(file.filename or "audio", len(audio_bytes))
     except LectureServiceError as e:
@@ -70,7 +78,9 @@ async def transcribe_lecture(
 
     llm = get_user_llm(current_user.id, db)
     try:
-        transcript, notes = process_lecture_audio(audio_bytes, file.filename or "audio", llm)
+        transcript, notes = await run_in_threadpool(
+            process_lecture_audio, audio_bytes, file.filename or "audio", llm
+        )
     except LectureServiceError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:

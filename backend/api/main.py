@@ -4,6 +4,7 @@ if not hasattr(bcrypt, "__about__"):
 
 import logging
 import uuid
+import secrets
 
 logger = logging.getLogger("backend.api.main")
 
@@ -17,10 +18,12 @@ from ..core.database import engine, Base, get_db, migrate_sqlite_schema
 from ..core.config import settings
 from .. import models
 
-Base.metadata.create_all(bind=engine)
-migrate_sqlite_schema()
+_is_sqlite_dev = settings.DATABASE_URL.startswith("sqlite") and settings.ENVIRONMENT.lower() != "production"
+if _is_sqlite_dev:
+    Base.metadata.create_all(bind=engine)
+    migrate_sqlite_schema()
 
-if settings.AUTO_SEED_ON_STARTUP:
+if settings.AUTO_SEED_ON_STARTUP and _is_sqlite_dev:
     try:
         from init_db import init_db
         init_db()
@@ -38,12 +41,6 @@ _is_production = (
     or (settings.DATABASE_URL and not settings.DATABASE_URL.startswith("sqlite"))
 )
 
-if _is_production and settings.cors_origins_list == ["*"]:
-    logger.warning(
-        "[Security] CORS_ORIGINS='*' in production with allow_credentials=True is unsafe. "
-        "Set CORS_ORIGINS to an explicit comma-separated origin list."
-    )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -51,10 +48,24 @@ app.add_middleware(
         r"https://localhost|capacitor://localhost" if _is_production else r"https://.*\.vercel\.app|https?://localhost(:\d+)?|capacitor://localhost"
     ),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+
+@app.middleware("http")
+async def enforce_cookie_csrf(request: Request, call_next):
+    """Double-submit protection for browser cookie-authenticated mutations."""
+    unsafe = request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}
+    cookie_authenticated = bool(request.cookies.get("atlas_access")) and not request.headers.get("authorization")
+    exempt = request.url.path in {f"{settings.API_PREFIX}/auth/token", f"{settings.API_PREFIX}/auth/register"}
+    if unsafe and cookie_authenticated and not exempt:
+        cookie_token = request.cookies.get("atlas_csrf", "")
+        header_token = request.headers.get("x-csrf-token", "")
+        if not cookie_token or not header_token or not secrets.compare_digest(cookie_token, header_token):
+            return JSONResponse(status_code=403, content={"detail": "CSRF validation failed"})
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -64,7 +75,8 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
     if _is_production:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response

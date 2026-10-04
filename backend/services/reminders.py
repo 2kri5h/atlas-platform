@@ -1,4 +1,4 @@
-﻿"""Deadline reminder engine.
+"""Deadline reminder engine.
 
 Aggregates each user's deadlines due within the next 48 hours plus overdue
 tasks, and emails a daily digest. Designed to be triggered once per day by an
@@ -12,6 +12,7 @@ is not configured the run is a no-op that still reports what *would* have been
 sent - useful in development and for testing aggregation logic.
 """
 
+import html
 import logging
 import smtplib
 from datetime import datetime, timedelta
@@ -66,15 +67,16 @@ def collect_user_reminders(db: Session, student: Student) -> Dict:
 
 
 def _render_html(student_name: str, reminders: Dict) -> str:
+    safe_name = html.escape((student_name or "").split(" ")[0])
     deadline_rows = "".join(
-        "<li><strong>" + item["label"] + "</strong> - " + item["title"] + " (due " + item["due"] + ")</li>"
+        "<li><strong>" + html.escape(item["label"]) + "</strong> - " + html.escape(item["title"]) + " (due " + html.escape(item["due"]) + ")</li>"
         for item in reminders["deadlines"]
     ) or "<li>No deadlines in the next 48 hours.</li>"
-    task_rows = "".join("<li>" + t["title"] + "</li>" for t in reminders["overdue_tasks"]) \
+    task_rows = "".join("<li>" + html.escape(t["title"]) + "</li>" for t in reminders["overdue_tasks"]) \
         or "<li>No overdue tasks.</li>"
     return (
         '<html><body style="font-family: Segoe UI, sans-serif; color:#1e293b;">'
-        "<h2>Your ATLAS digest, " + student_name.split(" ")[0] + "</h2>"
+        "<h2>Your ATLAS digest, " + safe_name + "</h2>"
         "<h3>Deadlines (next 48h)</h3><ul>" + deadline_rows + "</ul>"
         "<h3>Overdue tasks</h3><ul>" + task_rows + "</ul>"
         '<p style="color:#64748b;font-size:12px;">Sent by ATLAS - IIT Bombay Student Productivity</p>'

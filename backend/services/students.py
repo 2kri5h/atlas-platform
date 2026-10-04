@@ -27,6 +27,14 @@ def register_student(imap_email, imap_token, platform_user_id=None):
         return None
 
     try:
+        existing = client.table("students").select("id, platform_user_id").eq("imap_email", imap_email).execute()
+        if existing and existing.data:
+            existing_row = existing.data[0]
+            existing_pid = existing_row.get("platform_user_id")
+            if existing_pid and str(existing_pid) != str(platform_user_id):
+                print(f"[AUTH ERROR] imap_email {imap_email} already linked to another platform user.")
+                return None
+
         response = (
             client
             .table("students")

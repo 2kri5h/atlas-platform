@@ -24,6 +24,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 import requests
+from ..core.config import settings
+from ..utils.ssrf import request_with_safe_redirects, validate_safe_url
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +95,19 @@ def _transcribe_openai_compatible(
     filename: str,
 ) -> str:
     """POST multipart audio to an OpenAI-compatible /audio/transcriptions route."""
+    is_prod = (
+        settings.ENVIRONMENT.lower() == "production"
+        or (settings.DATABASE_URL and not settings.DATABASE_URL.startswith("sqlite"))
+    )
+    is_safe, err = validate_safe_url(
+        base_url,
+        allow_localhost=not is_prod,
+        allowed_hosts=settings.outbound_allowed_hosts_list if is_prod else None,
+        require_https=is_prod,
+    )
+    if not is_safe:
+        raise LectureServiceError(f"Security policy rejected endpoint URL: {err}")
+
     url = f"{base_url.rstrip('/')}/audio/transcriptions"
     try:
         with tempfile.TemporaryDirectory() as tmp:
@@ -100,8 +115,11 @@ def _transcribe_openai_compatible(
             with open(path, "wb") as f:
                 f.write(audio_bytes)
             with open(path, "rb") as f:
-                res = requests.post(
-                    url,
+                res = request_with_safe_redirects(
+                    "POST", url,
+                    allow_localhost=not is_prod,
+                    allowed_hosts=settings.outbound_allowed_hosts_list if is_prod else None,
+                    require_https=is_prod,
                     headers={"Authorization": f"Bearer {api_key}"},
                     files={"file": (os.path.basename(path), f)},
                     data={"model": model},

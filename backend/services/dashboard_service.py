@@ -154,8 +154,12 @@ def task_summary(db: Session, student_id: int, now: datetime, limit: int = 5) ->
             {
                 "id": t.id,
                 "title": t.title,
+                "description": t.description or "",
+                "domain": t.domain or "",
                 "priority": t.priority,
                 "estimated_hours": t.estimated_hours,
+                "actual_hours": t.actual_hours,
+                "completed": t.completed,
                 "due_date": t.due_date.isoformat() if t.due_date else None,
                 "overdue": bool(t.due_date and t.due_date < now),
             }

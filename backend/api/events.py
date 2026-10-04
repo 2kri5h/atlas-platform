@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
 from typing import Optional, List
 from datetime import datetime, timedelta, date
 import re
@@ -15,6 +16,19 @@ from ..services.recurrence import standard_day as _standard_day, parse_exdates
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def validate_http_url(v: Optional[str]) -> Optional[str]:
+    if not v:
+        return None
+    clean = v.strip()
+    if clean:
+        lower = clean.lower()
+        if lower.startswith("javascript:") or lower.startswith("data:") or lower.startswith("vbscript:"):
+            raise ValueError("Dangerous URL scheme not allowed.")
+        if not (lower.startswith("http://") or lower.startswith("https://") or lower.startswith("/")):
+            raise ValueError("URL must start with http://, https://, or /")
+    return clean
 
 
 class EventBase(BaseModel):
@@ -34,6 +48,11 @@ class EventBase(BaseModel):
     user_comment: Optional[str] = ""
     deadline_date: Optional[str] = None   # YYYY-MM-DD or YYYY-MM-DDTHH:MM
     deadline_label: Optional[str] = None  # e.g. "Assignment 2", "Lab Report"
+
+    @field_validator("link")
+    @classmethod
+    def check_link(cls, v):
+        return validate_http_url(v)
 
 
 class EventCreate(EventBase):
@@ -90,6 +109,11 @@ class EventUpdate(BaseModel):
     instance_date: Optional[str] = None
     deadline_date: Optional[str] = None   # YYYY-MM-DD or YYYY-MM-DDTHH:MM, set to "" to clear
     deadline_label: Optional[str] = None
+
+    @field_validator("link")
+    @classmethod
+    def check_link(cls, v):
+        return validate_http_url(v)
 
     @model_validator(mode="after")
     def validate_updates(self):
@@ -198,6 +222,10 @@ def get_events(
         end_dt = datetime.strptime(to_date, "%Y-%m-%d").date()
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    if end_dt < start_dt:
+        raise HTTPException(status_code=400, detail="The end date must be on or after the start date")
+    if (end_dt - start_dt).days > 180:
+        raise HTTPException(status_code=400, detail="Date ranges are limited to 180 days")
 
     # Non-recurring events within range
     non_recurring = db.query(PlannerEvent).filter(
@@ -881,7 +909,7 @@ async def scan_timetable(
 
     try:
         driver = GeminiGatewayDriver(api_key=gemini_key)
-        result = driver.parse_timetable_image(contents, mime_type)
+        result = await run_in_threadpool(driver.parse_timetable_image, contents, mime_type)
         return result
     except Exception as e:
         logger.error(f"[Scan Timetable Error] {e}")

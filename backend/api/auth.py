@@ -3,15 +3,14 @@ if not hasattr(bcrypt, "__about__"):
     bcrypt.__about__ = type("about", (), {"__version__": getattr(bcrypt, "__version__", "4.0.0")})
 
 import re
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from typing import Optional
-from fastapi import Request
 import uuid
 import logging
 from ..core.database import get_db
@@ -26,7 +25,7 @@ DUMMY_PASSWORD_HASH = "$2b$12$QfH4AL1zb8swOwTm77hH8uzhMYe3lbE4CB/lhGGZ0c6JzIZyAI
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
 
 # Brute-force protection: 10 login attempts / 5 min and 5 registrations / hour per IP.
 login_limiter = SlidingWindowLimiter(max_requests=10, window_seconds=300)
@@ -48,7 +47,7 @@ def get_password_hash(password):
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     if "jti" not in to_encode:
         to_encode["jti"] = uuid.uuid4().hex
     to_encode.update({"exp": expire})
@@ -58,6 +57,7 @@ def create_access_token(data: dict):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    csrf_token: Optional[str] = None
 
 
 class StudentCreate(BaseModel):
@@ -118,12 +118,19 @@ class StudentUpdate(BaseModel):
     study_hours_per_week: Optional[float] = None
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def get_current_user(
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    token = token or request.cookies.get("atlas_access")
+    if not token:
+        raise credentials_exception
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         roll_number: str = payload.get("sub")
@@ -187,6 +194,7 @@ def register(
 
 @router.post("/token", response_model=Token)
 def login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
     _rl: None = Depends(rate_limit(login_limiter, "login")),
@@ -205,21 +213,46 @@ def login(
         raise HTTPException(status_code=400, detail="Incorrect roll number/email or password")
 
     access_token = create_access_token(data={"sub": user.roll_number})
-    return {"access_token": access_token, "token_type": "bearer"}
+    csrf_token = uuid.uuid4().hex
+    is_production = settings.ENVIRONMENT.lower() == "production"
+    response.set_cookie(
+        "atlas_access",
+        access_token,
+        httponly=True,
+        secure=is_production,
+        samesite="none" if is_production else "lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+    response.set_cookie(
+        "atlas_csrf",
+        csrf_token,
+        httponly=False,
+        secure=is_production,
+        samesite="none" if is_production else "lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+    return {"access_token": access_token, "token_type": "bearer", "csrf_token": csrf_token}
 
 
 @router.post("/logout")
 def logout(
-    token: str = Depends(oauth2_scheme),
+    response: Response,
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme),
     current_user: Student = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Real server-side session termination: revokes JWT immediately."""
     try:
+        token = token or request.cookies.get("atlas_access")
+        if not token:
+            raise ValueError("No active token")
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         jti = payload.get("jti")
         exp = payload.get("exp")
-        expires_at = datetime.utcfromtimestamp(exp) if exp else datetime.utcnow() + timedelta(hours=1)
+        expires_at = datetime.fromtimestamp(exp, timezone.utc).replace(tzinfo=None) if exp else datetime.utcnow() + timedelta(hours=1)
         if jti:
             existing = db.query(RevokedToken).filter(RevokedToken.jti == jti).first()
             if not existing:
@@ -227,6 +260,8 @@ def logout(
                 db.commit()
     except Exception as e:
         logger.warning(f"Failed to record revoked token: {e}")
+    response.delete_cookie("atlas_access", path="/")
+    response.delete_cookie("atlas_csrf", path="/")
     return {"message": "Successfully logged out on server"}
 
 

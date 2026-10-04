@@ -45,8 +45,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    CORS_ORIGINS: str = "*"
-    AUTO_SEED_ON_STARTUP: bool = True
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+    AUTO_SEED_ON_STARTUP: bool = False
+    ANONYMOUS_REPORT_THRESHOLD: int = 5
+    REDIS_URL: str = ""
+    TRUSTED_PROXIES: str = "127.0.0.1,::1"
+    OUTBOUND_ALLOWED_HOSTS: str = (
+        "generativelanguage.googleapis.com,api.openai.com,api.anthropic.com,"
+        "api.deepseek.com,api.groq.com,openrouter.ai,api.x.ai,api.mistral.ai,"
+        "api.together.xyz,api.fireworks.ai"
+    )
 
     supabase_url: str = ""
     supabase_api: str = ""
@@ -123,6 +131,14 @@ class Settings(BaseSettings):
                 origins.append(cap_origin)
         return origins
 
+    @property
+    def trusted_proxies_list(self) -> list[str]:
+        return [value.strip() for value in self.TRUSTED_PROXIES.split(",") if value.strip()]
+
+    @property
+    def outbound_allowed_hosts_list(self) -> list[str]:
+        return [value.strip().lower().strip(".") for value in self.OUTBOUND_ALLOWED_HOSTS.split(",") if value.strip()]
+
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def sanitize_database_url(cls, v: str) -> str:
@@ -150,29 +166,30 @@ class Settings(BaseSettings):
             "your-secret-key-change-in-production",
             "your-production-secret-key",
         )
-        if not insecure:
-            return self
-
         is_production = (
             self.ENVIRONMENT.lower() == "production"
             or (self.DATABASE_URL and not self.DATABASE_URL.startswith("sqlite"))
         )
-        if is_production:
-            raise RuntimeError(
-                "[Security] SECRET_KEY must be set in the environment when running in "
-                "production (ENVIRONMENT=production or a non-sqlite DATABASE_URL). "
-                "With multiple workers each process would otherwise generate a different "
-                "key, causing random JWT validation failures across requests."
-            )
+        if insecure:
+            if is_production:
+                raise RuntimeError("[Security] SECRET_KEY must be set to a strong unique value in production.")
+            import secrets
+            import logging
+            logger = logging.getLogger("backend.core.config")
+            logger.warning("[Security] SECRET_KEY not set. Generating an ephemeral development key.")
+            self.SECRET_KEY = secrets.token_urlsafe(32)
 
-        import secrets
-        import logging
-        logger = logging.getLogger("backend.core.config")
-        logger.warning(
-            "[Security] SECRET_KEY not set in environment. Auto-generating secure token "
-            "for this session (dev only). Tokens will be invalidated on restart."
-        )
-        self.SECRET_KEY = secrets.token_urlsafe(32)
+        if is_production:
+            if len(self.SECRET_KEY) < 32:
+                raise RuntimeError("[Security] Production SECRET_KEY must be at least 32 characters.")
+            if self.DATABASE_URL.startswith("sqlite"):
+                raise RuntimeError("[Security] Production requires a managed database; SQLite is development-only.")
+            if not self.CORS_ORIGINS or self.CORS_ORIGINS.strip() == "*":
+                raise RuntimeError("[Security] Production CORS_ORIGINS must be an explicit allowlist.")
+            if self.AUTO_SEED_ON_STARTUP:
+                raise RuntimeError("[Security] AUTO_SEED_ON_STARTUP must be false in production.")
+            if not self.REDIS_URL:
+                raise RuntimeError("[Security] REDIS_URL is required in production for shared rate limiting.")
         return self
 
     class Config:

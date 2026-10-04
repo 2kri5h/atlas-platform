@@ -5,6 +5,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -109,11 +110,12 @@ def handle_oauth_callback(
 ):
     """Exchange authorization code for tokens and securely store credentials."""
     # Validate signed OAuth state: binds this callback to the authenticated user
-    # and prevents CSRF / account-binding attacks.
-    if payload.state:
-        state_payload = verify_state(payload.state)
-        if not state_payload or int(state_payload.get("student_id", -1)) != current_user.id:
-            raise HTTPException(status_code=400, detail="Invalid or expired OAuth state. Please restart the connection flow.")
+    # and prevents CSRF / account-binding attacks. State is strictly required.
+    if not payload.state:
+        raise HTTPException(status_code=400, detail="OAuth state is required for security verification.")
+    state_payload = verify_state(payload.state)
+    if not state_payload or int(state_payload.get("student_id", -1)) != current_user.id:
+        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state. Please restart the connection flow.")
     try:
         token_data = exchange_code_for_tokens(payload.code, payload.redirect_uri)
         access_token = token_data.get("access_token", "")
@@ -451,7 +453,8 @@ async def upload_file(
             safe_relative_path = "/".join(clean_parts)
 
     try:
-        return upload_drive_file(
+        return await run_in_threadpool(
+            upload_drive_file,
             access_token=token,
             file_bytes=file_bytes,
             filename=safe_filename,

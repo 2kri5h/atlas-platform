@@ -42,10 +42,13 @@ from ..services.crypto import encrypt_secret
 from ..services.resource_context import get_resource_library_context
 from ..services.recurrence import occurrence_dates, parse_exdates, last_n_days_endpoints
 from ..services.smart_suggestions import _profile_suggestions
+from ..utils.rate_limit import SlidingWindowLimiter, rate_limit
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+chat_limiter = SlidingWindowLimiter(max_requests=20, window_seconds=60)
+roadmap_limiter = SlidingWindowLimiter(max_requests=10, window_seconds=300)
 
 
 class KeyCreateRequest(BaseModel):
@@ -620,7 +623,12 @@ def update_smart_suggestion(
 
 
 @router.post("/roadmap")
-def generate_roadmap(request: RoadmapRequest, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def generate_roadmap(
+    request: RoadmapRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _rl: None = Depends(rate_limit(roadmap_limiter, "ai_roadmap")),
+):
     user_llm = get_user_llm(current_user.id, db)
     
     if user_llm and request.chat_id:
@@ -706,7 +714,13 @@ def get_chat(chat_id: int, current_user=Depends(get_current_user), db: Session =
 
 
 @router.post("/chat/{chat_id}")
-def chat(chat_id: int, request: ChatRequest, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def chat(
+    chat_id: int,
+    request: ChatRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _rl: None = Depends(rate_limit(chat_limiter, "ai_chat")),
+):
     chat = db.query(AIChat).filter(
         AIChat.id == chat_id,
         AIChat.student_id == current_user.id,
@@ -742,7 +756,13 @@ def chat(chat_id: int, request: ChatRequest, current_user=Depends(get_current_us
 
 
 @router.post("/chat/{chat_id}/stream")
-def chat_stream(chat_id: int, request: ChatRequest, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def chat_stream(
+    chat_id: int,
+    request: ChatRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _rl: None = Depends(rate_limit(chat_limiter, "ai_chat")),
+):
     """Streamed AI mentor reply (plain-text chunked response).
 
     Persists the user message up-front and the assistant message once streaming

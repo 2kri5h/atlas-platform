@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from .crypto import decrypt_secret
 from ..models import UserAPIKey, Student, Resource, AIMessage
 from ..core.config import settings
-from ..utils.ssrf import validate_safe_url
+from ..utils.ssrf import request_with_safe_redirects, validate_safe_url
 
 logger = logging.getLogger(__name__)
 
@@ -335,7 +335,12 @@ class OpenAICompatibleAdapter(BaseLLMAdapter):
                 settings.ENVIRONMENT.lower() == "production"
                 or (settings.DATABASE_URL and not settings.DATABASE_URL.startswith("sqlite"))
             )
-            is_safe, err = validate_safe_url(self.base_url, allow_localhost=not is_prod)
+            is_safe, err = validate_safe_url(
+                self.base_url,
+                allow_localhost=not is_prod,
+                allowed_hosts=settings.outbound_allowed_hosts_list if is_prod else None,
+                require_https=is_prod,
+            )
             if not is_safe:
                 raise LLMServiceError(f"Security policy rejected endpoint URL: {err}")
 
@@ -343,6 +348,20 @@ class OpenAICompatibleAdapter(BaseLLMAdapter):
         if base.endswith("/chat/completions"):
             return base
         return f"{base}/chat/completions"
+
+    def _request(self, url: str, **kwargs):
+        is_prod = (
+            settings.ENVIRONMENT.lower() == "production"
+            or (settings.DATABASE_URL and not settings.DATABASE_URL.startswith("sqlite"))
+        )
+        return request_with_safe_redirects(
+            "POST",
+            url,
+            allow_localhost=not is_prod,
+            allowed_hosts=settings.outbound_allowed_hosts_list if is_prod else None,
+            require_https=is_prod,
+            **kwargs,
+        )
 
     def validate_key(self) -> Tuple[bool, Optional[str]]:
         url = self._get_chat_url()
@@ -359,7 +378,7 @@ class OpenAICompatibleAdapter(BaseLLMAdapter):
             "max_tokens": 5
         }
         try:
-            res = requests.post(url, json=payload, headers=headers, timeout=15)
+            res = self._request(url, json=payload, headers=headers, timeout=15)
             if res.status_code == 200:
                 return True, None
             else:
@@ -410,7 +429,7 @@ class OpenAICompatibleAdapter(BaseLLMAdapter):
             payload["response_format"] = {"type": "json_object"}
 
         try:
-            res = requests.post(url, json=payload, headers=headers, timeout=60)
+            res = self._request(url, json=payload, headers=headers, timeout=60)
             if res.status_code == 200:
                 data = res.json()
                 choice = data["choices"][0]
@@ -463,7 +482,7 @@ class OpenAICompatibleAdapter(BaseLLMAdapter):
         }
 
         try:
-            with requests.post(url, json=payload, headers=headers, timeout=180, stream=True) as res:
+            with self._request(url, json=payload, headers=headers, timeout=180, stream=True) as res:
                 if res.status_code != 200:
                     try:
                         data = res.json()

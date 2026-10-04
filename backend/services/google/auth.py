@@ -100,6 +100,8 @@ def exchange_code_for_tokens(code: str, redirect_uri: Optional[str] = None) -> D
     r_uri = (redirect_uri or settings.GOOGLE_REDIRECT_URI).strip()
 
     if not is_google_oauth_configured():
+        if settings.ENVIRONMENT.lower() == "production":
+            raise RuntimeError("Google OAuth credentials are not configured in production environment.")
         # Sandbox / Dev mode fallback when credentials are not configured in .env
         logger.info("[Google OAuth] Sandbox mode: generating mock tokens.")
         return {
