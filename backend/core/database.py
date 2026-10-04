@@ -53,15 +53,29 @@ def create_resilient_engine(url: str):
             return eng, url
     else:
         # Production engine (PostgreSQL, MySQL, etc.) with robust pooling & pre-ping
-        eng = create_engine(
-            url,
-            pool_pre_ping=True,
-            pool_size=10,
-            max_overflow=20,
-            pool_recycle=300,
-            pool_timeout=30,
-        )
-        return eng, url
+        connect_args = {}
+        if "postgres" in url:
+            connect_args["connect_timeout"] = 5
+        try:
+            eng = create_engine(
+                url,
+                connect_args=connect_args,
+                pool_pre_ping=True,
+                pool_size=10,
+                max_overflow=20,
+                pool_recycle=300,
+                pool_timeout=5,
+            )
+            with eng.connect() as conn:
+                pass
+            return eng, url
+        except Exception as e:
+            print(f"[Database Warning] Failed to connect to database '{url}' ({e}). Falling back to './data/itsp.db'...", file=sys.stderr)
+            fallback_url = "sqlite:///./data/itsp.db"
+            fallback_path = os.path.abspath("data/itsp.db")
+            os.makedirs(os.path.dirname(fallback_path), exist_ok=True)
+            eng = create_sqlite_engine(fallback_url)
+            return eng, fallback_url
 
 
 engine, db_url = create_resilient_engine(db_url)

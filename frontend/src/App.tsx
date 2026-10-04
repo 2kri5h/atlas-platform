@@ -42,33 +42,42 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [authenticated, setAuthenticated] = useState(false)
 
   useEffect(() => {
+    let active = true
+
     const checkAuth = async () => {
       // Hydrate the in-memory token cache from native / localStorage
       await hydrateAuthToken()
       const token = isNativePlatform ? await secureStorage.get('token') : null
 
       if (isNativePlatform && !token) {
-        setAuthenticated(false)
-        setLoading(false)
+        if (active) {
+          setAuthenticated(false)
+          setLoading(false)
+        }
         return
       }
 
       try {
-        await api.get("/auth/me")
-        setAuthenticated(true)
+        const authReq = api.get("/auth/me")
+        const deadline = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Auth check timeout')), 3500)
+        )
+        await Promise.race([authReq, deadline])
+        if (active) setAuthenticated(true)
       } catch {
         await setAuthToken(null)
-        setAuthenticated(false)
+        if (active) setAuthenticated(false)
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
 
     checkAuth()
+    return () => { active = false }
   }, [])
 
   if (loading) return <div className="loading">Loading...</div>
-  if (!authenticated) return <Navigate to="/login" />
+  if (!authenticated) return <Navigate to="/login" replace />
 
   return <>{children}</>
 }
