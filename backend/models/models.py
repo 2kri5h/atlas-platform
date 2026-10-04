@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, Enum as SQLEnum, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, Enum as SQLEnum, UniqueConstraint, LargeBinary
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -127,6 +127,7 @@ class Event(Base):
     location = Column(String(200))
     domain = Column(String(50))
     organizer = Column(String(100))
+    created_by_id = Column(Integer, ForeignKey("students.id"), nullable=True, index=True)
     slides_link = Column(String(500))
     recording_link = Column(String(500))
     is_archived = Column(Boolean, default=False)
@@ -173,7 +174,23 @@ class AnonymousPost(Base):
     is_flagged = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    replies = relationship("PostReply", back_populates="post")
+    replies = relationship("PostReply", back_populates="post", cascade="all, delete-orphan")
+    reports = relationship("AnonymousPostReport", back_populates="post", cascade="all, delete-orphan")
+
+
+class AnonymousPostReport(Base):
+    __tablename__ = "anonymous_post_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("anonymous_posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    post = relationship("AnonymousPost", back_populates="reports")
+
+    __table_args__ = (
+        UniqueConstraint("post_id", "student_id", name="unique_post_student_report"),
+    )
 
 
 class PostReply(Base):
@@ -186,6 +203,139 @@ class PostReply(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     post = relationship("AnonymousPost", back_populates="replies")
+
+
+# ── Decoupled Anonymous V2 Models ──────────────────────────────────────────
+
+class AnonymousAccount(Base):
+    __tablename__ = "anonymous_accounts"
+
+    id = Column(String(36), primary_key=True, index=True)
+    secret_hash = Column(LargeBinary, unique=True, nullable=False, index=True)  # SHA-256 of recovery key
+    valid_until = Column(DateTime, nullable=False)
+    status = Column(String(20), default="active", nullable=False)  # active, suspended, banned
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    posts = relationship("AnonymousPostV2", back_populates="author_account")
+    replies = relationship("AnonymousReplyV2", back_populates="author_account")
+
+
+class AnonymousIssuance(Base):
+    """Tracks whether a student claimed a voucher this semester without linking to account."""
+    __tablename__ = "anonymous_issuances"
+
+    student_hmac = Column(LargeBinary, primary_key=True)
+    semester = Column(String(20), primary_key=True)
+    issued_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SpentVoucher(Base):
+    """Records spent voucher nonces to prevent double-spending."""
+    __tablename__ = "anonymous_spent_vouchers"
+
+    token_hash = Column(LargeBinary, primary_key=True)
+    semester = Column(String(20), nullable=False)
+    spent_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AnonymousCategory(Base):
+    __tablename__ = "anonymous_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(50), unique=True, nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(String(255), nullable=False)
+    sort_order = Column(Integer, default=0)
+
+    posts = relationship("AnonymousPostV2", back_populates="category")
+
+
+class AnonymousPostV2(Base):
+    __tablename__ = "anonymous_posts_v2"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(32), unique=True, index=True, nullable=False)
+    category_id = Column(Integer, ForeignKey("anonymous_categories.id"), nullable=False)
+
+    # Hybrid identity: either anonymous (account_id) or identified (student_id)
+    is_anonymous = Column(Boolean, default=True, nullable=False)
+    account_id = Column(String(36), ForeignKey("anonymous_accounts.id"), nullable=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=True, index=True)
+
+    kind = Column(String(20), default="grievance", nullable=False)  # "grievance" | "conversation"
+    title = Column(String(250), nullable=False)
+    body = Column(Text, nullable=False)
+    is_official = Column(Boolean, default=False, nullable=False)
+    is_flagged = Column(Boolean, default=False, nullable=False)
+    images = Column(Text, default="[]", nullable=False)  # JSON list of sanitized image filenames
+
+    upvotes = Column(Integer, default=0, nullable=False)
+    downvotes = Column(Integer, default=0, nullable=False)
+    metoo = Column(Integer, default=0, nullable=False)
+    reply_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    category = relationship("AnonymousCategory", back_populates="posts")
+    author_account = relationship("AnonymousAccount", back_populates="posts")
+    author_student = relationship("Student")
+    replies = relationship("AnonymousReplyV2", back_populates="post", cascade="all, delete-orphan", foreign_keys="[AnonymousReplyV2.post_id]")
+
+
+class AnonymousReplyV2(Base):
+    __tablename__ = "anonymous_replies_v2"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("anonymous_posts_v2.id", ondelete="CASCADE"), nullable=False, index=True)
+    parent_id = Column(Integer, ForeignKey("anonymous_replies_v2.id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Hybrid identity
+    is_anonymous = Column(Boolean, default=True, nullable=False)
+    account_id = Column(String(36), ForeignKey("anonymous_accounts.id"), nullable=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=True, index=True)
+
+    body = Column(Text, nullable=False)
+    is_official = Column(Boolean, default=False, nullable=False)
+    is_senior_verified = Column(Boolean, default=False, nullable=False)
+    upvotes = Column(Integer, default=0, nullable=False)
+    downvotes = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    post = relationship("AnonymousPostV2", back_populates="replies", foreign_keys=[post_id])
+    parent = relationship("AnonymousReplyV2", remote_side=[id], backref="children")
+    author_account = relationship("AnonymousAccount", back_populates="replies")
+    author_student = relationship("Student")
+
+
+class AnonymousVote(Base):
+    __tablename__ = "anonymous_votes"
+
+    voter_key = Column(String(64), primary_key=True)  # hash(account_id or student_id)
+    target_type = Column(String(10), primary_key=True)  # "post" | "reply"
+    target_id = Column(Integer, primary_key=True)
+    vote = Column(Integer, nullable=False)  # +1 or -1
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AnonymousMeToo(Base):
+    __tablename__ = "anonymous_metoos"
+
+    voter_key = Column(String(64), primary_key=True)
+    post_id = Column(Integer, ForeignKey("anonymous_posts_v2.id", ondelete="CASCADE"), primary_key=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AnonymousReport(Base):
+    __tablename__ = "anonymous_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    reporter_hash = Column(LargeBinary, nullable=False, index=True)  # HMAC to enforce 1-report per user anonymously
+    target_type = Column(String(10), nullable=False)  # "post" | "reply"
+    target_id = Column(Integer, nullable=False, index=True)
+    reason = Column(String(50), nullable=False)  # "hate", "harassment", "spam", "danger", "identifying", "other"
+    note = Column(Text, default="")
+    handled = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 
 
 class TaskLog(Base):
