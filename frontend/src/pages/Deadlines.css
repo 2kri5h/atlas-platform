@@ -474,3 +474,62 @@
     justify-content: center;
   }
 }
+
+.deadlines-mobile-controls { display: none; }
+
+.deadlines-filter-sheet-fields {
+  display: grid;
+  gap: 16px;
+}
+
+.deadlines-filter-sheet-fields label,
+.deadlines-filter-sheet-fields fieldset {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.deadlines-filter-sheet-fields input,
+.deadlines-filter-sheet-fields select {
+  min-height: 44px;
+  width: 100%;
+}
+
+@media (max-width: 767px) {
+  .deadlines-toolbar { display: none; }
+
+  .deadlines-mobile-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+  }
+
+  .deadlines-mobile-controls button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+
+  .deadlines-metrics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .metrics-card { padding: 10px 6px; justify-content: center; }
+  .metrics-icon-wrap { display: none; }
+  .metrics-info { align-items: center; text-align: center; }
+  .metrics-label { font-size: 0.62rem; line-height: 1.15; }
+  .metrics-value { font-size: 1rem; }
+  .deadlines-subtitle { display: none; }
+}

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Plus, MapPin, Calendar as CalIcon, Archive } from 'lucide-react'
+import { Plus, MapPin, Calendar as CalIcon, Archive, Filter } from 'lucide-react'
 import api from '../utils/api'
 import { Event } from '../utils/api'
 import { DOMAINS, getDomainBadgeClass, formatDateTime } from '../utils/helpers'
+import { sanitizeUrl } from '../utils/security'
+import { ConfirmDialog, FilterSheet } from '../components/ui'
 import './Events.css'
 
 function Events() {
@@ -12,6 +14,11 @@ function Events() {
   const [filter, setFilter] = useState('')
   const [form, setForm] = useState({ title: '', description: '', event_date: '', location: '', domain: '', organizer: '' })
   const [loading, setLoading] = useState(true)
+  const [formError, setFormError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [archiveTarget, setArchiveTarget] = useState<Event | null>(null)
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => {
     fetchEvents()
@@ -21,7 +28,7 @@ function Events() {
     try {
       const params = new URLSearchParams({ archived: showArchived ? 'true' : 'false' })
       if (filter) params.append('domain', filter)
-      const res = await api.get(`/events/?${params}`)
+      const res = await api.get(`/campus-events/?${params}`)
       setEvents(res.data)
     } catch (err) {
       console.error('Failed to fetch events', err)
@@ -32,13 +39,33 @@ function Events() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError('')
+    setSubmitting(true)
     try {
-      await api.post('/events/', form)
+      await api.post('/campus-events/', form)
       setShowForm(false)
       setForm({ title: '', description: '', event_date: '', location: '', domain: '', organizer: '' })
       fetchEvents()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create event', err)
+      setFormError(err.response?.data?.detail || 'Failed to create event. Please verify your inputs.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const archiveSelectedEvent = async () => {
+    if (!archiveTarget) return
+    setSubmitting(true)
+    setActionError('')
+    try {
+      await api.put(`/campus-events/${archiveTarget.id}/archive`)
+      setArchiveTarget(null)
+      await fetchEvents()
+    } catch {
+      setActionError('Could not archive this event. Please retry.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -89,9 +116,16 @@ function Events() {
               <label>Organizer</label>
               <input value={form.organizer} onChange={(e) => setForm({ ...form, organizer: e.target.value })} />
             </div>
+            {formError && (
+              <p className="form-error-banner" role="alert" style={{ color: '#ef4444', margin: '0.5rem 0', fontSize: '0.875rem' }}>
+                {formError}
+              </p>
+            )}
             <div className="form-actions">
               <button type="button" className="secondary" onClick={() => setShowForm(false)}>Cancel</button>
-              <button type="submit" className="primary">Post Event</button>
+              <button type="submit" className="primary" disabled={submitting}>
+                {submitting ? 'Posting...' : 'Post Event'}
+              </button>
             </div>
           </form>
         </div>
@@ -109,7 +143,12 @@ function Events() {
         <button className={`tab-btn ${showArchived ? 'active' : ''}`} onClick={() => setShowArchived(!showArchived)}>
           <Archive size={16} /> {showArchived ? 'Show Upcoming' : 'Show Archived'}
         </button>
+        <button type="button" className="events-mobile-filter" onClick={() => setFiltersOpen(true)}>
+          <Filter size={17} /> Filter{(filter || showArchived) ? ' •' : ''}
+        </button>
       </div>
+
+      {actionError && <p className="form-error-banner" role="alert">{actionError}</p>}
 
       {loading ? (
         <div className="loading">Loading...</div>
@@ -136,14 +175,43 @@ function Events() {
               </div>
               {(event.slides_link || event.recording_link) && (
                 <div className="event-links">
-                  {event.slides_link && <a href={event.slides_link} target="_blank" rel="noopener noreferrer">Slides</a>}
-                  {event.recording_link && <a href={event.recording_link} target="_blank" rel="noopener noreferrer">Recording</a>}
+                  {event.slides_link && <a href={sanitizeUrl(event.slides_link)} target="_blank" rel="noopener noreferrer">Slides</a>}
+                  {event.recording_link && <a href={sanitizeUrl(event.recording_link)} target="_blank" rel="noopener noreferrer">Recording</a>}
                 </div>
+              )}
+              {event.can_manage && !event.is_archived && (
+                <button type="button" className="event-archive-action" onClick={() => setArchiveTarget(event)}>
+                  <Archive size={15} /> Archive event
+                </button>
               )}
             </div>
           ))}
         </div>
       )}
+      <FilterSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} title="Event filters">
+        <div className="events-filter-sheet-fields">
+          <label>Domain
+            <select value={filter} onChange={event => setFilter(event.target.value)}>
+              <option value="">All domains</option>
+              {DOMAINS.map(domain => <option key={domain.value} value={domain.value}>{domain.label}</option>)}
+            </select>
+          </label>
+          <label className="events-archive-toggle">
+            <input type="checkbox" checked={showArchived} onChange={event => setShowArchived(event.target.checked)} />
+            Show archived events
+          </label>
+          <button type="button" className="primary" onClick={() => setFiltersOpen(false)}>Show events</button>
+        </div>
+      </FilterSheet>
+      <ConfirmDialog
+        open={Boolean(archiveTarget)}
+        title="Archive event?"
+        message="The event will move out of the upcoming list."
+        confirmLabel="Archive event"
+        busy={submitting}
+        onConfirm={archiveSelectedEvent}
+        onCancel={() => setArchiveTarget(null)}
+      />
     </div>
   )
 }

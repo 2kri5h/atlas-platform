@@ -6,7 +6,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import NotFound from './pages/NotFound'
 import api, { hydrateAuthToken, setAuthToken } from './utils/api'
-import { secureStorage } from './utils/storage'
+import { isNativePlatform, secureStorage } from './utils/storage'
 import { initNativeIntegration } from './utils/native'
 
 // ── Route-based code splitting ──────────────────────────────────────────────
@@ -45,9 +45,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const checkAuth = async () => {
       // Hydrate the in-memory token cache from native / localStorage
       await hydrateAuthToken()
-      const token = await secureStorage.get('token')
+      const token = isNativePlatform ? await secureStorage.get('token') : null
 
-      if (!token) {
+      if (isNativePlatform && !token) {
         setAuthenticated(false)
         setLoading(false)
         return

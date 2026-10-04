@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Bell,
   Search,
@@ -15,6 +16,7 @@ import {
 import { useDeadlineData } from '../hooks/useDeadlineData'
 import { DeadlineCard } from '../components/DeadlineCard'
 import { CreateDeadlineModal } from '../components/CreateDeadlineModal'
+import { FilterSheet } from '../components/ui'
 import './Deadlines.css'
 
 // Helper function to safely parse dates without timezone drift
@@ -34,6 +36,7 @@ function parseDeadlineDaysDiff(deadline: any, todayMidnight: number): number | n
 }
 
 export default function Deadlines() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const {
     deadlines,
     loading,
@@ -45,11 +48,30 @@ export default function Deadlines() {
     toggleDeadlineComplete,
   } = useDeadlineData()
 
-  const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
-  const [priorityFilter, setPriorityFilter] = useState<string>('ALL')
+  const [viewMode, setViewMode] = useState<'board' | 'list'>(() => {
+    const requested = searchParams.get('view')
+    if (requested === 'board' || requested === 'list') return requested
+    return typeof window !== 'undefined' && window.innerWidth < 768 ? 'list' : 'board'
+  })
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
+  const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('category') || 'ALL')
+  const [priorityFilter, setPriorityFilter] = useState<string>(searchParams.get('priority') || 'ALL')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams)
+    const sync = (key: string, value: string, fallback: string) => value === fallback ? next.delete(key) : next.set(key, value)
+    sync('q', searchQuery.trim(), '')
+    sync('category', categoryFilter, 'ALL')
+    sync('priority', priorityFilter, 'ALL')
+    sync('view', viewMode, typeof window !== 'undefined' && window.innerWidth < 768 ? 'list' : 'board')
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true })
+    }
+  }, [categoryFilter, priorityFilter, searchQuery, setSearchParams, viewMode])
+
+  const activeFilterCount = Number(categoryFilter !== 'ALL') + Number(priorityFilter !== 'ALL') + Number(Boolean(searchQuery.trim()))
 
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -236,6 +258,13 @@ export default function Deadlines() {
       </div>
 
       {/* ── Toolbar: Search, Filters & View Toggles ── */}
+      <div className="deadlines-mobile-controls">
+        <span>{metrics.overdue} overdue · {metrics.dueSoon} due soon</span>
+        <button type="button" onClick={() => setFiltersOpen(true)}>
+          <Filter size={16} /> Filters{activeFilterCount ? ` (${activeFilterCount})` : ''}
+        </button>
+      </div>
+
       <div className="deadlines-toolbar">
         <div className="search-input-wrap">
           <Search size={15} className="search-icon" />
@@ -305,6 +334,38 @@ export default function Deadlines() {
       </div>
 
       {/* ── Main Content Area ── */}
+      <FilterSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        title="Task filters"
+        footer={<button type="button" className="deadlines-create-btn" onClick={() => setFiltersOpen(false)}>Show results</button>}
+      >
+        <div className="deadlines-filter-sheet-fields">
+          <label>Search<input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Deadline or label" /></label>
+          <label>Category
+            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+              <option value="ALL">All categories</option><option value="CLASS">Class / Course</option>
+              <option value="EXAM">Exam / Quiz</option><option value="PERSONAL">Personal</option>
+              <option value="RECREATION">Recreation</option><option value="OTHER">Other</option>
+            </select>
+          </label>
+          <label>Priority
+            <select value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)}>
+              <option value="ALL">All priorities</option><option value="CRITICAL">Critical</option>
+              <option value="IMPORTANT">Important</option><option value="OPTIONAL">Optional</option>
+            </select>
+          </label>
+          <fieldset>
+            <legend>View</legend>
+            <div className="view-mode-toggle">
+              <button type="button" className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}><ListIcon size={15} /> List</button>
+              <button type="button" className={`toggle-btn ${viewMode === 'board' ? 'active' : ''}`} onClick={() => setViewMode('board')}><LayoutGrid size={15} /> Board</button>
+            </div>
+          </fieldset>
+          {activeFilterCount > 0 && <button type="button" onClick={() => { setSearchQuery(''); setCategoryFilter('ALL'); setPriorityFilter('ALL') }}>Clear filters</button>}
+        </div>
+      </FilterSheet>
+
       {loading && deadlines.length === 0 ? (
         <div className="deadlines-state-container">
           <Loader2 size={32} className="spin" />

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { secureStorage } from './storage'
+import { isNativePlatform, secureStorage } from './storage'
 
 export const getApiOrigin = () => {
   const envUrl = (import.meta as any).env?.VITE_API_URL
@@ -16,25 +16,22 @@ const getBaseUrl = () => {
 
 const api = axios.create({
   baseURL: getBaseUrl(),
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
 // Token cache kept in-memory so the synchronous axios interceptor never
-// blocks on an async Preferences read.  The cache is populated on login
+// blocks on an async native secure-storage read. The cache is populated on login
 // and on the initial secureStorage.get() call from ProtectedRoute.
 let _tokenCache: string | null = null
-try {
-  _tokenCache = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-} catch {
-  _tokenCache = null
-}
+if (!isNativePlatform && typeof window !== 'undefined') localStorage.removeItem('token')
 
 /** Expose a helper so Login/Logout pages can update the cache + storage. */
 export async function setAuthToken(token: string | null) {
-  _tokenCache = token
-  if (token) {
+  _tokenCache = isNativePlatform ? token : null
+  if (token && isNativePlatform) {
     await secureStorage.set('token', token)
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`
   } else {
@@ -45,6 +42,7 @@ export async function setAuthToken(token: string | null) {
 
 /** Hydrate cache from native storage (call once at startup). */
 export async function hydrateAuthToken() {
+  if (!isNativePlatform) return
   const token = await secureStorage.get('token')
   _tokenCache = token
   if (token) {
@@ -56,6 +54,16 @@ api.interceptors.request.use((config) => {
   if (_tokenCache) {
     config.headers.Authorization = `Bearer ${_tokenCache}`
   }
+  if (!isNativePlatform && config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+    const csrf = document.cookie.split('; ').find(value => value.startsWith('atlas_csrf='))?.split('=')[1]
+    if (csrf) config.headers['X-CSRF-Token'] = decodeURIComponent(csrf)
+  }
+  if (typeof window !== 'undefined') {
+    const anonToken = localStorage.getItem('atlas_anon_token')
+    if (anonToken && !config.headers['X-Anon-Token']) {
+      config.headers['X-Anon-Token'] = anonToken
+    }
+  }
   return config
 })
 
@@ -64,9 +72,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401 && !window.location.pathname.startsWith('/login')) {
+    const isAnon = typeof window !== 'undefined' && window.location.pathname.startsWith('/anonymous')
+    if (error.response?.status === 401 && !window.location.pathname.startsWith('/login') && !isAnon) {
       await setAuthToken(null)
-      window.location.href = '/login'
+      const next = `${window.location.pathname}${window.location.search}`
+      window.location.assign(`/login?next=${encodeURIComponent(next)}`)
     }
     return Promise.reject(error)
   }
@@ -122,6 +132,8 @@ export interface Event {
   domain: string
   organizer: string
   is_archived: boolean
+  created_by_id?: number
+  can_manage?: boolean
   slides_link?: string
   recording_link?: string
 }
@@ -157,6 +169,97 @@ export interface Post {
   domain: string
   is_mental_health: boolean
   created_at: string
+}
+
+export interface AnonymousCategory {
+  id: number
+  slug: string
+  name: string
+  description: string
+  sort_order: number
+  post_count: number
+}
+
+export interface AnonymousAuthor {
+  is_anonymous: boolean
+  handle?: string
+  tint?: number
+  is_op?: boolean
+  name?: string
+  branch?: string
+  year?: number
+  is_senior_verified?: boolean
+  role?: string
+}
+
+export interface AnonymousReplyNode {
+  id: number
+  post_id: number
+  parent_id?: number | null
+  body: string
+  is_anonymous: boolean
+  is_senior_verified: boolean
+  author: AnonymousAuthor
+  upvotes: number
+  downvotes: number
+  score: number
+  user_vote: number
+  created_at: string
+  children: AnonymousReplyNode[]
+}
+
+export interface AnonymousPostV2Item {
+  id: number
+  slug: string
+  category?: {
+    id: number
+    slug: string
+    name: string
+  } | null
+  kind: 'grievance' | 'conversation'
+  title: string
+  body: string
+  is_official: boolean
+  is_anonymous: boolean
+  images: string[]
+  upvotes: number
+  downvotes: number
+  score: number
+  metoo: number
+  reply_count: number
+  created_at: string
+  has_distress: boolean
+  author: AnonymousAuthor
+  user_vote: number
+  has_metoo: boolean
+  replies?: AnonymousReplyNode[]
+}
+
+export interface AnonymousMeResponse {
+  has_anon_account: boolean
+  anon_account_id?: string | null
+  is_student_logged_in: boolean
+  student?: {
+    name: string
+    roll_number: string
+    branch?: string
+    year?: number
+    is_senior?: boolean
+    role?: string
+  } | null
+}
+
+export interface EmergencyContact {
+  name: string
+  detail: string
+  phone: string
+  tel: string
+}
+
+export interface EmergencyTier {
+  id: string
+  title: string
+  items: EmergencyContact[]
 }
 
 export interface Reply {
@@ -323,11 +426,28 @@ export interface TodayDashboardData {
   working_hours_today: number
 }
 
+export interface DashboardOverviewData {
+  student: Student
+  today: TodayDashboardData
+  tasks: Task[]
+  working_hours: { weekly_working_hours: number; source: string }
+  next_deadline: { id: number; title: string; deadline_date?: string; deadline_label?: string } | null
+  capacity_today: { date: string; loadPct: number; status: 'low' | 'medium' | 'high' | 'max' }
+  conflicts: Array<{ type: string; date?: string; severity: 'high' | 'medium'; message: string; deadlines?: string[] }>
+  burnout: ({ exists: false } | ({ exists: true } & Omit<BurnoutScore, 'recommendations'>))
+  burnout_history: BurnoutHistoryPoint[]
+  degraded_sections: string[]
+}
+
 export const dashboardAPI = {
   getToday: async (horizonHours = 48): Promise<TodayDashboardData> => {
     const res = await api.get<TodayDashboardData>('/dashboard/today', {
       params: { horizon_hours: horizonHours },
     })
+    return res.data
+  },
+  getOverview: async (): Promise<DashboardOverviewData> => {
+    const res = await api.get<DashboardOverviewData>('/dashboard/overview')
     return res.data
   },
 }

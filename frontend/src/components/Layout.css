@@ -9,19 +9,15 @@
 }
 
 /* ── Ambient Canvas Layer (ATLAS Celestial Armillary Astrolabe) ──────────── */
-.layout-ambient-canvas {
-  position: fixed !important;
+.layout::before {
+  content: '';
+  position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.4;
-  mask-image: radial-gradient(circle at 80% 25%, black 25%, rgba(0, 0, 0, 0.45) 55%, transparent 80%);
-  -webkit-mask-image: radial-gradient(circle at 80% 25%, black 25%, rgba(0, 0, 0, 0.45) 55%, transparent 80%);
-  transition: opacity 0.3s ease;
-}
-
-[data-theme="light"] .layout-ambient-canvas {
-  opacity: 0.18;
+  background:
+    radial-gradient(circle at 82% 12%, color-mix(in srgb, var(--primary) 10%, transparent) 0, transparent 32%),
+    radial-gradient(circle at 12% 88%, color-mix(in srgb, var(--primary) 6%, transparent) 0, transparent 26%);
 }
 
 /* ── Desktop Sidebar (>= 1024px) ─────────────────────────────────────────── */
@@ -334,8 +330,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface);
@@ -418,6 +414,18 @@
 
 .mobile-dock-btn.active .mobile-dock-label {
   font-weight: 600;
+}
+
+[data-theme="dark"] .nav-badge,
+html.dark .nav-badge,
+body.dark .nav-badge {
+  color: #a5b4fc;
+}
+
+[data-theme="dark"] .mobile-dock-btn.active,
+html.dark .mobile-dock-btn.active,
+body.dark .mobile-dock-btn.active {
+  color: #818cf8;
 }
 
 /* ── Mobile Slide-up Bottom Sheet (Drawer) ─────────────────────────────────── */
@@ -655,4 +663,141 @@
   .page-header p {
     font-size: 12.5px;
   }
-}
+}
+
+/* Device-aware navigation: phone dock, tablet rail, desktop sidebar. */
+.mobile-more-sections {
+  display: grid;
+  gap: 20px;
+}
+
+.mobile-more-section h4 {
+  margin: 0 0 8px;
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mobile-more-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mobile-more-sheet .mobile-sheet-item {
+  min-height: 82px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 8px;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.mobile-more-sheet .mobile-sheet-footer {
+  margin-top: 20px;
+  padding: 14px 0 0;
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .sidebar {
+    display: flex;
+    width: 72px;
+  }
+
+  .sidebar-header {
+    justify-content: center;
+    padding-inline: 8px;
+  }
+
+  .sidebar-branding { align-items: center; }
+  .sidebar-logo-row { gap: 0; }
+
+  .sidebar .logo,
+  .sidebar .logo-badge,
+  .sidebar .logo-sub,
+  .sidebar-section-title,
+  .sidebar .nav-label,
+  .sidebar .nav-badge,
+  .sidebar-theme-row {
+    display: none;
+  }
+
+  .sidebar-content {
+    padding-inline: 8px;
+    gap: 8px;
+  }
+
+  .sidebar-section { gap: 4px; }
+
+  .sidebar .nav-item {
+    min-height: 48px;
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .sidebar-footer { padding-inline: 8px; }
+
+  .mobile-top-bar,
+  .mobile-bottom-dock {
+    display: none;
+  }
+
+  .main-content {
+    margin-left: 72px;
+    width: calc(100% - 72px);
+    padding: 0;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 100%;
+    padding: 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar { display: none; }
+
+  .mobile-top-bar {
+    display: flex;
+    height: calc(56px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-inline: max(14px, env(safe-area-inset-left, 0px)) max(14px, env(safe-area-inset-right, 0px));
+  }
+
+  .mobile-bottom-dock {
+    display: flex;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .mobile-dock-btn {
+    min-width: 44px;
+    min-height: 48px;
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding-top: calc(56px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .container {
+    padding: 14px 12px calc(44px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (pointer: coarse) {
+  .nav-item,
+  .mobile-dock-btn,
+  .mobile-sheet-item,
+  .mobile-sheet-logout-btn {
+    min-height: 44px;
+  }
+}

@@ -1945,6 +1945,11 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+.resources-mobile-controls { display: none; }
+.resources-mobile-filter-fields { display: grid; gap: 16px; }
+.resources-mobile-filter-fields label { display: grid; gap: 7px; color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; }
+.resources-mobile-filter-fields select { min-height: 44px; width: 100%; }
+
 .mini-modal {
   max-width: 400px;
   width: 90vw;
@@ -1990,5 +1995,38 @@
     width: 100%;
     flex-wrap: wrap;
   }
+}
+
+@media (max-width: 767px) {
+  .resources-header-row > div:first-child .page-subtitle { display: none; }
+  .header-action-buttons .add-btn { min-height: 44px; }
+
+  .resources-mobile-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .resources-mobile-search {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+
+  .resources-mobile-search input { min-width: 0; width: 100%; border: 0; background: transparent; }
+  .resources-mobile-controls > button { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+  .library-subbar,
+  .course-pills-row,
+  .explore-resources-surface > .search-bar,
+  .explore-resources-surface > .filters { display: none !important; }
+
+  .hub-nav-pill { min-height: 44px; }
+  .form-card { border-radius: var(--radius-lg); }
 }
 

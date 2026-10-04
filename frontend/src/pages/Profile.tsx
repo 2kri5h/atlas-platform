@@ -4,6 +4,7 @@ import { User, Save, RefreshCw, Key, Plus, Trash2, Sun, Moon, Laptop } from 'luc
 import api, { apiKeysAPI, Student, UserAPIKey } from '../utils/api'
 import { DOMAINS } from '../utils/helpers'
 import ApiKeyVaultModal from '../components/ApiKeyVaultModal'
+import { ConfirmDialog } from '../components/ui'
 import { useTheme } from '../context/ThemeContext'
 import './Profile.css'
 
@@ -19,6 +20,7 @@ function Profile() {
   // BYOK Key Vault state
   const [isVaultOpen, setIsVaultOpen] = useState(false)
   const [userKeys, setUserKeys] = useState<UserAPIKey[]>([])
+  const [deleteProvider, setDeleteProvider] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProfile()
@@ -47,12 +49,18 @@ function Profile() {
   }
 
   const handleDeleteKey = async (provider: string) => {
-    if (!confirm(`Remove ${provider.toUpperCase()} API key?`)) return
+    setDeleteProvider(provider)
+  }
+
+  const confirmDeleteKey = async () => {
+    if (!deleteProvider) return
     try {
-      await apiKeysAPI.deleteKey(provider)
-      fetchKeys()
+      await apiKeysAPI.deleteKey(deleteProvider)
+      setDeleteProvider(null)
+      await fetchKeys()
     } catch (err) {
       console.error('Failed to delete key', err)
+      setMessage('Failed to remove API key. Please retry.')
     }
   }
 
@@ -381,6 +389,15 @@ function Profile() {
           fetchKeys()
         }}
         onKeyUpdated={fetchKeys}
+      />
+      <ConfirmDialog
+        open={Boolean(deleteProvider)}
+        title="Remove API key?"
+        message={`Remove the saved ${deleteProvider?.toUpperCase() || ''} configuration?`}
+        confirmLabel="Remove key"
+        danger
+        onConfirm={confirmDeleteKey}
+        onCancel={() => setDeleteProvider(null)}
       />
     </div>
   )

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { LibraryResource } from '../../utils/api'
 import { getDomainBadgeClass } from '../../utils/helpers'
+import { sanitizeUrl } from '../../utils/security'
 
 interface SavedLinksListProps {
   items: LibraryResource[]
@@ -283,7 +284,7 @@ export const SavedLinksList: React.FC<SavedLinksListProps> = ({
 
               {item.url ? (
                 <a
-                  href={item.url}
+                  href={sanitizeUrl(item.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="open-link-btn"

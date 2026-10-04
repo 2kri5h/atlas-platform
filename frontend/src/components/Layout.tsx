@@ -1,18 +1,17 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, BookOpen, Map, CheckSquare,
-  Bell, MessageCircle, Bot, User, LogOut, Mail, MoreHorizontal, X, Compass, ChevronRight,
+  Bell, MessageCircle, Bot, User, LogOut, Mail, MoreHorizontal, Compass,
   type LucideIcon
 } from 'lucide-react'
 import { Breadcrumbs } from './Breadcrumbs'
 import PomodoroTimer from './PomodoroTimer'
 import ThemeToggle from './ThemeToggle'
 import { ToastHost } from './Toast'
+import { Modal } from './ui'
 import api, { setAuthToken } from '../utils/api'
 import './Layout.css'
-
-const AmbientCanvas = lazy(() => import('./ui/AmbientCanvas'))
 
 interface NavSection {
   title?: string
@@ -53,24 +52,36 @@ const navSections: NavSection[] = [
 
 // Primary items for mobile bottom dock
 const mobilePrimaryNav = [
-  { to: '/', icon: LayoutDashboard, label: 'Home' },
+  { to: '/', icon: LayoutDashboard, label: 'Today' },
   { to: '/planner', icon: CheckSquare, label: 'Planner' },
   { to: '/deadlines', icon: Bell, label: 'Tasks' },
-  { to: '/emails', icon: Mail, label: 'Emails' },
 ]
 
-// Secondary items displayed inside mobile "More" bottom sheet
-const mobileMoreItems = [
-  { to: '/resources', icon: BookOpen, label: 'Resource Vault', desc: 'Notes, papers & Google Drive sync' },
-  { to: '/ai', icon: Bot, label: 'AI Study Mentor', desc: 'Ask Gemini, study plans, burnout check' },
-  { to: '/events', icon: Compass, label: 'Campus Events', desc: 'Workshops, hackathons, seminars' },
-  { to: '/journeys', icon: Map, label: 'Senior Journeys', desc: 'Placement roadmaps & insights' },
-  { to: '/anonymous', icon: MessageCircle, label: 'Anonymous Forum', desc: 'Campus community discussions' },
-  { to: '/profile', icon: User, label: 'Profile & Settings', desc: 'Preferences, sync and account' },
+const mobileMoreSections = [
+  {
+    title: 'Study',
+    items: [
+      { to: '/ai', icon: Bot, label: 'AI Mentor' },
+      { to: '/resources', icon: BookOpen, label: 'Resources' },
+      { to: '/emails', icon: Mail, label: 'Email' },
+    ],
+  },
+  {
+    title: 'Campus',
+    items: [
+      { to: '/events', icon: Compass, label: 'Events' },
+      { to: '/journeys', icon: Map, label: 'Journeys' },
+      { to: '/anonymous', icon: MessageCircle, label: 'Forum' },
+    ],
+  },
+  {
+    title: 'Account',
+    items: [{ to: '/profile', icon: User, label: 'Profile & settings' }],
+  },
 ]
 
 // Pages that manage their own full-width layout
-const FULL_WIDTH_ROUTES = ['/ai']
+const FULL_WIDTH_ROUTES = ['/ai', '/planner']
 
 function Layout() {
   const navigate = useNavigate()
@@ -99,18 +110,6 @@ function Layout() {
     document.title = currentTitle
   }, [location.pathname])
 
-  // Prevent background scroll when mobile drawer is open
-  useEffect(() => {
-    if (mobileSheetOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [mobileSheetOpen])
-
   const handleLogout = async () => {
     try {
       await api.post('/auth/logout')
@@ -132,10 +131,6 @@ function Layout() {
   return (
     <div className="layout">
       {/* ── Background Three.js ATLAS Celestial Armillary Astrolabe ── */}
-      <Suspense fallback={null}>
-        <AmbientCanvas className="layout-ambient-canvas" />
-      </Suspense>
-
       {/* ── Mobile Top App Bar (Visible on <= 1024px) ── */}
       <header className="mobile-top-bar">
         <div className="mobile-brand-title">
@@ -152,61 +147,40 @@ function Layout() {
       </header>
 
       {/* ── Mobile "More" Bottom Sheet Overlay & Drawer ── */}
-      {mobileSheetOpen && (
-        <div
-          className="mobile-sheet-overlay"
-          onClick={() => setMobileSheetOpen(false)}
-        />
-      )}
-
-      <div className={`mobile-bottom-sheet ${mobileSheetOpen ? 'open' : ''}`} aria-hidden={!mobileSheetOpen}>
-        <div className="mobile-sheet-handle-bar" onClick={() => setMobileSheetOpen(false)}>
-          <div className="mobile-sheet-handle" />
-        </div>
-        <div className="mobile-sheet-header">
-          <div>
-            <h3 className="mobile-sheet-title">All Applications</h3>
-            <p className="mobile-sheet-sub">IIT Bombay Student Operating System</p>
-          </div>
-          <button
-            className="mobile-sheet-close-btn"
-            onClick={() => setMobileSheetOpen(false)}
-            aria-label="Close sheet"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="mobile-sheet-grid">
-          {mobileMoreItems.map(({ to, icon: Icon, label, desc }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => `mobile-sheet-item ${isActive ? 'active' : ''}`}
-              onClick={() => setMobileSheetOpen(false)}
-            >
-              <div className="mobile-sheet-item-icon">
-                <Icon size={18} />
+      <Modal
+        open={mobileSheetOpen}
+        onClose={() => setMobileSheetOpen(false)}
+        title="More"
+        variant="sheet"
+        className="mobile-more-sheet"
+      >
+        <div className="mobile-more-sections">
+          {mobileMoreSections.map(section => (
+            <section key={section.title} className="mobile-more-section" aria-labelledby={`more-${section.title}`}>
+              <h4 id={`more-${section.title}`}>{section.title}</h4>
+              <div className="mobile-more-grid">
+                {section.items.map(({ to, icon: Icon, label }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    className={({ isActive }) => `mobile-sheet-item ${isActive ? 'active' : ''}`}
+                    onClick={() => setMobileSheetOpen(false)}
+                  >
+                    <span className="mobile-sheet-item-icon"><Icon size={19} /></span>
+                    <span>{label}</span>
+                  </NavLink>
+                ))}
               </div>
-              <div className="mobile-sheet-item-content">
-                <div className="mobile-sheet-item-title">{label}</div>
-                <div className="mobile-sheet-item-desc">{desc}</div>
-              </div>
-              <ChevronRight size={14} className="mobile-sheet-arrow" />
-            </NavLink>
+            </section>
           ))}
         </div>
-
         <div className="mobile-sheet-footer">
-          <div className="mobile-sheet-theme">
-            <ThemeToggle showLabel />
-          </div>
-          <button onClick={handleLogout} className="mobile-sheet-logout-btn">
-            <LogOut size={16} />
-            <span>Sign Out</span>
+          <ThemeToggle showLabel />
+          <button type="button" onClick={handleLogout} className="mobile-sheet-logout-btn">
+            <LogOut size={16} /> Sign out
           </button>
         </div>
-      </div>
+      </Modal>
 
       {/* ── Desktop Sidebar (>= 1024px) ── */}
       <aside className="sidebar">
@@ -230,6 +204,7 @@ function Layout() {
                   <NavLink
                     key={to}
                     to={to}
+                    aria-label={label}
                     className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                   >
                     <Icon size={17} className="nav-icon" />
@@ -248,12 +223,13 @@ function Layout() {
           </div>
           <NavLink
             to="/profile"
+            aria-label="Profile and settings"
             className={({ isActive }) => `nav-item profile-nav-item ${isActive ? 'active' : ''}`}
           >
             <User size={17} className="nav-icon" />
             <span className="nav-label">Profile & Settings</span>
           </NavLink>
-          <button onClick={handleLogout} className="nav-item logout-btn">
+          <button onClick={handleLogout} className="nav-item logout-btn" aria-label="Log out">
             <LogOut size={17} className="nav-icon" />
             <span className="nav-label">Log Out</span>
           </button>

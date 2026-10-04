@@ -36,6 +36,8 @@ import GoogleConnectModal from '../components/GoogleConnectModal'
 import ResourceTaskModal from '../components/MyLibrary/ResourceTaskModal'
 import SavedLinksList from '../components/MyLibrary/SavedLinksList'
 import DriveNavigator from '../components/MyLibrary/DriveNavigator'
+import { sanitizeUrl } from '../utils/security'
+import { ConfirmDialog, FilterSheet } from '../components/ui'
 import './Resources.css'
 
 export function Resources() {
@@ -69,7 +71,9 @@ export function Resources() {
 
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [editingResource, setEditingResource] = useState<Resource | null>(null)
+  const [deleteResourceId, setDeleteResourceId] = useState<number | null>(null)
 
   // Forms State
   const [form, setForm] = useState({
@@ -90,6 +94,12 @@ export function Resources() {
     resource_type: '',
     is_private: false,
   })
+
+  // Form Feedback State
+  const [formError, setFormError] = useState('')
+  const [submittingForm, setSubmittingForm] = useState(false)
+  const [editError, setEditError] = useState('')
+  const [submittingEdit, setSubmittingEdit] = useState(false)
 
   // User State
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
@@ -262,7 +272,7 @@ export function Resources() {
       })
       showToast(res.message || `Saved to ${res.folder_path}`, res.web_view_link)
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to save resource to Google Drive')
+      showToast(err.response?.data?.detail || 'Failed to save resource to Google Drive')
     } finally {
       setSavingDriveTitle(null)
     }
@@ -271,6 +281,8 @@ export function Resources() {
   // Form Submissions
   const handleCreateResource = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError('')
+    setSubmittingForm(true)
     try {
       await api.post('/resources/', form)
       setShowAddForm(false)
@@ -286,34 +298,48 @@ export function Resources() {
       showToast('Created new note in My Library! ✍️')
       fetchLibrary()
       fetchExploreResources()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create resource', err)
+      setFormError(err.response?.data?.detail || 'Failed to create resource. Please verify your inputs.')
+    } finally {
+      setSubmittingForm(false)
     }
   }
 
   const handleEditResource = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingResource) return
+    setEditError('')
+    setSubmittingEdit(true)
     try {
       await api.put(`/resources/${editingResource.id}`, editForm)
       setEditingResource(null)
       showToast('Resource updated successfully!')
       fetchLibrary()
       fetchExploreResources()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to edit resource', err)
+      setEditError(err.response?.data?.detail || 'Failed to update resource. Please try again.')
+    } finally {
+      setSubmittingEdit(false)
     }
   }
 
   const handleDeleteResource = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this resource?')) return
+    setDeleteResourceId(id)
+  }
+
+  const confirmDeleteResource = async () => {
+    if (deleteResourceId === null) return
     try {
-      await api.delete(`/resources/${id}`)
+      await api.delete(`/resources/${deleteResourceId}`)
       showToast('Resource deleted')
-      setResources((prev) => prev.filter((r) => r.id !== id))
-      setLibraryItems((prev) => prev.filter((r) => r.id !== id))
+      setResources((prev) => prev.filter((r) => r.id !== deleteResourceId))
+      setLibraryItems((prev) => prev.filter((r) => r.id !== deleteResourceId))
+      setDeleteResourceId(null)
     } catch (err) {
       console.error('Failed to delete resource', err)
+      showToast('Failed to delete resource. Please retry.')
     }
   }
 
@@ -446,13 +472,59 @@ export function Resources() {
       </div>
 
       {/* ── Toast Notification Banner ── */}
+      <div className="resources-mobile-controls">
+        <div className="resources-mobile-search">
+          <Search size={16} />
+          <input
+            value={activeHubView === 'library' ? librarySearch : exploreSearch}
+            onChange={e => activeHubView === 'library' ? setLibrarySearch(e.target.value) : setExploreSearch(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && activeHubView === 'explore') handleExploreSearch() }}
+            placeholder={activeHubView === 'library' ? 'Search your library' : 'Search resources'}
+          />
+        </div>
+        <button type="button" onClick={() => setMobileFiltersOpen(true)}><MoreVertical size={17} /> Filter</button>
+      </div>
+
+      <FilterSheet
+        open={mobileFiltersOpen}
+        onClose={() => setMobileFiltersOpen(false)}
+        title={activeHubView === 'library' ? 'Library filters' : 'Resource filters'}
+        footer={<button type="button" onClick={() => setMobileFiltersOpen(false)}>Show results</button>}
+      >
+        <div className="resources-mobile-filter-fields">
+          {activeHubView === 'library' ? (
+            <>
+              <label>Type
+                <select value={libraryTypeFilter} onChange={e => setLibraryTypeFilter(e.target.value as 'all' | 'drive' | 'notes' | 'links')}>
+                  <option value="all">All items</option><option value="drive">Google Drive</option>
+                  <option value="links">Saved links</option><option value="notes">Personal notes</option>
+                </select>
+              </label>
+              <label>Course
+                <select value={libraryCourseFilter} onChange={e => setLibraryCourseFilter(e.target.value)}>
+                  <option value="">All courses</option>
+                  {availableCourses.map(course => <option key={course} value={course}>{course}</option>)}
+                </select>
+              </label>
+            </>
+          ) : (
+            <label>Domain
+              <select value={exploreFilter} onChange={e => setExploreFilter(e.target.value)}>
+                <option value="">All domains</option>
+                {DOMAINS.map(domain => <option key={domain.value} value={domain.value}>{domain.label}</option>)}
+              </select>
+            </label>
+          )}
+        </div>
+      </FilterSheet>
+
       {toast && (
         <div className="resource-floating-toast">
           <CheckCircle2 size={18} className="text-emerald-400" />
           <span>{toast.message}</span>
           {toast.link && (
             <a
-              href={toast.link}
+              href={sanitizeUrl(toast.link)}
               target="_blank"
               rel="noopener noreferrer"
               className="toast-drive-link"
@@ -562,12 +634,18 @@ export function Resources() {
               </div>
             </div>
 
+            {formError && (
+              <p className="form-error-banner" role="alert" style={{ color: '#ef4444', margin: '0.5rem 0', fontSize: '0.875rem' }}>
+                {formError}
+              </p>
+            )}
+
             <div className="form-actions">
               <button type="button" className="secondary" onClick={() => setShowAddForm(false)}>
                 Cancel
               </button>
-              <button type="submit" className="primary">
-                Save Note
+              <button type="submit" className="primary" disabled={submittingForm}>
+                {submittingForm ? 'Saving...' : 'Save Note'}
               </button>
             </div>
           </form>
@@ -824,7 +902,7 @@ export function Resources() {
                           </span>
                           {rec.url && (
                             <a
-                              href={rec.url}
+                              href={sanitizeUrl(rec.url)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="card-link explore-link"
@@ -988,7 +1066,7 @@ export function Resources() {
                       </span>
                       {resource.url && (
                         <a
-                          href={resource.url}
+                          href={sanitizeUrl(resource.url)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="card-link"
@@ -1089,12 +1167,17 @@ export function Resources() {
                   <span>Save for myself only (Private)</span>
                 </label>
               </div>
+              {editError && (
+                <p className="form-error-banner" role="alert" style={{ color: '#ef4444', margin: '0.5rem 0', fontSize: '0.875rem' }}>
+                  {editError}
+                </p>
+              )}
               <div className="modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setEditingResource(null)}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary">
-                  Save Changes
+                <button type="submit" className="btn-primary" disabled={submittingEdit}>
+                  {submittingEdit ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -1114,6 +1197,15 @@ export function Resources() {
       <GoogleConnectModal
         isOpen={isGoogleModalOpen}
         onClose={() => setIsGoogleModalOpen(false)}
+      />
+      <ConfirmDialog
+        open={deleteResourceId !== null}
+        title="Delete resource?"
+        message="This permanently removes the resource from your library."
+        confirmLabel="Delete resource"
+        danger
+        onConfirm={confirmDeleteResource}
+        onCancel={() => setDeleteResourceId(null)}
       />
     </div>
   )

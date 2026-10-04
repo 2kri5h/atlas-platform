@@ -6,9 +6,10 @@
  * and an accessible Modal shell (Escape close, focus trap, focus restore).
  */
 import {
-  useEffect, useRef, type ReactNode,
+  useEffect, useId, useRef, useState, type ReactNode,
 } from 'react'
-import { Loader2, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Loader2, SlidersHorizontal, X } from 'lucide-react'
 import './ui.css'
 
 // ── PageHeader ───────────────────────────────────────────────────────────────
@@ -111,7 +112,7 @@ export function CardGridSkeleton({ count = 6, height = 170 }: {
 }
 
 // ── Accessible Modal shell ───────────────────────────────────────────────────
-export function Modal({ open, onClose, title, children, footer, labelledBy }: {
+export function Modal({ open, onClose, title, children, footer, labelledBy, variant = 'dialog', className = '' }: {
   open: boolean
   onClose: () => void
   title?: string
@@ -119,9 +120,12 @@ export function Modal({ open, onClose, title, children, footer, labelledBy }: {
   footer?: ReactNode
   /** id of an element inside the modal to use as aria-labelledby (defaults to built-in title) */
   labelledBy?: string
+  variant?: 'dialog' | 'sheet'
+  className?: string
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
   const previouslyFocused = useRef<HTMLElement | null>(null)
+  const generatedTitleId = useId()
 
   useEffect(() => {
     if (!open) return
@@ -159,33 +163,37 @@ export function Modal({ open, onClose, title, children, footer, labelledBy }: {
       }
     }
 
+    const appRoot = document.getElementById('root') as (HTMLElement & { inert?: boolean }) | null
+    const previousOverflow = document.body.style.overflow
     document.addEventListener('keydown', handleKeyDown)
     document.body.style.overflow = 'hidden'
+    if (appRoot) appRoot.inert = true
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = ''
+      document.body.style.overflow = previousOverflow
+      if (appRoot) appRoot.inert = false
       previouslyFocused.current?.focus()
     }
   }, [open, onClose])
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div
-      className="ui-modal-overlay"
+      className={`ui-modal-overlay ${variant === 'sheet' ? 'ui-sheet-overlay' : ''}`}
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         ref={cardRef}
-        className="ui-modal-card"
+        className={`ui-modal-card ${variant === 'sheet' ? 'ui-sheet-card' : ''} ${className}`.trim()}
         role="dialog"
         aria-modal="true"
-        aria-label={!labelledBy ? title : undefined}
-        aria-labelledby={labelledBy}
+        aria-labelledby={labelledBy || (title ? generatedTitleId : undefined)}
         tabIndex={-1}
       >
         <div className="ui-modal-header">
-          {title && <h3>{title}</h3>}
+          {variant === 'sheet' && <span className="ui-sheet-handle" aria-hidden="true" />}
+          {title && <h3 id={generatedTitleId}>{title}</h3>}
           {onClose && (
             <button
               type="button"
@@ -200,7 +208,63 @@ export function Modal({ open, onClose, title, children, footer, labelledBy }: {
         <div className="ui-modal-body">{children}</div>
         {footer && <div className="ui-modal-footer">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
+  )
+}
+export function FilterSheet({ open, onClose, title = 'Filters', children, footer }: {
+  open: boolean
+  onClose: () => void
+  title?: string
+  children: ReactNode
+  footer?: ReactNode
+}) {
+  return (
+    <Modal open={open} onClose={onClose} title={title} footer={footer} variant="sheet" className="ui-filter-sheet">
+      {children}
+    </Modal>
+  )
+}
+
+export interface ResponsiveAction {
+  label: string
+  icon?: ReactNode
+  onSelect: () => void
+  danger?: boolean
+  disabled?: boolean
+}
+
+export function ResponsiveActionMenu({ actions, label = 'More actions' }: {
+  actions: ResponsiveAction[]
+  label?: string
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button type="button" className="ui-action-menu-trigger" onClick={() => setOpen(true)} aria-haspopup="dialog">
+        <SlidersHorizontal size={17} />
+        <span>{label}</span>
+      </button>
+      <Modal open={open} onClose={() => setOpen(false)} title={label} variant="sheet" className="ui-action-sheet">
+        <div className="ui-action-list">
+          {actions.map(action => (
+            <button
+              key={action.label}
+              type="button"
+              className={`ui-action-item ${action.danger ? 'danger' : ''}`}
+              disabled={action.disabled}
+              onClick={() => {
+                setOpen(false)
+                action.onSelect()
+              }}
+            >
+              {action.icon}
+              <span>{action.label}</span>
+            </button>
+          ))}
+        </div>
+      </Modal>
+    </>
   )
 }
 
@@ -239,5 +303,3 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', 
       </Modal>
   )
 }
-
-export { default as AmbientCanvas } from './AmbientCanvas'

@@ -5,6 +5,7 @@ import api, { apiKeysAPI, googleIntegrationsAPI, UserAPIKey, GoogleAccountStatus
 import type { EmailRecord } from '../utils/api'
 import ApiKeyVaultModal from '../components/ApiKeyVaultModal'
 import GoogleConnectModal from '../components/GoogleConnectModal'
+import { FilterSheet } from '../components/ui'
 import { synthesizeEmailBriefing, SynthesizedBriefingItem } from '../utils/emailSynthesizer'
 import './EmailService.css'
 import {
@@ -83,6 +84,7 @@ export default function EmailService() {
   const [comment, setComment] = useState('')
   const [isDeadline, setIsDeadline] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
   // Sync tab with URL query parameter changes
   useEffect(() => {
@@ -192,8 +194,8 @@ export default function EmailService() {
       showToast('IITB Webmail connected successfully!')
       setIsAccountsModalOpen(false)
       loadExisting()
-    } catch (err) {
-      alert('Registration failed: ' + err)
+    } catch {
+      showToast('Registration failed. Check the account details and retry.')
     } finally {
       setLoading(false)
     }
@@ -293,7 +295,7 @@ export default function EmailService() {
     } catch (err: any) {
       const detail = err.response?.data?.detail
       console.error('API Error:', detail)
-      alert(`Failed to add: ${JSON.stringify(detail || err.message)}`)
+      showToast(typeof detail === 'string' ? detail : 'Failed to add this item. Please retry.')
     }
   }
 
@@ -641,6 +643,55 @@ export default function EmailService() {
       {/* ─────────────────────────────────────────────────────────────────── */}
       {/* ── PAGE 1: QUICK SUMMARY DASHBOARD ── */}
       {/* ─────────────────────────────────────────────────────────────────── */}
+      <div className="email-mobile-controls">
+        <button type="button" onClick={handleFetch} disabled={loading} aria-label="Sync email">
+          <RefreshCw size={17} className={loading ? 'spinning' : ''} /> {loading ? 'Syncing' : 'Sync'}
+        </button>
+        <button type="button" onClick={() => setMobileFiltersOpen(true)}>
+          <SlidersHorizontal size={17} /> Filter
+        </button>
+      </div>
+
+      <FilterSheet
+        open={mobileFiltersOpen}
+        onClose={() => setMobileFiltersOpen(false)}
+        title={activeHubView === 'summary' ? 'Briefing filters' : 'Mailbox filters'}
+        footer={<button type="button" onClick={() => setMobileFiltersOpen(false)}>Show results</button>}
+      >
+        <div className="email-mobile-filter-fields">
+          {activeHubView === 'summary' ? (
+            <>
+              <label>Inbox source
+                <select value={summaryScope} onChange={e => setSummaryScope(e.target.value as 'all' | 'iitb' | 'gmail')}>
+                  <option value="all">All inboxes</option><option value="iitb">Webmail</option><option value="gmail">Gmail</option>
+                </select>
+              </label>
+              <label>Search<input value={summarySearch} onChange={e => setSummarySearch(e.target.value)} placeholder="Summary or sender" /></label>
+              <label>Category
+                <select value={summaryCategoryFilter} onChange={e => setSummaryCategoryFilter(e.target.value)}>
+                  {['ALL', 'ACADEMIC', 'PLACEMENT', 'EVENT', 'ADMINISTRATIVE', 'PERSONAL'].map(cat => <option key={cat} value={cat}>{cat === 'ALL' ? 'All categories' : cat}</option>)}
+                </select>
+              </label>
+            </>
+          ) : (
+            <>
+              <label>Inbox source
+                <select value={inboxSource} onChange={e => setInboxSource(e.target.value as 'iitb' | 'gmail')}>
+                  <option value="iitb">Webmail</option><option value="gmail">Gmail</option>
+                </select>
+              </label>
+              <label>Search<input value={emailSearch} onChange={e => setEmailSearch(e.target.value)} placeholder="Sender or subject" /></label>
+              <label>Category
+                <select value={emailCategoryFilter} onChange={e => setEmailCategoryFilter(e.target.value)}>
+                  {['ALL', 'ACADEMIC', 'EVENT', 'PLACEMENT', 'ADMINISTRATIVE', 'PERSONAL'].map(cat => <option key={cat} value={cat}>{cat === 'ALL' ? 'All categories' : cat}</option>)}
+                </select>
+              </label>
+            </>
+          )}
+          <button type="button" onClick={() => { setMobileFiltersOpen(false); setIsAccountsModalOpen(true) }}>Accounts & connections</button>
+        </div>
+      </FilterSheet>
+
       {activeHubView === 'summary' && (
         <div className="summary-dashboard-page">
           {/* Scope Controls & Quick Search */}
@@ -1542,7 +1593,7 @@ export default function EmailService() {
               <button
                 onClick={async () => {
                   if (!editDate) {
-                    alert('Please pick a date')
+                    showToast('Please pick a date')
                     return
                   }
                   await addToPlanner(

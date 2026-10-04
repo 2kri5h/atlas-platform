@@ -19,6 +19,7 @@ import {
 
 
 import { apiKeysAPI, UserAPIKey, AIProvider } from '../utils/api'
+import { ConfirmDialog } from './ui'
 import './ApiKeyVaultModal.css'
 
 interface ApiKeyVaultModalProps {
@@ -45,6 +46,7 @@ export default function ApiKeyVaultModal({ isOpen, onClose, onKeyUpdated }: ApiK
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [deleteProvider, setDeleteProvider] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -149,9 +151,14 @@ export default function ApiKeyVaultModal({ isOpen, onClose, onKeyUpdated }: ApiK
   }
 
   const handleDeleteKey = async (provId: string) => {
-    if (!confirm(`Are you sure you want to remove your ${provId.toUpperCase()} configuration?`)) return
+    setDeleteProvider(provId)
+  }
+
+  const confirmDeleteKey = async () => {
+    if (!deleteProvider) return
     try {
-      await apiKeysAPI.deleteKey(provId)
+      await apiKeysAPI.deleteKey(deleteProvider)
+      setDeleteProvider(null)
       await loadVaultData()
       if (onKeyUpdated) onKeyUpdated()
     } catch (err: any) {
@@ -163,7 +170,9 @@ export default function ApiKeyVaultModal({ isOpen, onClose, onKeyUpdated }: ApiK
 
   const currentProviderObj = providers.find(p => p.id === selectedProvider)
 
-  return createPortal(
+  return (
+    <>
+    {createPortal(
     <div className="vault-modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="vault-modal-card" onClick={e => e.stopPropagation()}>
         <div className="vault-modal-header">
@@ -395,5 +404,16 @@ export default function ApiKeyVaultModal({ isOpen, onClose, onKeyUpdated }: ApiK
       </div>
     </div>,
     document.body
+    )}
+    <ConfirmDialog
+      open={Boolean(deleteProvider)}
+      title="Remove API key?"
+      message={`Remove the saved ${deleteProvider?.toUpperCase() || ''} configuration?`}
+      confirmLabel="Remove key"
+      danger
+      onConfirm={confirmDeleteKey}
+      onCancel={() => setDeleteProvider(null)}
+    />
+    </>
   )
 }

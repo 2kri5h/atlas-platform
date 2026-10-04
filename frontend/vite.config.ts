@@ -20,17 +20,12 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Split heavy vendor libraries into separate chunks so the
-          // initial bundle is small and subsequent loads benefit from
-          // browser / WebView cache.
-          'vendor-react': [
-            'react',
-            'react-dom',
-            'react-router-dom',
-          ],
-          'vendor-charts': ['recharts'],
-          'vendor-three': ['three'],
+        manualChunks(id) {
+          // Rolldown (Vite 8) accepts a resolver function here. Keep the
+          // framework runtime cacheable without pulling react-markdown into it.
+          if (/node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/.test(id)) {
+            return 'vendor-react'
+          }
         },
       },
     },

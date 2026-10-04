@@ -32,6 +32,8 @@ import {
   DriveFolderContent,
   DriveItem,
 } from '../../utils/api'
+import { sanitizeUrl } from '../../utils/security'
+import { ConfirmDialog } from '../ui'
 
 interface DriveNavigatorProps {
   onOpenTaskModal: (fileData: { title: string; url?: string; course_code?: string; file_id?: string }) => void
@@ -87,6 +89,7 @@ export const DriveNavigator: React.FC<DriveNavigatorProps> = ({
   const [destinationFolderId, setDestinationFolderId] = useState('')
 
   const [actionLoading, setActionLoading] = useState(false)
+  const [itemToTrash, setItemToTrash] = useState<DriveItem | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -342,7 +345,7 @@ export const DriveNavigator: React.FC<DriveNavigatorProps> = ({
       setIsNewFolderModalOpen(false)
       fetchFolder(content?.current_folder_id)
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to create folder')
+      onToast(err.response?.data?.detail || 'Failed to create folder')
     } finally {
       setActionLoading(false)
     }
@@ -358,7 +361,7 @@ export const DriveNavigator: React.FC<DriveNavigatorProps> = ({
       setItemToRename(null)
       fetchFolder(content?.current_folder_id)
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to rename item')
+      onToast(err.response?.data?.detail || 'Failed to rename item')
     } finally {
       setActionLoading(false)
     }
@@ -374,21 +377,26 @@ export const DriveNavigator: React.FC<DriveNavigatorProps> = ({
       setItemToMove(null)
       fetchFolder(content?.current_folder_id)
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to move item')
+      onToast(err.response?.data?.detail || 'Failed to move item')
     } finally {
       setActionLoading(false)
     }
   }
 
   const handleDelete = async (item: DriveItem) => {
-    if (!confirm(`Trash "${item.name}" in Google Drive?`)) return
+    setItemToTrash(item)
+  }
+
+  const confirmDelete = async () => {
+    if (!itemToTrash) return
     try {
       setActionLoading(true)
-      await googleDriveAPI.deleteFile(item.id)
-      onToast(`Moved "${item.name}" to Google Drive trash`)
+      await googleDriveAPI.deleteFile(itemToTrash.id)
+      onToast(`Moved "${itemToTrash.name}" to Google Drive trash`)
+      setItemToTrash(null)
       fetchFolder(content?.current_folder_id)
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to trash item')
+      onToast(err.response?.data?.detail || 'Failed to trash item')
     } finally {
       setActionLoading(false)
     }
@@ -763,7 +771,7 @@ export const DriveNavigator: React.FC<DriveNavigatorProps> = ({
                     <div className="file-footer">
                       {file.webViewLink && (
                         <a
-                          href={file.webViewLink}
+                          href={sanitizeUrl(file.webViewLink)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="open-drive-btn"
@@ -1006,6 +1014,16 @@ export const DriveNavigator: React.FC<DriveNavigatorProps> = ({
           )}
         </div>
       )}
+      <ConfirmDialog
+        open={Boolean(itemToTrash)}
+        title="Move item to trash?"
+        message={`Move “${itemToTrash?.name || ''}” to Google Drive trash?`}
+        confirmLabel="Move to trash"
+        danger
+        busy={actionLoading}
+        onConfirm={confirmDelete}
+        onCancel={() => setItemToTrash(null)}
+      />
     </div>
   )
 }

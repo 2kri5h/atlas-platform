@@ -2238,6 +2238,12 @@
   display: none;
 }
 
+.email-mobile-controls { display: none; }
+.email-mobile-filter-fields { display: grid; gap: 16px; }
+.email-mobile-filter-fields label { display: grid; gap: 7px; color: var(--text-secondary); font-size: 0.82rem; font-weight: 600; }
+.email-mobile-filter-fields input,
+.email-mobile-filter-fields select { min-height: 44px; width: 100%; }
+
 .hub-label-desktop {
   display: inline;
 }
@@ -2815,4 +2821,35 @@
     min-height: 32px;
     height: 32px;
   }
+}
+
+@media (max-width: 767px) {
+  .email-header-status-group,
+  .email-header-actions,
+  .summary-controls-row,
+  .email-summary-stats-grid,
+  .summary-category-filter-strip,
+  .detailed-mailbox-source-bar,
+  .email-toolbar {
+    display: none !important;
+  }
+
+  .email-mobile-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .email-mobile-controls button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+
+  .email-hub-pill { min-height: 44px; height: 44px; }
+  .briefing-planner-btn,
+  .briefing-view-details-btn { min-height: 44px; height: auto; }
 }

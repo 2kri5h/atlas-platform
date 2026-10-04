@@ -3,6 +3,7 @@ import { Activity, Calendar, Check, ExternalLink, Pin, RefreshCw, Sparkles, X, M
 import api, { apiKeysAPI, UserAPIKey } from '../utils/api'
 import { Student, BurnoutScore, SmartSuggestion } from '../utils/api'
 import ApiKeyVaultModal from '../components/ApiKeyVaultModal'
+import { sanitizeUrl } from '../utils/security'
 import './AIAssistant.css'
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -474,7 +475,21 @@ function AIAssistant() {
                     <div className="message-content">
                       <strong>{msg.role === 'user' ? 'You' : 'AI Mentor'}</strong>
                       <div className="message-text">
-                        <Markdown remarkPlugins={[remarkGfm]}>
+                        <Markdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            a: ({ href, children, ...props }: any) => (
+                              <a
+                                href={sanitizeUrl(href)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                {...props}
+                              >
+                                {children}
+                              </a>
+                            ),
+                          }}
+                        >
                           {msg.content}
                         </Markdown>
                       </div>
@@ -619,7 +634,12 @@ function SmartSuggestionsCard({
               <p>{suggestion.reason}</p>
               <ol>{suggestion.action_steps.map((step, index) => <li key={index}>{step}</li>)}</ol>
               {suggestion.resource && (
-                <a className="suggestion-resource" href={suggestion.resource.url || '/resources'} target={suggestion.resource.url ? '_blank' : undefined} rel="noreferrer">
+                <a
+                  className="suggestion-resource"
+                  href={sanitizeUrl(suggestion.resource.url, '/resources')}
+                  target={suggestion.resource.url ? '_blank' : undefined}
+                  rel="noopener noreferrer"
+                >
                   {suggestion.resource.title} <ExternalLink size={12} />
                 </a>
               )}

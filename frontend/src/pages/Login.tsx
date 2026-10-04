@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import api, { setAuthToken } from '../utils/api'
 import './Auth.css'
 
@@ -18,6 +18,7 @@ const getErrorMessage = (detail: any): string => {
 
 function Login() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [form, setForm] = useState({ username: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -34,7 +35,8 @@ function Login() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
       await setAuthToken(res.data.access_token)
-      navigate('/')
+      const next = searchParams.get('next')
+      navigate(next && next.startsWith('/') && !next.startsWith('//') ? next : '/')
     } catch (err: any) {
       setError(getErrorMessage(err.response?.data?.detail))
     } finally {
@@ -74,7 +76,7 @@ function Login() {
           </button>
         </form>
         <p className="auth-footer">
-          Don't have an account? <a href="/register">Register</a>
+          Don't have an account? <Link to="/register">Register</Link>
         </p>
       </div>
     </div>

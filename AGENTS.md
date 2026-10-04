@@ -25,7 +25,7 @@ npm run dev
 
 - **Backend:** FastAPI + SQLAlchemy, API prefix `/api`
 - **Frontend:** React + Vite + TypeScript, dev server port 3000
-- **Database:** SQLite (dev) / MySQL (prod)
+- **Database:** SQLite (dev) / PostgreSQL (Supabase / Render prod)
 - Frontend in dev proxies `/api` -> `http://localhost:8000` (vite.config.ts)
 - Frontend in Docker uses nginx with `proxy_pass http://backend:8000` (not localhost)
 

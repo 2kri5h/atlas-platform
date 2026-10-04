@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BookOpen, Calendar, Map, CheckSquare, MessageCircle, Bot, TrendingUp, Clock, Target, AlertCircle } from 'lucide-react'
-import api, { dashboardAPI, TodayDashboardData } from '../utils/api'
+import { dashboardAPI, TodayDashboardData } from '../utils/api'
 import { Student, BurnoutScore, BurnoutHistoryPoint, Task } from '../utils/api'
 import { formatDate } from '../utils/helpers'
 import { CardGridSkeleton } from '../components/ui'
@@ -35,6 +35,7 @@ interface ConflictWarning {
 }
 
 function Dashboard() {
+  const [showMobileDetails, setShowMobileDetails] = useState(false)
   const [student, setStudent] = useState<Student | null>(null)
   const [burnout, setBurnout] = useState<BurnoutScore | null>(null)
   const [burnoutHistory, setBurnoutHistory] = useState<BurnoutHistoryPoint[]>([])
@@ -49,33 +50,18 @@ function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const monthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
-        const [studentRes, tasksRes, hoursRes, deadlinesRes, loadRes, radarRes, todayRes] = await Promise.all([
-          api.get('/auth/me'),
-          api.get('/planner/'),
-          api.get('/ai/working-hours'),
-          api.get('/events/deadlines?days=21'),
-          api.get(`/load?month=${monthStr}`),
-          api.get('/ai/conflict-radar'),
-          dashboardAPI.getToday(),
-        ])
-        setToday(todayRes)
-        setStudent(studentRes.data)
-        setTasks(tasksRes.data.filter((t: Task) => !t.completed).slice(0, 5))
-        setWorkingHours(hoursRes.data)
-
-        const today = new Date(); today.setHours(0, 0, 0, 0)
-
-        const deadlines: DeadlineEvent[] = deadlinesRes.data || []
-        if (deadlines.length > 0) {
-          // First deadline that is not already past (list is sorted ascending).
-          setNextDeadline(deadlines.find(d => d.deadline_date && new Date(d.deadline_date + 'T23:59:59') >= today) || null)
+        const overview = await dashboardAPI.getOverview()
+        setToday(overview.today)
+        setStudent(overview.student)
+        setTasks(overview.tasks)
+        setWorkingHours(overview.working_hours)
+        setNextDeadline(overview.next_deadline)
+        setCapacityToday(overview.capacity_today)
+        setConflicts(overview.conflicts)
+        if (overview.burnout.exists) {
+          setBurnout({ ...overview.burnout, recommendations: [] })
         }
-
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-        const capacityList: CapacityDay[] = loadRes.data || []
-        setCapacityToday(capacityList.find(c => c.date === todayStr) || null)
-        setConflicts(radarRes.data?.warnings || [])
+        setBurnoutHistory(overview.burnout_history)
       } catch (err) {
         console.error('Failed to fetch dashboard data', err)
       } finally {
@@ -85,40 +71,8 @@ function Dashboard() {
     fetchData()
   }, [])
 
-  useEffect(() => {
-    if (!student) return
-    // Use GET (no new DB row) to show latest cached burnout score
-    const fetchLatestBurnout = async () => {
-      try {
-        const res = await api.get('/ai/burnout-score/latest')
-        if (res.data.exists) {
-          setBurnout({
-            score: res.data.score,
-            ml_score: res.data.ml_score,
-            telemetry_score: res.data.telemetry_score,
-            risk_level: res.data.risk_level,
-            recommendations: [],
-            signals: res.data.signals,
-          })
-        }
-      } catch (err) {
-        console.error('Failed to fetch latest burnout', err)
-      }
-    }
-    const fetchHistory = async () => {
-      try {
-        const res = await api.get('/ai/burnout-history?days=14')
-        setBurnoutHistory(res.data.history || [])
-      } catch (err) {
-        console.error('Failed to fetch burnout history', err)
-      }
-    }
-    fetchLatestBurnout()
-    fetchHistory()
-  }, [student])
-
   if (loading) return (
-    <div className="dashboard">
+    <div className={`dashboard ${showMobileDetails ? 'show-mobile-details' : ''}`}>
       <CardGridSkeleton count={4} height={110} />
     </div>
   )
@@ -231,6 +185,24 @@ function Dashboard() {
         <h1>Welcome back, {student?.name?.split(' ')[0] || 'Student'}!</h1>
         <p>Here's what's happening with your productivity journey</p>
       </div>
+
+      <section className="mobile-today-summary" aria-label="Today at a glance">
+        <Link to="/planner" className="mobile-today-row">
+          <Clock size={18} />
+          <span><small>Up next</small><strong>{today?.timetable?.[0]?.title || 'No classes scheduled'}</strong></span>
+        </Link>
+        <Link to="/deadlines" className="mobile-today-row">
+          <Target size={18} />
+          <span><small>Nearest deadline</small><strong>{nextDeadline?.title || 'Nothing due soon'}</strong></span>
+        </Link>
+        <Link to="/ai" className="mobile-today-row">
+          <TrendingUp size={18} />
+          <span><small>Wellbeing</small><strong>{burnout ? `${burnout.risk_level} risk` : 'Check in when ready'}</strong></span>
+        </Link>
+        <button type="button" className="mobile-dashboard-details-toggle" onClick={() => setShowMobileDetails(value => !value)}>
+          {showMobileDetails ? 'Show less' : 'View details'}
+        </button>
+      </section>
 
       <div className="dashboard-hero-cta">
         <div className="dashboard-hero-content">

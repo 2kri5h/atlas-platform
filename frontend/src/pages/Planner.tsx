@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Plus, ChevronLeft, ChevronRight, AlertTriangle, Link as LinkIcon,
   Upload, Trash2, Edit, RotateCcw, Check,
@@ -9,8 +9,10 @@ import {
 import api, { googleIntegrationsAPI } from '../utils/api'
 import { PlannerEvent, TimetableEntry } from '../utils/api'
 import { usePlannerData } from '../hooks/usePlannerData'
-import { getDeterministicColor, getEventShortLabel } from '../utils/colorPalette'
+import { useTheme } from '../context/ThemeContext'
+import { getDeterministicColor, getPastelColor, getCourseCode, getEventShortLabel } from '../utils/colorPalette'
 import GoogleConnectModal from '../components/GoogleConnectModal'
+import { ConfirmDialog, ResponsiveActionMenu } from '../components/ui'
 import './Planner.css'
 
 
@@ -54,6 +56,24 @@ export function parseTitleAndSlot(fullTitle: string) {
     return { code: parts[0].trim(), slot: parts[1].trim() }
   }
   return { code: fullTitle.trim(), slot: '' }
+}
+
+export function getDisplayRoom(ev: PlannerEvent): string {
+  const loc = (ev as any).location?.trim()
+  if (loc) {
+    if (/^room\s/i.test(loc)) return loc
+    if (loc.length <= 4 && !loc.toLowerCase().includes('hall') && !loc.toLowerCase().includes('lab')) {
+      return `Room ${loc}`
+    }
+    return loc
+  }
+  const { slot } = parseTitleAndSlot(ev.title)
+  if (slot) {
+    if (/^room\s/i.test(slot)) return slot
+    if (slot.length <= 4) return `Room ${slot}`
+    return slot
+  }
+  return ''
 }
 
 // ─── Event Inspector Drawer Component ─────────────────────────────────────────
@@ -284,9 +304,6 @@ function EventInspectorDrawer({
 
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const HOURS = Array.from({ length: 24 }, (_, i) => i)  // 00:00 – 23:00
-const ACTIVE_ROW_HEIGHT = 96   // px — hour rows that overlap events
-const EMPTY_ROW_HEIGHT = 32   // px — consecutive empty hour rows
 const TODAY_STR = formatYYYYMMDD(new Date())
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -358,32 +375,6 @@ function getDaysInMonth(d: Date): { date: Date; isCurrentMonth: boolean }[] {
     isCurrentMonth: false,
   }))
   return [...prev, ...curr, ...next]
-}
-
-// ─── Row-height engine ────────────────────────────────────────────────────────
-function computeRowHeights(activeHours: Set<number>): number[] {
-  return HOURS.map(h => activeHours.has(h) ? ACTIVE_ROW_HEIGHT : EMPTY_ROW_HEIGHT)
-}
-
-function offsetForHour(h: number, rowHeights: number[]): number {
-  let offset = 0
-  for (let i = 0; i < h; i++) offset += rowHeights[i]
-  return offset
-}
-
-function heightForEvent(startFloat: number, endFloat: number, rowHeights: number[]): number {
-  let px = 0
-  const startHour = Math.floor(startFloat)
-  const endHour = Math.ceil(endFloat)
-  for (let hr = startHour; hr < endHour; hr++) {
-    if (hr < 0 || hr > 23) continue
-    const idx = hr
-    const fracStart = hr === startHour ? 1 - (startFloat - startHour) : 1
-    const fracEnd = hr === endHour - 1 ? (endFloat - Math.floor(endFloat)) || 1 : 1
-    const frac = Math.min(fracStart, fracEnd)
-    px += rowHeights[idx] * frac
-  }
-  return Math.max(px, 20)
 }
 
 type EvPos = PlannerEvent & { col: number; totalCols: number }
@@ -475,8 +466,11 @@ type EditScope = 'all' | 'instance'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 function Planner() {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   // Auto-detect mobile and default to day view
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>(isMobile ? 'day' : 'week')
   const [currentDate, setCurrentDate] = useState(new Date())
 
@@ -490,7 +484,7 @@ function Planner() {
 
   // Auto-switch to Day view on mobile screen load/orientation change
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
       setViewMode('day')
     }
   }, [])
@@ -528,6 +522,7 @@ function Planner() {
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false)
   const [isSyncingCalendar, setIsSyncingCalendar] = useState(false)
   const [calendarSyncToast, setCalendarSyncToast] = useState<string | null>(null)
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
 
   const handleSyncGoogleCalendar = async () => {
     try {
@@ -544,7 +539,7 @@ function Planner() {
       setCalendarSyncToast(`Google Calendar synced: ${ttRes.synced_count} classes, ${dlRes.synced_count} deadlines.`)
       setTimeout(() => setCalendarSyncToast(null), 5000)
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to sync with Google Calendar')
+      setCalendarSyncToast(err.response?.data?.detail || 'Failed to sync with Google Calendar')
     } finally {
       setIsSyncingCalendar(false)
     }
@@ -584,7 +579,7 @@ function Planner() {
 
   // ── Deadlines ──────────────────────────────────────────────────────────────
   const [deadlines, setDeadlines] = useState<PlannerEvent[]>([])
-  const [showDeadlines, setShowDeadlines] = useState(true)
+  const [showDeadlines, setShowDeadlines] = useState(false)
 
   const fetchDeadlines = async () => {
     try {
@@ -610,19 +605,6 @@ function Planner() {
     })
   }
 
-  const headerTitle = (): string => {
-    if (viewMode === 'day') {
-      return currentDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    }
-    if (viewMode === 'week') {
-      const mon = getMonday(currentDate)
-      const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
-      if (mon.getMonth() === sun.getMonth())
-        return `${mon.getDate()} – ${sun.getDate()} ${mon.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
-      return `${mon.getDate()} ${mon.toLocaleDateString('en-US', { month: 'short' })} – ${sun.getDate()} ${sun.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
-    }
-    return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-  }
 
   // ── Modal helpers ──────────────────────────────────────────────────────────
   const openCreate = (prefillDate?: string, prefillHour?: number) => {
@@ -856,7 +838,7 @@ function Planner() {
       setTimetableEntries(parsed.timetable)
       setScanProgress(100)
     } catch (err: any) {
-      alert(`Scan failed: ${err.response?.data?.detail || err.message}`)
+      setCalendarSyncToast(`Scan failed: ${err.response?.data?.detail || err.message}`)
     } finally { setIsScanning(false) }
   }
 
@@ -866,17 +848,18 @@ function Planner() {
       await api.post('/events/import-timetable', { timetable: timetableEntries })
       setTimetableEntries([]); setTimetableImage(null); setRawFile(null); setShowOcr(false)
       invalidate()
-    } catch (err: any) { alert(err.response?.data?.detail || 'Import failed.') }
+    } catch (err: any) { setCalendarSyncToast(err.response?.data?.detail || 'Import failed.') }
   }
 
   const handleClearTimetable = async () => {
-    if (!window.confirm("Are you sure you want to clear all imported timetable classes?")) return
     try {
       await api.delete('/events/clear-timetable')
       invalidate()
-      alert("Imported timetable classes cleared successfully.")
+      setCalendarSyncToast('Imported timetable classes cleared successfully.')
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to clear timetable.')
+      setCalendarSyncToast(err.response?.data?.detail || 'Failed to clear timetable.')
+    } finally {
+      setClearConfirmOpen(false)
     }
   }
 
@@ -887,18 +870,112 @@ function Planner() {
   })
   const activeDays = viewMode === 'day' ? [currentDate] : weekDays
 
-  const activeHourSet = new Set<number>()
-  activeDays.forEach(day => {
-    const dayStr = formatYYYYMMDD(day)
-    events.filter(e => e.date === dayStr).forEach(ev => {
-      const s = Math.max(Math.floor(parseTimeToFloat(ev.start_time)), 0)
-      const en = Math.min(Math.ceil(parseTimeToFloat(ev.end_time)), 24)
-      for (let h = s; h < en; h++) activeHourSet.add(h)
-    })
-  })
 
-  const rowHeights = computeRowHeights(activeHourSet)
-  const totalGridHeight = rowHeights.reduce((a, b) => a + b, 0)
+  // ── Stable Distinct Courses for Dynamic Pastel Palette ─────────────────────
+  const uniqueCourses = useMemo(() => {
+    const set = new Set<string>()
+    events.forEach(e => {
+      const code = getCourseCode(e.title)
+      if (code) set.add(code)
+      else if (e.title) set.add(e.title.trim())
+    })
+    return Array.from(set).sort()
+  }, [events])
+
+  // ── "Up Next" Lecture Computation (Real Date & Time) ────────────────────────
+  const upNextData = useMemo(() => {
+    if (!events || events.length === 0) return null
+
+    const nowFloat = now.getHours() + now.getMinutes() / 60
+    const todayStr = formatYYYYMMDD(now)
+
+    // 1. Classes scheduled today that haven't ended yet
+    const todayClasses = events
+      .filter(e => e.date === todayStr && e.category === 'CLASS')
+      .sort((a, b) => parseTimeToFloat(a.start_time) - parseTimeToFloat(b.start_time))
+
+    const nextToday = todayClasses.find(e => parseTimeToFloat(e.end_time) > nowFloat)
+    if (nextToday) return nextToday
+
+    // 2. Next upcoming class in future days
+    const futureClasses = events
+      .filter(e => (e.date || '') > todayStr && e.category === 'CLASS')
+      .sort((a, b) => {
+        if (a.date !== b.date) return (a.date || '').localeCompare(b.date || '')
+        return parseTimeToFloat(a.start_time) - parseTimeToFloat(b.start_time)
+      })
+
+    if (futureClasses.length > 0) return futureClasses[0]
+
+    // 3. Fallback to any class in timetable (cycle to earliest)
+    const allClasses = events
+      .filter(e => e.category === 'CLASS')
+      .sort((a, b) => parseTimeToFloat(a.start_time) - parseTimeToFloat(b.start_time))
+
+    return allClasses[0] || events[0] || null
+  }, [events, now])
+
+  const upNextCode = upNextData ? (getCourseCode(upNextData.title) || upNextData.title) : ''
+  const upNextRoom = upNextData ? getDisplayRoom(upNextData) : ''
+  const upNextPastel = upNextData ? getPastelColor(upNextData.title, uniqueCourses, isDark) : null
+
+  // ── Default 07:00–18:00 Hours with Adaptive Fallback ────────────────────────
+  const DEFAULT_START_HOUR = 7
+  const DEFAULT_END_HOUR = 18
+  const HOUR_ROW_HEIGHT = 68
+
+  const { displayStartHour, displayEndHour, displayHours } = useMemo(() => {
+    let minH = DEFAULT_START_HOUR
+    let maxH = DEFAULT_END_HOUR
+
+    activeDays.forEach(day => {
+      const dayStr = formatYYYYMMDD(day)
+      events.filter(e => e.date === dayStr).forEach(ev => {
+        const s = Math.floor(parseTimeToFloat(ev.start_time))
+        const en = Math.ceil(parseTimeToFloat(ev.end_time))
+        if (!isNaN(s) && s < minH) minH = Math.max(0, s)
+        if (!isNaN(en) && en > maxH) maxH = Math.min(24, en)
+      })
+    })
+
+    const hours: number[] = []
+    for (let h = minH; h <= maxH; h++) {
+      hours.push(h)
+    }
+    return {
+      displayStartHour: minH,
+      displayEndHour: maxH,
+      displayHours: hours,
+    }
+  }, [activeDays, events])
+
+  const totalGridHeight = (displayEndHour - displayStartHour) * HOUR_ROW_HEIGHT
+
+  const displayedDateRange = (): string => {
+    if (viewMode === 'day') {
+      const isMobileScreen = typeof window !== 'undefined' && window.innerWidth <= 768
+      if (isMobileScreen) {
+        return currentDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      }
+      return currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    }
+    if (viewMode === 'week') {
+      const monday = getMonday(currentDate)
+      const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6)
+      const m1 = monday.toLocaleDateString('en-US', { month: 'short' })
+      const m2 = sunday.toLocaleDateString('en-US', { month: 'short' })
+      const y1 = monday.getFullYear()
+      const y2 = sunday.getFullYear()
+      if (y1 !== y2) {
+        return `${m1} ${monday.getDate()}, ${y1} – ${m2} ${sunday.getDate()}, ${y2}`
+      }
+      if (m1 === m2) {
+        return `${m1} ${monday.getDate()} – ${sunday.getDate()}, ${y1}`
+      }
+      return `${m1} ${monday.getDate()} – ${m2} ${sunday.getDate()}, ${y1}`
+    }
+    return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -917,61 +994,109 @@ function Planner() {
         </div>
       )}
 
-      {/* ── Shell header ── */}
-      <div className="planner-shell">
-        <div className="planner-title-block">
-          <h1 className="planner-title">{headerTitle()}</h1>
-          <span className="planner-subtitle">
-            {viewMode === 'day' ? 'Day View' : viewMode === 'week' ? 'Week View' : 'Month View'}
-          </span>
+      {/* ── Modern Top Navigation Header (Faithful to Reference) ── */}
+      <div className="tt-header-bar">
+        <div className="tt-header-left">
+          <h1 className="tt-header-title">My timetable</h1>
+          <p className="tt-header-subtitle">A little structure for your week.</p>
         </div>
 
-        <div className="planner-controls">
-          <div className="view-toggles">
-            {(['day', 'week', 'month'] as const).map(v => (
-              <button
-                key={v}
-                className={`view-btn${viewMode === v ? ' active' : ''}`}
-                onClick={() => setViewMode(v)}
-              >
-                {v.charAt(0).toUpperCase() + v.slice(1)}
-              </button>
-            ))}
+        <div className="tt-header-center">
+          <div className="tt-nav-cluster">
+            <button className="tt-nav-arrow" onClick={() => navigate(-1)} title="Previous">
+              <ChevronLeft size={18} strokeWidth={2.5} />
+            </button>
+            <span className="tt-date-range">{displayedDateRange()}</span>
+            <button className="tt-nav-arrow" onClick={() => navigate(1)} title="Next">
+              <ChevronRight size={18} strokeWidth={2.5} />
+            </button>
+            <button className="tt-today-btn" onClick={() => setCurrentDate(new Date())}>
+              Today
+            </button>
           </div>
+          <div className="tt-view-segmented">
+            <button
+              className={`tt-seg-btn ${viewMode === 'day' ? 'active' : ''}`}
+              onClick={() => setViewMode('day')}
+            >
+              Day
+            </button>
+            <button
+              className={`tt-seg-btn ${viewMode === 'week' ? 'active' : ''}`}
+              onClick={() => setViewMode('week')}
+            >
+              Week
+            </button>
+          </div>
+        </div>
 
-          <div className="nav-cluster">
-            <button className="nav-btn" onClick={() => navigate(-1)}><ChevronLeft size={16} /></button>
-            <button className="nav-btn" onClick={() => navigate(1)}><ChevronRight size={16} /></button>
-            <button className="today-btn" onClick={() => setCurrentDate(new Date())}>Today</button>
-          </div>
+        <div className="tt-header-right">
+          {upNextData && upNextPastel && (
+            <div
+              className="tt-up-next-card"
+              style={{ backgroundColor: upNextPastel.bg, color: upNextPastel.text }}
+              onClick={() => openEdit(upNextData)}
+              title={`Up next: ${upNextData.title} (${upNextData.start_time}–${upNextData.end_time})`}
+            >
+              <div className="tt-up-next-title">
+                Up next • <strong>{upNextCode}</strong>
+              </div>
+              <div className="tt-up-next-meta">
+                {upNextData.start_time}–{upNextData.end_time}{upNextRoom ? ` • ${upNextRoom}` : ''}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
-          <div className="action-cluster">
-            <button className="primary-btn" onClick={() => openCreate()}>
-              <Plus size={15} /> Add Event
-            </button>
-            <button
-              className={`ocr-btn${showOcr ? ' active' : ''}`}
-              onClick={() => setShowOcr(!showOcr)}
-            >
-              <Scan size={15} /> Timetable AI
-            </button>
-            <button
-              className="ocr-btn"
-              onClick={handleSyncGoogleCalendar}
-              disabled={isSyncingCalendar}
-              title="Sync timetable classes & deadlines to Google Calendar"
-              style={{ background: 'rgba(66, 133, 244, 0.12)', borderColor: 'rgba(66, 133, 244, 0.35)', color: '#60a5fa' }}
-            >
-              <CalendarIcon size={15} /> {isSyncingCalendar ? 'Syncing...' : 'Sync Calendar'}
-            </button>
-            <button
-              className="danger-btn clear-tt-btn"
-              onClick={handleClearTimetable}
-              title="Clear all imported timetable classes"
-            >
-              <Trash2 size={15} /> Clear Timetable
-            </button>
-          </div>
+      {/* ── Secondary Actions Toolbar ── */}
+      <div className="tt-secondary-toolbar">
+        <div className="tt-sec-actions">
+          <button className="tt-sec-btn primary" onClick={() => openCreate()}>
+            <Plus size={14} /> Add Event
+          </button>
+          <button
+            className={`tt-sec-btn ${showOcr ? 'active' : ''}`}
+            onClick={() => setShowOcr(!showOcr)}
+          >
+            <Scan size={14} /> Timetable AI
+          </button>
+          <button
+            className="tt-sec-btn sync"
+            onClick={handleSyncGoogleCalendar}
+            disabled={isSyncingCalendar}
+            title="Sync timetable classes & deadlines to Google Calendar"
+          >
+            <CalendarIcon size={14} /> {isSyncingCalendar ? 'Syncing...' : 'Sync Calendar'}
+          </button>
+          <button
+            className="tt-sec-btn danger"
+            onClick={() => setClearConfirmOpen(true)}
+            title="Clear all imported timetable classes"
+          >
+            <Trash2 size={14} /> Clear Timetable
+          </button>
+          <button
+            className={`tt-sec-btn month-toggle ${viewMode === 'month' ? 'active' : ''}`}
+            onClick={() => setViewMode(viewMode === 'month' ? 'week' : 'month')}
+            title="Toggle Month View"
+          >
+            {viewMode === 'month' ? 'Back to Week' : 'Month View'}
+          </button>
+        </div>
+        <div className="planner-mobile-actions">
+          <button className="tt-sec-btn primary" onClick={() => openCreate()}>
+            <Plus size={16} /> Add Event
+          </button>
+          <ResponsiveActionMenu
+            label="Planner tools"
+            actions={[
+              { label: 'Timetable AI', icon: <Scan size={17} />, onSelect: () => setShowOcr(!showOcr) },
+              { label: isSyncingCalendar ? 'Syncing calendar…' : 'Sync calendar', icon: <CalendarIcon size={17} />, onSelect: handleSyncGoogleCalendar, disabled: isSyncingCalendar },
+              { label: viewMode === 'month' ? 'Back to week' : 'Month view', icon: <CalendarIcon size={17} />, onSelect: () => setViewMode(viewMode === 'month' ? 'week' : 'month') },
+              { label: 'Clear imported timetable', icon: <Trash2 size={17} />, onSelect: () => setClearConfirmOpen(true), danger: true },
+            ]}
+          />
         </div>
       </div>
 
@@ -1000,37 +1125,10 @@ function Planner() {
       )}
 
 
-      {/* ── Mobile Day Selector Strip (Visible on mobile/tablet) ── */}
-      {viewMode !== 'month' && (
-        <div className="mobile-day-strip">
-          {weekDays.map((d, i) => {
-            const dStr = formatYYYYMMDD(d)
-            const isSelected = viewMode === 'day' && formatYYYYMMDD(currentDate) === dStr
-            const isToday = dStr === TODAY_STR
-            const dayEvtsCount = events.filter(e => e.date === dStr).length
-            return (
-              <button
-                key={i}
-                type="button"
-                className={`mobile-day-pill${isSelected ? ' active' : ''}${isToday ? ' today' : ''}`}
-                onClick={() => {
-                  setCurrentDate(d)
-                  setViewMode('day')
-                }}
-              >
-                <span className="mdp-name">{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
-                <span className="mdp-num">{d.getDate()}</span>
-                {dayEvtsCount > 0 && (
-                  <span className={`mdp-count-chip${isSelected ? ' on-active' : ''}`}>{dayEvtsCount}</span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      )}
+
 
       {/* ── Upcoming Deadlines Strip ── */}
-      {(deadlines.length > 0 || showDeadlines) && (
+      {deadlines.length > 0 && showDeadlines && (
         <div className="deadlines-panel">
           <div className="deadlines-panel-header">
             <div className="deadlines-panel-title">
@@ -1306,15 +1404,15 @@ function Planner() {
                         <div className="month-lectures-row" onClick={e => e.stopPropagation()}>
                           {lectures.map((lev) => {
                             const { code } = parseTitleAndSlot(lev.title)
-                            const colorProfile = getDeterministicColor(lev.title)
+                            const pastel = getPastelColor(lev.title, uniqueCourses, isDark)
                             return (
                               <span
                                 key={lev.id}
                                 className="month-course-chip"
                                 style={{
-                                  backgroundColor: colorProfile.badgeBg,
-                                  color: colorProfile.text,
-                                  borderColor: colorProfile.border + '50',
+                                  backgroundColor: pastel.bg,
+                                  color: pastel.text,
+                                  border: pastel.border ? `1px solid ${pastel.border}` : 'none',
                                 }}
                                 onClick={() => openEdit(lev)}
                                 title={`${lev.title} (${lev.start_time}–${lev.end_time})`}
@@ -1327,16 +1425,16 @@ function Planner() {
                       )}
 
                       {otherEvts.slice(0, 2).map(ev => {
-                        const colorProfile = getDeterministicColor(ev.title)
+                        const pastel = getPastelColor(ev.title, uniqueCourses, isDark)
                         const shortLabel = getEventShortLabel(ev.title, ev.category)
                         return (
                           <div
                             key={ev.id}
                             className={`month-pill tag-${ev.tag.toLowerCase()}`}
                             style={{
-                              backgroundColor: colorProfile.bg,
-                              color: colorProfile.text,
-                              borderLeft: `3px solid ${colorProfile.border}`,
+                              backgroundColor: pastel.bg,
+                              color: pastel.text,
+                              border: pastel.border ? `1px solid ${pastel.border}` : 'none',
                             }}
                             onClick={e => { e.stopPropagation(); openEdit(ev) }}
                             title={`${ev.title} (${ev.tag})`}
@@ -1355,34 +1453,68 @@ function Planner() {
             </div>
           ) : (
             /* ── Day / Week grid ── */
-            <div className={`timeline-container ${viewMode === 'day' ? 'is-day-view' : 'is-week-view'}`}>
+            <>
+              <div className="mobile-day-strip">
+                {weekDays.map((d, i) => {
+                  const dStr = formatYYYYMMDD(d)
+                  const isSelected = viewMode === 'day' && formatYYYYMMDD(currentDate) === dStr
+                  const isToday = dStr === TODAY_STR
+                  const dayEvtsCount = events.filter(e => e.date === dStr).length
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`mobile-day-pill${isSelected ? ' active' : ''}${isToday ? ' today' : ''}`}
+                      onClick={() => {
+                        setCurrentDate(d)
+                        setViewMode('day')
+                      }}
+                    >
+                      <span className="mdp-name">{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                      <span className="mdp-num">{d.getDate()}</span>
+                      {dayEvtsCount > 0 && (
+                        <span className={`mdp-count-chip${isSelected ? ' on-active' : ''}`}>{dayEvtsCount}</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className={`tt-calendar-card ${viewMode === 'day' ? 'is-day-card' : 'is-week-card'}`}>
               {/* Column headers */}
-              <div className={`timeline-header ${viewMode === 'day' ? 'is-day-view' : 'is-week-view'}`}>
-                <div className="time-gutter-header" />
+              <div className={`tt-timeline-header ${viewMode === 'day' ? 'is-day-view' : 'is-week-view'}`}>
+                <div className="tt-time-gutter-header" />
                 {activeDays.map((day, i) => {
                   const dayStr = formatYYYYMMDD(day)
                   const isToday = dayStr === TODAY_STR
+                  const dayName = day.toLocaleDateString('en-US', { weekday: 'short' })
+                  const dayNum = day.getDate()
                   return (
-                    <div key={i} className={`col-header${isToday ? ' today' : ''}`}>
-                      <span className={`col-day-num${isToday ? ' today-num' : ''}`}>
-                        {day.getDate()}
-                      </span>
-                      <span className="col-day-name">
-                        {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                      </span>
+                    <div key={i} className={`tt-col-header${isToday ? ' is-today' : ''}`}>
+                      {isToday ? (
+                        <span className="tt-today-pill">
+                          {dayName} {dayNum}
+                        </span>
+                      ) : (
+                        <span className="tt-day-label">
+                          {dayName} {dayNum}
+                        </span>
+                      )}
                     </div>
                   )
                 })}
               </div>
 
-              <div className={`timeline-body ${viewMode === 'day' ? 'is-day-view' : 'is-week-view'}`} style={{ height: totalGridHeight }}>
+              <div
+                className={`tt-timeline-body ${viewMode === 'day' ? 'is-day-view' : 'is-week-view'}`}
+                style={{ height: totalGridHeight }}
+              >
                 {/* Time gutter */}
-                <div className="time-gutter">
-                  {HOURS.map((h, i) => (
+                <div className="tt-time-gutter">
+                  {displayHours.map(h => (
                     <div
                       key={h}
-                      className="time-label"
-                      style={{ height: rowHeights[i], top: offsetForHour(h, rowHeights) }}
+                      className="tt-time-label"
+                      style={{ top: (h - displayStartHour) * HOUR_ROW_HEIGHT }}
                     >
                       {String(h).padStart(2, '0')}:00
                     </div>
@@ -1393,17 +1525,18 @@ function Planner() {
                 {(() => {
                   const s = 13
                   const en = 14
-                  const topOffset = offsetForHour(s, rowHeights)
-                  const blockH = heightForEvent(s, en, rowHeights)
+                  if (s < displayStartHour || en > displayEndHour) return null
+                  const topOffset = (s - displayStartHour) * HOUR_ROW_HEIGHT
+                  const blockH = (en - s) * HOUR_ROW_HEIGHT
                   return (
                     <div
-                      className="timeline-lunch-block"
+                      className="tt-lunch-break-band"
                       style={{
                         top: topOffset,
                         height: blockH,
                       }}
                     >
-                      <div className="lunch-label">LUNCH</div>
+                      <span className="tt-lunch-label">Lunch break</span>
                     </div>
                   )
                 })()}
@@ -1411,159 +1544,71 @@ function Planner() {
                 {/* Day columns */}
                 {activeDays.map((day, dayIdx) => {
                   const dayStr = formatYYYYMMDD(day)
+                  const isToday = dayStr === TODAY_STR
                   const dayEvents = events.filter(e => e.date === dayStr)
                   const positioned = positionDayEvents(dayEvents)
 
                   return (
-                    <div key={dayIdx} className="day-col">
-                      {HOURS.map((h, hIdx) => (
+                    <div key={dayIdx} className={`tt-day-col${isToday ? ' is-today-col' : ''}`}>
+                      {displayHours.slice(0, -1).map(h => (
                         <div
                           key={h}
-                          className={`hour-cell${activeHourSet.has(h) ? ' active-hour' : ' empty-hour'}`}
-                          style={{ height: rowHeights[hIdx] }}
+                          className="tt-hour-cell"
+                          style={{ height: HOUR_ROW_HEIGHT }}
                           onClick={() => openCreate(dayStr, h)}
                           title={`${String(h).padStart(2, '0')}:00 — ${dayStr}`}
                         />
                       ))}
 
                       {positioned.map(ev => {
-                        const s = Math.max(parseTimeToFloat(ev.start_time), 0)
-                        const en = Math.min(parseTimeToFloat(ev.end_time), 24)
-                        if (s >= en) return null
+                        const s = parseTimeToFloat(ev.start_time)
+                        const en = parseTimeToFloat(ev.end_time)
+                        if (isNaN(s) || isNaN(en) || s >= en) return null
 
-                        const topOffset = offsetForHour(Math.floor(s), rowHeights)
-                          + (s - Math.floor(s)) * rowHeights[Math.floor(s)]
-                        const blockH = heightForEvent(s, en, rowHeights)
+                        const topOffset = (s - displayStartHour) * HOUR_ROW_HEIGHT
+                        const blockH = Math.max((en - s) * HOUR_ROW_HEIGHT, 34)
                         const colW = 100 / ev.totalCols
                         const colL = ev.col * colW
-                        const colorProfile = getDeterministicColor(ev.title)
-                        const isCompact = blockH < 55
-                        const isNarrow = ev.totalCols > 1
+                        const pastel = getPastelColor(ev.title, uniqueCourses, isDark)
 
-                        const commentData = parseCommentData(ev.user_comment)
-                        const cpTotal = commentData.checkpoints.length
-                        const cpDone = commentData.checkpoints.filter(c => c.done).length
-                        const hasNotes = !!commentData.notes.trim()
+                        const { code } = parseTitleAndSlot(ev.title)
+                        const roomText = getDisplayRoom(ev)
 
                         return (
                           <div
                             key={ev.id}
-                            className={`event-block${ev.is_completed ? ' completed' : ''}${isCompact ? ' eb-compact' : ''}${isNarrow ? ' eb-narrow' : ''}`}
+                            className={`tt-event-card${ev.is_completed ? ' completed' : ''}`}
                             style={{
                               top: topOffset,
                               height: blockH,
-                              left: `calc(${colL}% + 2px)`,
-                              width: `calc(${colW}% - 4px)`,
+                              left: `calc(${colL}% + 4px)`,
+                              width: `calc(${colW}% - 8px)`,
+                              backgroundColor: pastel.bg,
+                              color: pastel.text,
+                              border: pastel.border ? `1px solid ${pastel.border}` : undefined,
                               zIndex: 5 + ev.col,
-                              '--eb-accent': colorProfile.accentStrip,
-                              '--eb-text': colorProfile.text,
-                            } as React.CSSProperties}
+                            }}
                             onClick={e => handleEventClick(e, ev)}
+                            title={`${ev.title} (${ev.start_time}–${ev.end_time})`}
                           >
-                            {isCompact ? (
-                              <div className="eb-compact-row">
-                                <span className="eb-title" title={ev.title}>{ev.title}</span>
-                                <span className="eb-time">{ev.start_time}</span>
-                              </div>
-                            ) : (
-                              <div className="eb-card-inner">
-                                <div className="eb-header">
-                                  <span className="eb-badge" style={{ backgroundColor: colorProfile.badgeBg, color: colorProfile.text }}>
-                                    {ev.category === 'CLASS' ? 'Lecture' : ev.category.charAt(0) + ev.category.slice(1).toLowerCase()}
-                                  </span>
-
-                                  {ev.tag === 'CRITICAL' && (
-                                    <span className="eb-priority-pill critical">
-                                      <span className="eb-priority-dot" /> CRITICAL
-                                    </span>
-                                  )}
-                                  {ev.tag === 'IMPORTANT' && (
-                                    <span className="eb-priority-pill important">
-                                      <span className="eb-priority-dot" /> IMPORTANT
-                                    </span>
-                                  )}
-                                </div>
-                                
-                                <div className="eb-body">
-                                  {(() => {
-                                    const { code, slot } = parseTitleAndSlot(ev.title)
-                                    return (
-                                      <div className="eb-title-container">
-                                        <h4 className="eb-title-code">{code}</h4>
-                                        {slot && <span className="eb-slot-tag">{slot}</span>}
-                                      </div>
-                                    )
-                                  })()}
-                                </div>
-                                
-                                <div className="eb-footer">
-                                  <div className="eb-meta-chips">
-                                    <span className="eb-meta-chip">
-                                      <Clock size={11} />
-                                      <span>{ev.start_time}–{ev.end_time}</span>
-                                    </span>
-                                    {(ev as any).location && (
-                                      <span className="eb-meta-chip location" title={(ev as any).location}>
-                                        <MapPin size={11} />
-                                        <span>{(ev as any).location}</span>
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {viewMode === 'day' && blockH >= 75 && (
-                                    <div className="eb-actions-footer" onClick={e => e.stopPropagation()}>
-                                      <button
-                                        type="button"
-                                        className={`eb-action-pill ${cpTotal > 0 ? 'active' : ''}`}
-                                        onClick={() => setInspectorEvent(ev)}
-                                        title="Checkpoints & Tasks"
-                                      >
-                                        <CheckSquare size={11} />
-                                        <span>{cpTotal > 0 ? `${cpDone}/${cpTotal}` : '+ Task'}</span>
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        className={`eb-action-pill ${hasNotes ? 'active' : ''}`}
-                                        onClick={() => setInspectorEvent(ev)}
-                                        title="Notes & Takeaways"
-                                      >
-                                        <FileText size={11} />
-                                        <span>{hasNotes ? 'Notes •' : 'Notes'}</span>
-                                      </button>
-
-                                      {ev.link && (
-                                        <button
-                                          type="button"
-                                          className="eb-action-pill link"
-                                          onClick={() => window.open(ev.link, '_blank', 'noopener,noreferrer')}
-                                          title="Open Link"
-                                        >
-                                          <LinkIcon size={11} />
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
+                            <div className="tt-card-title">{code || ev.title}</div>
+                            <div className="tt-card-time">{ev.start_time}–{ev.end_time}</div>
+                            {roomText && <div className="tt-card-room">{roomText}</div>}
                           </div>
                         )
                       })}
 
-                      {/* ── Live Current Time Indicator (Red line on Today) ── */}
-                      {dayStr === TODAY_STR && (() => {
+                      {/* ── Live Current Time Indicator (Coral line on Today) ── */}
+                      {isToday && (() => {
                         const nowFloat = now.getHours() + now.getMinutes() / 60
-                        if (nowFloat < 0 || nowFloat > 24) return null
-                        const nowTop = offsetForHour(Math.floor(nowFloat), rowHeights)
-                          + (nowFloat - Math.floor(nowFloat)) * rowHeights[Math.min(Math.floor(nowFloat), 23)]
+                        if (nowFloat < displayStartHour || nowFloat > displayEndHour) return null
+                        const nowTop = (nowFloat - displayStartHour) * HOUR_ROW_HEIGHT
+                        const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
                         return (
-                          <div className="timeline-now-line" style={{ top: nowTop }}>
-                            <div className="now-time-tag">
-                              {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}
-                            </div>
-                            <div className="now-circle" />
-                            <div className="now-horizontal-bar" />
+                          <div className="tt-now-line" style={{ top: nowTop }}>
+                            <div className="tt-now-time-tag">{timeString}</div>
+                            <div className="tt-now-circle" />
+                            <div className="tt-now-bar" />
                           </div>
                         )
                       })()}
@@ -1584,6 +1629,7 @@ function Planner() {
                 })}
               </div>
             </div>
+            </>
           )}
         </div>
       </div>
@@ -1908,23 +1954,22 @@ function Planner() {
       )}
 
       {/* ── Mobile Floating Action Button (FAB) ── */}
-      <button
-        type="button"
-        className="mobile-planner-fab"
-        onClick={() => openCreate()}
-        title="Add New Event"
-        aria-label="Add Event"
-      >
-        <Plus size={24} />
-      </button>
-
       {/* ── Google Workspace Connect Modal ── */}
       <GoogleConnectModal
         isOpen={isGoogleModalOpen}
         onClose={() => setIsGoogleModalOpen(false)}
       />
+      <ConfirmDialog
+        open={clearConfirmOpen}
+        title="Clear imported timetable?"
+        message="This removes all imported timetable classes. Personal events and tasks are not affected."
+        confirmLabel="Clear timetable"
+        danger
+        onConfirm={handleClearTimetable}
+        onCancel={() => setClearConfirmOpen(false)}
+      />
     </div>
   )
 }
 
-export default Planner
+export default Planner
