@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, BookOpen, Map, CheckSquare,
   Bell, MessageCircle, Bot, User, LogOut, Mail, MoreHorizontal, Compass,
+  Timer, Link2, HelpCircle,
   type LucideIcon
 } from 'lucide-react'
 import { Breadcrumbs } from './Breadcrumbs'
@@ -37,15 +38,17 @@ const navSections: NavSection[] = [
     title: 'ACADEMICS & AI',
     items: [
       { to: '/resources', icon: BookOpen, label: 'Resource Vault' },
+      { to: '/quick-links', icon: Link2, label: 'Quick Links', badge: 'Hub' },
       { to: '/ai', icon: Bot, label: 'AI Study Mentor' },
       { to: '/events', icon: Compass, label: 'Campus Events' },
     ]
   },
   {
-    title: 'COMMUNITY',
+    title: 'COMMUNITY & SUPPORT',
     items: [
       { to: '/journeys', icon: Map, label: 'Senior Journeys' },
       { to: '/anonymous', icon: MessageCircle, label: 'Anonymous Forum' },
+      { to: '/contact', icon: HelpCircle, label: 'Contact Us' },
     ]
   }
 ]
@@ -61,6 +64,7 @@ const mobileMoreSections = [
   {
     title: 'Study',
     items: [
+      { to: '/quick-links', icon: Link2, label: 'Quick Links' },
       { to: '/ai', icon: Bot, label: 'AI Mentor' },
       { to: '/resources', icon: BookOpen, label: 'Resources' },
       { to: '/emails', icon: Mail, label: 'Email' },
@@ -72,6 +76,7 @@ const mobileMoreSections = [
       { to: '/events', icon: Compass, label: 'Events' },
       { to: '/journeys', icon: Map, label: 'Journeys' },
       { to: '/anonymous', icon: MessageCircle, label: 'Forum' },
+      { to: '/contact', icon: HelpCircle, label: 'Contact Us' },
     ],
   },
   {
@@ -87,6 +92,7 @@ function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false)
+  const [focusTimerOpen, setFocusTimerOpen] = useState(false)
 
   const isFullWidth = FULL_WIDTH_ROUTES.some(r => location.pathname.startsWith(r))
 
@@ -101,9 +107,11 @@ function Layout() {
       '/ai': 'AI Study Mentor — ATLAS',
       '/emails': 'Email Intelligence Hub — ATLAS',
       '/resources': 'Resource Library & Notes — ATLAS',
+      '/quick-links': 'Quick Links & Portals — ATLAS',
       '/events': 'Campus Events & Workshops — ATLAS',
       '/journeys': 'Senior Placement Journeys — ATLAS',
       '/anonymous': 'Anonymous Student Portal — ATLAS',
+      '/contact': 'Contact Us & Student Help — ATLAS',
       '/profile': 'Profile & Preferences — ATLAS',
     }
     const currentTitle = titles[location.pathname] || 'ATLAS — IIT Bombay Student OS'
@@ -175,6 +183,16 @@ function Layout() {
           ))}
         </div>
         <div className="mobile-sheet-footer">
+          <button
+            type="button"
+            className="mobile-sheet-focus-btn"
+            onClick={() => {
+              setMobileSheetOpen(false)
+              setFocusTimerOpen(true)
+            }}
+          >
+            <Timer size={16} /> Focus timer
+          </button>
           <ThemeToggle showLabel />
           <button type="button" onClick={handleLogout} className="mobile-sheet-logout-btn">
             <LogOut size={16} /> Sign out
@@ -218,6 +236,15 @@ function Layout() {
         </div>
 
         <div className="sidebar-footer">
+          <button
+            type="button"
+            className="nav-item"
+            onClick={() => setFocusTimerOpen(true)}
+            aria-label="Open focus timer"
+          >
+            <Timer size={17} className="nav-icon" />
+            <span className="nav-label">Focus Timer</span>
+          </button>
           <div className="sidebar-theme-row">
             <ThemeToggle showLabel className="sidebar-theme-toggle" />
           </div>
@@ -249,7 +276,11 @@ function Layout() {
       </main>
 
       {/* ── Floating Pomodoro Focus Timer ── */}
-      <PomodoroTimer />
+      <PomodoroTimer
+        open={focusTimerOpen}
+        onOpenChange={setFocusTimerOpen}
+        showLauncher={false}
+      />
 
       {/* ── Mobile Native Bottom App Dock (Visible on <= 1024px) ── */}
       <nav className="mobile-bottom-dock" aria-label="Mobile Navigation">

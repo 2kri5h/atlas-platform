@@ -8,6 +8,7 @@ import NotFound from './pages/NotFound'
 import api, { hydrateAuthToken, setAuthToken } from './utils/api'
 import { isNativePlatform, secureStorage } from './utils/storage'
 import { initNativeIntegration } from './utils/native'
+import { LoadingState } from './components/ui'
 
 // ── Route-based code splitting ──────────────────────────────────────────────
 // Dashboard stays in the main bundle (first screen after login).
@@ -23,17 +24,12 @@ const AIAssistant = lazy(() => import('./pages/AIAssistant'))
 const Profile = lazy(() => import('./pages/Profile'))
 const EmailService = lazy(() => import('./pages/EmailService'))
 const GoogleCallback = lazy(() => import('./pages/GoogleCallback'))
+const QuickLinks = lazy(() => import('./pages/QuickLinks'))
+const ContactUs = lazy(() => import('./pages/ContactUs'))
 
 // ── Suspense fallback ───────────────────────────────────────────────────────
 function PageLoader() {
-  return (
-    <div className="loading" style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      minHeight: '40vh', opacity: 0.6, fontSize: '0.875rem',
-    }}>
-      Loading…
-    </div>
-  )
+  return <LoadingState label="Loading page" />
 }
 
 // ── Auth guard ──────────────────────────────────────────────────────────────
@@ -76,7 +72,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return () => { active = false }
   }, [])
 
-  if (loading) return <div className="loading">Loading...</div>
+  if (loading) return <LoadingState label="Checking your session" />
   if (!authenticated) return <Navigate to="/login" replace />
 
   return <>{children}</>
@@ -117,6 +113,8 @@ function App() {
             <Route path="deadlines" element={<Deadlines />} />
             <Route path="anonymous" element={<Anonymous />} />
             <Route path="ai" element={<AIAssistant />} />
+            <Route path="quick-links" element={<QuickLinks />} />
+            <Route path="contact" element={<ContactUs />} />
             <Route path="profile" element={<Profile />} />
           </Route>
           <Route path="*" element={<NotFound />} />

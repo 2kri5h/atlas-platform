@@ -112,6 +112,12 @@ def migrate_sqlite_schema():
             "is_private": "BOOLEAN DEFAULT FALSE",
             "is_curated": "BOOLEAN DEFAULT FALSE",
         },
+        "events": {
+            "created_by_id": "INTEGER REFERENCES students(id)",
+            "slides_link": "VARCHAR(500)",
+            "recording_link": "VARCHAR(500)",
+            "is_archived": "BOOLEAN DEFAULT FALSE",
+        },
         "burnout_scores": {
             "risk_level": "VARCHAR(50)",
             "cgpa": "FLOAT",
