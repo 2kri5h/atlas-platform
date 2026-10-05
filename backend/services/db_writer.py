@@ -12,7 +12,18 @@ from .llm_processor import (
 )
 from .daily_digest import apply_retention_policy
 
-client = get_client()
+class _ClientProxy:
+    """Dynamic proxy ensuring live Supabase client access without stale module-level caching."""
+    def __getattr__(self, name):
+        c = get_client()
+        if c is None:
+            raise RuntimeError("Supabase client is not configured or unavailable")
+        return getattr(c, name)
+
+    def __bool__(self):
+        return get_client() is not None
+
+client = _ClientProxy()
 
 
 def get_existing_message_ids(message_ids):

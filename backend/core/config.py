@@ -101,8 +101,18 @@ class Settings(BaseSettings):
             return "https://atlas-platform-gamma.vercel.app/integrations/google/callback"
         return "http://localhost:3000/integrations/google/callback"
 
+    @property
+    def SUPABASE_URL(self) -> str:
+        raw = self.supabase_url or os.environ.get("SUPABASE_URL", "") or os.environ.get("supabase_url", "")
+        return _clean_env_val(raw, "SUPABASE_URL")
+
+    @property
+    def SUPABASE_API(self) -> str:
+        raw = self.supabase_api or os.environ.get("SUPABASE_API", "") or os.environ.get("supabase_api", "")
+        return _clean_env_val(raw, "SUPABASE_API")
+
     # Use the lower-latency Flash-Lite model for interactive mentor chat.
-    GEMINI_MODEL: str = "gemini-3.1-flash-lite"
+    GEMINI_MODEL: str = "gemini-3.1-flash-lite" 
 
 
     @property
