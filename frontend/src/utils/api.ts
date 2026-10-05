@@ -27,24 +27,35 @@ const api = axios.create({
 // blocks on an async native secure-storage read. The cache is populated on login
 // and on the initial secureStorage.get() call from ProtectedRoute.
 let _tokenCache: string | null = null
-if (!isNativePlatform && typeof window !== 'undefined') localStorage.removeItem('token')
 
 /** Expose a helper so Login/Logout pages can update the cache + storage. */
 export async function setAuthToken(token: string | null) {
-  _tokenCache = isNativePlatform ? token : null
-  if (token && isNativePlatform) {
-    await secureStorage.set('token', token)
+  _tokenCache = token
+  if (token) {
+    if (isNativePlatform) {
+      await secureStorage.set('token', token)
+    } else if (typeof window !== 'undefined') {
+      localStorage.setItem('token', token)
+    }
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`
   } else {
-    await secureStorage.remove('token')
+    if (isNativePlatform) {
+      await secureStorage.remove('token')
+    } else if (typeof window !== 'undefined') {
+      localStorage.removeItem('token')
+    }
     delete api.defaults.headers.common['Authorization']
   }
 }
 
-/** Hydrate cache from native storage (call once at startup). */
+/** Hydrate cache from storage (call once at startup). */
 export async function hydrateAuthToken() {
-  if (!isNativePlatform) return
-  const token = await secureStorage.get('token')
+  let token: string | null = null
+  if (isNativePlatform) {
+    token = await secureStorage.get('token')
+  } else if (typeof window !== 'undefined') {
+    token = localStorage.getItem('token')
+  }
   _tokenCache = token
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -54,6 +65,12 @@ export async function hydrateAuthToken() {
 api.interceptors.request.use((config) => {
   if (_tokenCache) {
     config.headers.Authorization = `Bearer ${_tokenCache}`
+  } else if (typeof window !== 'undefined') {
+    const fallbackToken = localStorage.getItem('token')
+    if (fallbackToken) {
+      _tokenCache = fallbackToken
+      config.headers.Authorization = `Bearer ${fallbackToken}`
+    }
   }
   if (!isNativePlatform && config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
     const csrf = document.cookie.split('; ').find(value => value.startsWith('atlas_csrf='))?.split('=')[1]

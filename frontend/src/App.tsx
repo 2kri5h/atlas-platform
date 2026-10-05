@@ -43,9 +43,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const checkAuth = async () => {
       // Hydrate the in-memory token cache from native / localStorage
       await hydrateAuthToken()
-      const token = isNativePlatform ? await secureStorage.get('token') : null
+      const token = isNativePlatform
+        ? await secureStorage.get('token')
+        : (typeof window !== 'undefined' ? localStorage.getItem('token') : null)
 
-      if (isNativePlatform && !token) {
+      const hasCookie = typeof document !== 'undefined' && document.cookie.includes('atlas_access')
+
+      if (!token && !hasCookie) {
         if (active) {
           setAuthenticated(false)
           setLoading(false)
@@ -56,7 +60,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       try {
         const authReq = api.get("/auth/me")
         const deadline = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Auth check timeout')), 3500)
+          setTimeout(() => reject(new Error('Auth check timeout')), 15000)
         )
         await Promise.race([authReq, deadline])
         if (active) setAuthenticated(true)
