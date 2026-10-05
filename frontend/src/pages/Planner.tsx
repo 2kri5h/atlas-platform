@@ -12,7 +12,7 @@ import { usePlannerData } from '../hooks/usePlannerData'
 import { useTheme } from '../context/ThemeContext'
 import { getDeterministicColor, getPastelColor, getCourseCode, getEventShortLabel } from '../utils/colorPalette'
 import GoogleConnectModal from '../components/GoogleConnectModal'
-import { ConfirmDialog, ResponsiveActionMenu } from '../components/ui'
+import { ConfirmDialog, ErrorState, ResponsiveActionMenu } from '../components/ui'
 import './Planner.css'
 
 
@@ -490,7 +490,7 @@ function Planner() {
   }, [])
 
   // ── Shared data layer ──────────────────────────────────────────────────────
-  const { events, loading, fetchEvents, fetchCapacity, invalidate } = usePlannerData()
+  const { events, loading, error, fetchEvents, fetchCapacity, invalidate } = usePlannerData()
 
   useEffect(() => {
     fetchEvents(viewMode, currentDate)
@@ -1369,6 +1369,8 @@ function Planner() {
               <Loader2 size={26} className="spin" />
               <span>Loading events…</span>
             </div>
+          ) : error ? (
+            <ErrorState message={error} onRetry={() => fetchEvents(viewMode, currentDate)} />
           ) : viewMode === 'month' ? (
             /* ── Month grid ── */
             <div className="month-grid">

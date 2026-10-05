@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { User, Save, RefreshCw, Key, Plus, Trash2, Sun, Moon, Laptop } from 'lucide-react'
+import { User, Save, RefreshCw, Key, Plus, Trash2, Sun, Moon, Laptop, Radio, Pencil } from 'lucide-react'
 
 import api, { apiKeysAPI, Student, UserAPIKey } from '../utils/api'
 import { DOMAINS } from '../utils/helpers'
 import ApiKeyVaultModal from '../components/ApiKeyVaultModal'
-import { ConfirmDialog } from '../components/ui'
+import { ConfirmDialog, LoadingState } from '../components/ui'
 import { useTheme } from '../context/ThemeContext'
 import './Profile.css'
 
@@ -83,7 +83,7 @@ function Profile() {
     setForm({ ...form, [field]: value })
   }
 
-  if (loading) return <div className="loading">Loading...</div>
+  if (loading) return <LoadingState label="Loading profile" />
 
   return (
     <div className="profile-page">
@@ -457,11 +457,13 @@ function StudyHoursPicker({
     fontSize: '13px',
     fontWeight: 600,
     cursor: 'pointer',
+    minHeight: '44px',
     border: `1.5px solid ${active ? 'var(--primary, #6366f1)' : 'rgba(255,255,255,0.12)'}`,
     background: active ? 'rgba(99,102,241,0.15)' : 'transparent',
     color: active ? 'var(--primary, #6366f1)' : '#9ca3af',
-    transition: 'all 0.15s ease',
+    transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease',
     userSelect: 'none',
+    fontFamily: 'inherit',
   })
 
   return (
@@ -470,12 +472,24 @@ function StudyHoursPicker({
 
       {/* Mode toggle */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-        <span style={labelStyle(mode === 'auto')} onClick={() => handleModeSwitch('auto')}>
-          📡 Auto (from Planner)
-        </span>
-        <span style={labelStyle(mode === 'manual')} onClick={() => handleModeSwitch('manual')}>
-          ✏️ Enter Manually
-        </span>
+        <button
+          type="button"
+          className="profile-mode-toggle"
+          style={labelStyle(mode === 'auto')}
+          aria-pressed={mode === 'auto'}
+          onClick={() => handleModeSwitch('auto')}
+        >
+          <Radio size={15} aria-hidden="true" /> Auto from Planner
+        </button>
+        <button
+          type="button"
+          className="profile-mode-toggle"
+          style={labelStyle(mode === 'manual')}
+          aria-pressed={mode === 'manual'}
+          onClick={() => handleModeSwitch('manual')}
+        >
+          <Pencil size={15} aria-hidden="true" /> Enter manually
+        </button>
       </div>
 
       {mode === 'auto' ? (

@@ -2090,7 +2090,7 @@
 }
 
 /* ── Mobile Responsive Adaptations ───────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .anonymous-portal-container {
     padding: 16px 12px 60px;
     gap: 16px;

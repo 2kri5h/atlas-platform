@@ -2,10 +2,11 @@ import { request } from '@playwright/test'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
-const authStatePath = join(tmpdir(), 'atlas-playwright-auth-state.json')
+const frontendPort = Number(process.env.PLAYWRIGHT_FRONTEND_PORT ?? 3000)
+const authStatePath = join(tmpdir(), `atlas-playwright-auth-state-${frontendPort}.json`)
 
 export default async function globalSetup() {
-  const context = await request.newContext({ baseURL: 'http://127.0.0.1:3000' })
+  const context = await request.newContext({ baseURL: `http://127.0.0.1:${frontendPort}` })
   const registration = await context.post('/api/auth/register', {
     data: {
       roll_number: 'e2e0001',

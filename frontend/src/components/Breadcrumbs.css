@@ -43,7 +43,7 @@
   font-weight: 600;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .breadcrumbs-nav {
     display: none;
   }

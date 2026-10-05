@@ -4,7 +4,7 @@ import api from '../utils/api'
 import { Event } from '../utils/api'
 import { DOMAINS, getDomainBadgeClass, formatDateTime } from '../utils/helpers'
 import { sanitizeUrl } from '../utils/security'
-import { ConfirmDialog, FilterSheet } from '../components/ui'
+import { ConfirmDialog, ErrorState, FilterSheet, LoadingState } from '../components/ui'
 import './Events.css'
 
 function Events() {
@@ -14,6 +14,7 @@ function Events() {
   const [filter, setFilter] = useState('')
   const [form, setForm] = useState({ title: '', description: '', event_date: '', location: '', domain: '', organizer: '' })
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -25,13 +26,15 @@ function Events() {
   }, [showArchived, filter])
 
   const fetchEvents = async () => {
+    setLoading(true)
+    setLoadError('')
     try {
       const params = new URLSearchParams({ archived: showArchived ? 'true' : 'false' })
       if (filter) params.append('domain', filter)
       const res = await api.get(`/campus-events/?${params}`)
       setEvents(res.data)
-    } catch (err) {
-      console.error('Failed to fetch events', err)
+    } catch {
+      setLoadError('Campus events could not be loaded. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -151,7 +154,9 @@ function Events() {
       {actionError && <p className="form-error-banner" role="alert">{actionError}</p>}
 
       {loading ? (
-        <div className="loading">Loading...</div>
+        <LoadingState label="Loading campus events" />
+      ) : loadError ? (
+        <ErrorState message={loadError} onRetry={fetchEvents} />
       ) : events.length === 0 ? (
         <div className="empty-state">No events found.</div>
       ) : (

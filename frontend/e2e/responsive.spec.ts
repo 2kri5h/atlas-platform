@@ -29,6 +29,7 @@ test('navigation adapts without hiding content or keyboard focus', async ({ page
     const dialog = page.getByRole('dialog', { name: 'More' })
     await expect(dialog).toBeVisible()
     await expect(dialog.getByRole('link', { name: 'AI Mentor' })).toBeVisible()
+    await page.screenshot({ path: testInfo.outputPath('more-open.png'), fullPage: true })
     await page.keyboard.press('Escape')
     await expect(dialog).toBeHidden()
     await expect(more).toBeFocused()
@@ -41,15 +42,32 @@ test('navigation adapts without hiding content or keyboard focus', async ({ page
 })
 
 test('primary pages remain usable at the configured viewport', async ({ page }, testInfo) => {
+  const consoleErrors: string[] = []
+  const clientErrors: string[] = []
+  const serverErrors: string[] = []
+  page.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push(message.text())
+  })
+  page.on('response', response => {
+    if (response.status() >= 400 && response.status() < 500) {
+      clientErrors.push(`${response.status()} ${response.url()}`)
+    }
+    if (response.status() >= 500) serverErrors.push(`${response.status()} ${response.url()}`)
+  })
+
   for (const route of ['/', '/planner', '/deadlines', '/emails', '/resources', '/events']) {
     await page.goto(route)
-    await page.locator('.loading').waitFor({ state: 'detached' }).catch(() => undefined)
+    await expect(page.locator('.loading, .grid-loading, .ui-loading')).toHaveCount(0)
     await expectNoHorizontalOverflow(page)
     await page.screenshot({
       path: testInfo.outputPath(`${route === '/' ? 'today' : route.slice(1)}.png`),
       fullPage: true,
     })
   }
+
+  expect(clientErrors, 'unexpected client-error responses').toEqual([])
+  expect(serverErrors, 'server responses with 5xx status').toEqual([])
+  expect(consoleErrors, 'browser console errors').toEqual([])
 })
 
 test('phone defaults and accessible sheet behavior are preserved', async ({ page }, testInfo) => {
@@ -104,6 +122,11 @@ test('phone dashboard meets the throttled Core Web Vitals budget', async ({ page
       cls: layoutEntries.filter(entry => !entry.hadRecentInput).reduce((sum, entry) => sum + entry.value, 0),
       inp: eventEntries.reduce((maximum, entry) => Math.max(maximum, entry.duration), 0),
     }
+  })
+
+  await testInfo.attach('web-vitals.json', {
+    body: Buffer.from(JSON.stringify(metrics, null, 2)),
+    contentType: 'application/json',
   })
 
   expect(metrics.lcp).toBeLessThanOrEqual(2500)

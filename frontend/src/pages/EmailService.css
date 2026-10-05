@@ -768,7 +768,7 @@
   transform: scale(0.96);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .briefing-bullet-row {
     flex-direction: column;
     align-items: flex-start;
@@ -2267,7 +2267,7 @@
 }
 
 /* ───────────────── MOBILE RESPONSIVE OVERHAUL (<= 768px) ───────────────── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .email-service-container {
     padding: 0 0 32px 0;
     width: 100%;

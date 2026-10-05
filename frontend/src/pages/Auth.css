@@ -24,7 +24,7 @@
 .auth-card h1 {
   font-size: 24px;
   font-weight: 800;
-  font-family: 'Plus Jakarta Sans', var(--font-sans);
+  font-family: var(--font-display);
   color: var(--text-primary);
   text-align: center;
   margin: 0 0 4px 0;

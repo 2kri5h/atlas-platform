@@ -60,12 +60,22 @@ def fetch_emails(
     }
 
 
+@router.get("/status")
+def get_email_status(current_user: Student = Depends(get_current_user)):
+    """Return connection state without treating an unconfigured inbox as an error."""
+    student_id = get_student_by_platform_id(str(current_user.id))
+    return {"connected": student_id is not None}
+
+
 @router.get("/")
 def list_emails(current_user: Student = Depends(get_current_user)):
     student_id = get_student_by_platform_id(str(current_user.id))
 
     if student_id is None:
-        raise HTTPException(status_code=404, detail="Email service not set up yet.")
+        # An unconnected inbox is a valid empty state for the Email page. Returning
+        # an empty collection avoids using a 404 as frontend control flow (and the
+        # associated browser/network error) while mutation endpoints remain strict.
+        return []
 
     emails = get_emails_for_student(student_id)
     return apply_retention_policy(emails, retention_days=7)

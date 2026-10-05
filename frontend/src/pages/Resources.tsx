@@ -119,23 +119,21 @@ export function Resources() {
     setTimeout(() => setToast(null), 5000)
   }
 
-  // Initial Data Fetch
+  // User context is independent. Visible collections are loaded by the active-tab effect below.
   useEffect(() => {
-    fetchCurrentUser()
-    fetchRecommended()
-    fetchLibrary()
-    fetchExploreResources()
+    void fetchCurrentUser()
   }, [])
 
   // Refetch when filters or hub tab changes
   useEffect(() => {
     if (activeHubView === 'library') {
-      fetchLibrary()
+      void fetchLibrary()
     } else {
+      void fetchRecommended()
       if (exploreSearch.trim()) {
-        handleExploreSearch()
+        void handleExploreSearch()
       } else {
-        fetchExploreResources()
+        void fetchExploreResources()
       }
     }
   }, [activeHubView, exploreFilter])

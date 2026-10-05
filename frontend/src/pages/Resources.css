@@ -515,8 +515,8 @@
   color: var(--text-primary);
 }
 
-/* ── Mobile Phone Media Queries (<= 768px) ── */
-@media (max-width: 768px) {
+/* ── Mobile Phone Media Queries (< 768px) ── */
+@media (max-width: 767px) {
   .resources-page {
     overflow-x: hidden;
   }
@@ -1959,8 +1959,8 @@
   padding: 20px;
 }
 
-/* ───────────────── MOBILE RESPONSIVE TWEAKS (<= 768px) ───────────────── */
-@media (max-width: 768px) {
+/* ───────────────── MOBILE RESPONSIVE TWEAKS (< 768px) ───────────────── */
+@media (max-width: 767px) {
   .resources-page {
     width: 100%;
     max-width: 100%;

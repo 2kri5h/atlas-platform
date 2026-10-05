@@ -257,6 +257,13 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal-overlay,
+  .ui-modal-card {
+    animation: none;
+  }
+}
+
 /* ── Skeleton loaders ───────────────────────────────────────────────────────── */
 .ui-skeleton {
   display: block;

@@ -13,6 +13,15 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 const THEME_STORAGE_KEY = 'atlas_theme'
 
+function applyThemeWithoutTransitions(update: () => void) {
+  const style = document.createElement('style')
+  style.textContent = '*,*::before,*::after{transition:none!important}'
+  document.head.append(style)
+  update()
+  void document.documentElement.offsetHeight
+  requestAnimationFrame(() => requestAnimationFrame(() => style.remove()))
+}
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
     const saved = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null
@@ -34,14 +43,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const currentResolved = theme === 'system' ? getSystemTheme() : theme
     setResolvedTheme(currentResolved)
 
-    root.setAttribute('data-theme', currentResolved)
-    if (currentResolved === 'dark') {
-      root.classList.add('dark')
-      root.classList.remove('light')
-    } else {
-      root.classList.add('light')
-      root.classList.remove('dark')
-    }
+    applyThemeWithoutTransitions(() => {
+      root.setAttribute('data-theme', currentResolved)
+      root.classList.toggle('dark', currentResolved === 'dark')
+      root.classList.toggle('light', currentResolved === 'light')
+    })
 
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
@@ -54,9 +60,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const handleChange = () => {
       const newResolved = mediaQuery.matches ? 'dark' : 'light'
       setResolvedTheme(newResolved)
-      document.documentElement.setAttribute('data-theme', newResolved)
-      document.documentElement.classList.toggle('dark', newResolved === 'dark')
-      document.documentElement.classList.toggle('light', newResolved === 'light')
+      applyThemeWithoutTransitions(() => {
+        document.documentElement.setAttribute('data-theme', newResolved)
+        document.documentElement.classList.toggle('dark', newResolved === 'dark')
+        document.documentElement.classList.toggle('light', newResolved === 'light')
+      })
     }
 
     mediaQuery.addEventListener('change', handleChange)

@@ -2157,7 +2157,7 @@
   color: var(--danger);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .tasks-container {
     grid-template-columns: 1fr;
   }
@@ -2744,43 +2744,6 @@ input:checked+.slider::before {
   white-space: nowrap;
 }
 
-/* ── Mobile Floating Action Button (FAB) ───────────────────────────────────── */
-/* ── Sticky Gutter & View Mode Enhancements ────────────────────────────────── */
-.timeline-container.is-week-view .time-gutter-header,
-.timeline-container.is-week-view .time-gutter {
-  position: sticky;
-  left: 0;
-  z-index: 15;
-  background: var(--background);
-  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.04);
-}
-
-.timeline-container.is-day-view {
-  overflow-x: hidden;
-}
-
-.timeline-container.is-day-view .timeline-header,
-.timeline-container.is-day-view .timeline-body {
-  min-width: 0;
-  width: 100%;
-}
-
-.timeline-container.is-day-view .col-header {
-  padding: 12px 16px;
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: 12px;
-}
-
-.timeline-container.is-day-view .col-day-num {
-  font-size: 18px;
-}
-
-.timeline-container.is-day-view .col-day-name {
-  font-size: 13px;
-  letter-spacing: 0.04em;
-}
-
 /* ── Responsive Media Queries ──────────────────────────────────────────────── */
 
 /* Tablet breakpoint */
@@ -2794,13 +2757,10 @@ input:checked+.slider::before {
     justify-content: space-between;
   }
 
-  .mobile-day-strip {
-    display: flex;
-  }
 }
 
 /* ── Mobile breakpoint – full redesign ─────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
 
   /* Safe padding: clearing mobile bottom dock and floating actions */
   .planner-page {
@@ -2974,6 +2934,13 @@ input:checked+.slider::before {
     overflow-x: hidden !important;
   }
 
+  .tt-calendar-card.is-day-card .tt-timeline-body {
+    max-height: max(420px, calc(100dvh - 360px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
   .tt-timeline-header.is-day-view,
   .tt-timeline-body.is-day-view {
     min-width: 0 !important;
@@ -3022,65 +2989,6 @@ input:checked+.slider::before {
 
   .tt-timeline-body.is-day-view .tt-card-room {
     font-size: 12px;
-  }
-
-  /* Backward compatibility for any old classnames */
-  .timeline-container.is-day-view,
-  .timeline-container.is-day-view .timeline-header,
-  .timeline-container.is-day-view .timeline-body {
-    min-width: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-  }
-
-  .timeline-container.is-day-view .day-col {
-    flex: 1 1 0% !important;
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  .timeline-container.is-day-view .time-gutter,
-  .timeline-container.is-day-view .time-gutter-header {
-    width: 48px !important;
-    flex-shrink: 0 !important;
-  }
-
-  .timeline-container.is-day-view .timeline-lunch-block {
-    left: 48px !important;
-    width: calc(100% - 48px) !important;
-  }
-
-  .timeline-container.is-week-view {
-    max-width: 100% !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 10px;
-    position: relative;
-  }
-
-  .timeline-container.is-week-view .time-gutter,
-  .timeline-container.is-week-view .time-gutter-header {
-    position: sticky !important;
-    left: 0 !important;
-    background: #FFFFFF !important;
-    z-index: 25 !important;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
-  }
-
-  .timeline-container.is-week-view .timeline-header,
-  .timeline-container.is-week-view .timeline-body {
-    min-width: 960px !important;
-  }
-
-  .timeline-container.is-week-view .col-header,
-  .timeline-container.is-week-view .day-col {
-    min-width: 130px !important;
-    flex: 1 0 130px !important;
-  }
-
-  .timeline-container {
-    border-radius: 10px;
   }
 
   /* ── Deadlines panel ── */
@@ -4251,4 +4159,3 @@ html.dark .planner-page {
   border-color: var(--primary);
   background: rgba(99, 102, 241, 0.08);
 }
-

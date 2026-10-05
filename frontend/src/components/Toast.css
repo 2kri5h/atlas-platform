@@ -32,7 +32,7 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .toast-host { left: 16px; right: 16px; bottom: 84px; }
   .toast { max-width: none; }
 }

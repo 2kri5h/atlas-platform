@@ -5,7 +5,6 @@ import {
   RotateCcw,
   SkipForward,
   Timer,
-  CheckCircle2,
   Minimize2,
   Maximize2,
   X,
@@ -14,6 +13,7 @@ import {
   VolumeX,
 } from 'lucide-react'
 import api from '../utils/api'
+import { toast } from './Toast'
 import './PomodoroTimer.css'
 
 export type TimerMode = 'pomodoro' | 'deepwork' | 'shortbreak' | 'longbreak'
@@ -34,10 +34,18 @@ const MODE_LABELS: Record<TimerMode, string> = {
 
 interface PomodoroTimerProps {
   onSessionLogged?: () => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  showLauncher?: boolean
 }
 
-export default function PomodoroTimer({ onSessionLogged }: PomodoroTimerProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export default function PomodoroTimer({
+  onSessionLogged,
+  open,
+  onOpenChange,
+  showLauncher = true,
+}: PomodoroTimerProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [mode, setMode] = useState<TimerMode>('pomodoro')
   const [timeLeft, setTimeLeft] = useState(MODE_DURATIONS.pomodoro)
@@ -46,7 +54,8 @@ export default function PomodoroTimer({ onSessionLogged }: PomodoroTimerProps) {
   const [autoLog, setAutoLog] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [completedSessions, setCompletedSessions] = useState(0)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const isOpen = open ?? internalOpen
+  const setIsOpen = onOpenChange ?? setInternalOpen
   
   const timerRef = useRef<number | null>(null)
   const startTimeRef = useRef<Date | null>(null)
@@ -108,7 +117,7 @@ export default function PomodoroTimer({ onSessionLogged }: PomodoroTimerProps) {
     if (isStudySession && autoLog) {
       await logSessionToPlanner()
     } else {
-      showToast(`🎉 ${MODE_LABELS[mode]} session completed!`)
+      toast(`${MODE_LABELS[mode]} session completed.`, 'success')
     }
 
     // Auto-switch to break or pomodoro
@@ -145,16 +154,11 @@ export default function PomodoroTimer({ onSessionLogged }: PomodoroTimerProps) {
         is_completed: true,
       })
 
-      showToast(`🎯 Logged ${durationMinutes}m focus session to Planner! +${(durationMinutes / 60).toFixed(2)}h working hours added to Telemetry.`)
+      toast(`Logged a ${durationMinutes}-minute focus session to Planner.`, 'success')
       if (onSessionLogged) onSessionLogged()
-    } catch (err) {
-      showToast(`Session finished (${durationMinutes}m). Could not auto-log to planner.`)
+    } catch {
+      toast(`Session finished, but it could not be added to Planner.`, 'error')
     }
-  }
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 4000)
   }
 
   const switchMode = (newMode: TimerMode) => {
@@ -183,16 +187,8 @@ export default function PomodoroTimer({ onSessionLogged }: PomodoroTimerProps) {
 
   return (
     <>
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="pomodoro-toast">
-          <CheckCircle2 size={18} />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
       {/* Floating Launcher Pill when closed */}
-      {!isOpen && (
+      {showLauncher && !isOpen && (
         <button
           className={`pomodoro-floating-launcher ${isRunning ? 'running' : ''}`}
           onClick={() => setIsOpen(true)}

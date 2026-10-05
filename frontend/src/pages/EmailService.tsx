@@ -164,11 +164,17 @@ export default function EmailService() {
 
   async function loadExisting() {
     try {
+      const status = await api.get<{ connected: boolean }>('/emails/status')
+      setRegistered(status.data.connected)
+      if (!status.data.connected) {
+        setEmails([])
+        return
+      }
       const res = await api.get<EmailRecord[]>('/emails/')
       setEmails(res.data)
-      setRegistered(true)
     } catch {
-      // not registered yet
+      setRegistered(false)
+      setEmails([])
     }
   }
 

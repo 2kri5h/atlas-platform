@@ -4,6 +4,7 @@ import api, { apiKeysAPI, UserAPIKey } from '../utils/api'
 import { Student, BurnoutScore, SmartSuggestion } from '../utils/api'
 import ApiKeyVaultModal from '../components/ApiKeyVaultModal'
 import { sanitizeUrl } from '../utils/security'
+import { LoadingState } from '../components/ui'
 import './AIAssistant.css'
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -268,7 +269,7 @@ function AIAssistant() {
     }
   }
 
-  if (loading) return <div className="loading">Loading...</div>
+  if (loading) return <LoadingState label="Loading AI mentor" />
 
   return (
     <div className="ai-page">

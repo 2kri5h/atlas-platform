@@ -2,8 +2,11 @@ import { defineConfig } from '@playwright/test'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
-export const authStatePath = join(tmpdir(), 'atlas-playwright-auth-state.json')
-const databasePath = join(tmpdir(), 'atlas-playwright.db').replace(/\\/g, '/')
+const frontendPort = Number(process.env.PLAYWRIGHT_FRONTEND_PORT ?? 3000)
+const backendPort = Number(process.env.PLAYWRIGHT_BACKEND_PORT ?? 8000)
+
+export const authStatePath = join(tmpdir(), `atlas-playwright-auth-state-${frontendPort}.json`)
+const databasePath = join(tmpdir(), `atlas-playwright-${backendPort}.db`).replace(/\\/g, '/')
 
 export default defineConfig({
   testDir: './e2e',
@@ -15,7 +18,7 @@ export default defineConfig({
   workers: 1,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: `http://127.0.0.1:${frontendPort}`,
     channel: 'chrome',
     storageState: authStatePath,
     trace: 'retain-on-failure',
@@ -33,8 +36,8 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'python -m uvicorn backend.api.main:app --app-dir .. --host 127.0.0.1 --port 8000',
-      url: 'http://127.0.0.1:8000/health',
+      command: `python -m uvicorn backend.api.main:app --app-dir .. --host 127.0.0.1 --port ${backendPort}`,
+      url: `http://127.0.0.1:${backendPort}/health`,
       cwd: '.',
       timeout: 120_000,
       reuseExistingServer: false,
@@ -45,11 +48,14 @@ export default defineConfig({
       },
     },
     {
-      command: 'npm run dev -- --host 127.0.0.1',
-      url: 'http://127.0.0.1:3000/login',
+      command: `npm run dev -- --host 127.0.0.1 --port ${frontendPort}`,
+      url: `http://127.0.0.1:${frontendPort}/login`,
       cwd: '.',
       timeout: 120_000,
       reuseExistingServer: false,
+      env: {
+        BACKEND_URL: `http://127.0.0.1:${backendPort}`,
+      },
     },
   ],
 })

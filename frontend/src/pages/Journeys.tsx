@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Plus, ThumbsUp, CheckCircle, X, Calendar, Tag, ArrowRight } from 'lucide-react'
+import { Plus, ThumbsUp, CheckCircle, Calendar, Tag, ArrowRight } from 'lucide-react'
 import api from '../utils/api'
 import { Journey } from '../utils/api'
 import { DOMAINS, getDomainBadgeClass } from '../utils/helpers'
+import { ErrorState, LoadingState, Modal } from '../components/ui'
 import './Journeys.css'
 
 function Journeys() {
@@ -12,18 +13,21 @@ function Journeys() {
   const [selectedJourney, setSelectedJourney] = useState<Journey | null>(null)
   const [form, setForm] = useState({ title: '', domain: 'sde', content: '', year_completed: 2024, tags: '' })
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     fetchJourneys()
   }, [filter])
 
   const fetchJourneys = async () => {
+    setLoading(true)
+    setLoadError('')
     try {
       const params = filter ? `?domain=${filter}` : ''
       const res = await api.get(`/journeys/${params}`)
       setJourneys(res.data)
-    } catch (err) {
-      console.error('Failed to fetch journeys', err)
+    } catch {
+      setLoadError('Senior journeys could not be loaded. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -114,7 +118,9 @@ function Journeys() {
       </div>
 
       {loading ? (
-        <div className="loading">Loading...</div>
+        <LoadingState label="Loading journeys" />
+      ) : loadError ? (
+        <ErrorState message={loadError} onRetry={fetchJourneys} />
       ) : journeys.length === 0 ? (
         <div className="empty-state">No journeys found. Be the first to share!</div>
       ) : (
@@ -126,7 +132,7 @@ function Journeys() {
             const tagList = journey.tags ? journey.tags.split(',').map(t => t.trim()).filter(Boolean) : []
 
             return (
-              <div key={journey.id} className="journey-card card" onClick={() => setSelectedJourney(journey)}>
+              <article key={journey.id} className="journey-card card">
                 <div>
                   <div className="journey-header">
                     <span className={getDomainBadgeClass(journey.domain)}>{journey.domain.toUpperCase()}</span>
@@ -154,65 +160,57 @@ function Journeys() {
                     <button className="upvote-btn" onClick={(e) => upvote(journey.id, e)} title="Upvote">
                       <ThumbsUp size={14} /> {journey.upvotes}
                     </button>
-                    <button className="read-more-btn" onClick={(e) => { e.stopPropagation(); setSelectedJourney(journey); }}>
-                      View Full Story <ArrowRight size={14} />
+                    <button className="read-more-btn" onClick={() => setSelectedJourney(journey)}>
+                      View journey <ArrowRight size={14} />
                     </button>
                   </div>
                 </div>
-              </div>
+              </article>
             )
           })}
         </div>
       )}
 
-      {/* Full Journey Overview Modal */}
-      {selectedJourney && (
-        <div className="journey-modal-backdrop" onClick={() => setSelectedJourney(null)}>
-          <div className="journey-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="journey-modal-header">
-              <div className="modal-header-badges">
-                <span className={getDomainBadgeClass(selectedJourney.domain)}>{selectedJourney.domain.toUpperCase()}</span>
-                {selectedJourney.is_verified && (
-                  <span className="verified-badge"><CheckCircle size={13} /> Verified Senior</span>
-                )}
-                {selectedJourney.year_completed && (
-                  <span className="year-badge"><Calendar size={13} /> Class of {selectedJourney.year_completed}</span>
-                )}
-              </div>
-              <button className="close-modal-btn" onClick={() => setSelectedJourney(null)} aria-label="Close modal">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="journey-modal-body">
-              <h2>{selectedJourney.title}</h2>
-              
-              {selectedJourney.tags && (
-                <div className="modal-tags">
-                  {selectedJourney.tags.split(',').map((tag, i) => (
-                    <span key={i} className="modal-tag-pill"><Tag size={12} /> {tag.trim()}</span>
-                  ))}
-                </div>
+      <Modal
+        open={Boolean(selectedJourney)}
+        onClose={() => setSelectedJourney(null)}
+        title={selectedJourney?.title}
+        className="journey-modal-content"
+        footer={selectedJourney && (
+          <>
+            <button className="upvote-btn modal-upvote" onClick={() => upvote(selectedJourney.id)}>
+              <ThumbsUp size={16} /> Helpful ({selectedJourney.upvotes})
+            </button>
+            <button className="secondary" onClick={() => setSelectedJourney(null)}>Close</button>
+          </>
+        )}
+      >
+        {selectedJourney && (
+          <div className="journey-modal-body">
+            <div className="modal-header-badges">
+              <span className={getDomainBadgeClass(selectedJourney.domain)}>{selectedJourney.domain.toUpperCase()}</span>
+              {selectedJourney.is_verified && (
+                <span className="verified-badge"><CheckCircle size={13} /> Verified Senior</span>
               )}
-
-              <div className="full-story-content">
-                {selectedJourney.content.split('\n\n').map((paragraph, index) => (
-                  <p key={index}>{paragraph}</p>
+              {selectedJourney.year_completed && (
+                <span className="year-badge"><Calendar size={13} /> Class of {selectedJourney.year_completed}</span>
+              )}
+            </div>
+            {selectedJourney.tags && (
+              <div className="modal-tags">
+                {selectedJourney.tags.split(',').map((tag, i) => (
+                  <span key={i} className="modal-tag-pill"><Tag size={12} /> {tag.trim()}</span>
                 ))}
               </div>
-            </div>
-
-            <div className="journey-modal-footer">
-              <button className="upvote-btn modal-upvote" onClick={() => upvote(selectedJourney.id)}>
-                <ThumbsUp size={16} /> Helpful ({selectedJourney.upvotes})
-              </button>
-              <button className="secondary" onClick={() => setSelectedJourney(null)}>
-                Close
-              </button>
+            )}
+            <div className="full-story-content">
+              {selectedJourney.content.split('\n\n').map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   )
 }

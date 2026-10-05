@@ -40,6 +40,7 @@ export function usePlannerData() {
   const [events, setEvents] = useState<PlannerEvent[]>([])
   const [loadData, setLoadData] = useState<CapacityDay[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   // Track the current fetch context so invalidate() can re-run with the same params
   const lastContextRef = useRef<{ viewMode: ViewMode; currentDate: Date } | null>(null)
@@ -47,6 +48,7 @@ export function usePlannerData() {
   const fetchEvents = useCallback(async (viewMode: ViewMode, currentDate: Date) => {
     lastContextRef.current = { viewMode, currentDate }
     setLoading(true)
+    setError('')
 
     try {
       let from: string
@@ -64,8 +66,8 @@ export function usePlannerData() {
       }
       const res = await api.get<PlannerEvent[]>(`/events/?from=${from}&to=${to}`)
       setEvents(res.data)
-    } catch (err) {
-      console.error('[usePlannerData] fetchEvents failed:', err)
+    } catch {
+      setError('Your schedule could not be loaded. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -77,8 +79,8 @@ export function usePlannerData() {
       const m = String(currentDate.getMonth() + 1).padStart(2, '0')
       const res = await api.get<CapacityDay[]>(`/events/load?month=${y}-${m}`)
       setLoadData(res.data)
-    } catch (err) {
-      console.error('[usePlannerData] fetchCapacity failed:', err)
+    } catch {
+      setError('Planner capacity could not be loaded. Try again.')
     }
   }, [])
 
@@ -98,6 +100,7 @@ export function usePlannerData() {
     events,
     loadData,
     loading,
+    error,
     fetchEvents,
     fetchCapacity,
     invalidate,

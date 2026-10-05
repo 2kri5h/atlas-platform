@@ -146,7 +146,7 @@
 .metrics-value {
   font-size: 1.4rem;
   font-weight: 750;
-  font-family: 'Outfit', -apple-system, sans-serif;
+  font-family: var(--font-display);
   color: var(--text-primary);
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -383,7 +383,7 @@
 }
 
 /* ── Mobile Phone Media Queries (<= 768px) ── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .deadlines-page {
     overflow-x: hidden;
     width: 100%;
