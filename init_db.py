@@ -71,7 +71,25 @@ def init_db():
             screen_time_hours=6.0
         )
 
-        db.add_all([student1, student2])
+        student3 = Student(
+            id=6,
+            roll_number="25B3004",
+            name="Krish Tandel",
+            email="25b3004@iitb.ac.in",
+            password_hash=hash_password("password123"),
+            branch="CME",
+            year=1,
+            domains="sde,ai_ml",
+            goals="placements,startup",
+            weak_subjects="",
+            study_hours_per_week=30,
+            cpi=8.8,
+            sleep_hours=7.0,
+            screen_time_hours=6.0,
+            role="admin"
+        )
+
+        db.add_all([student1, student2, student3])
         db.commit()
 
         resources = [

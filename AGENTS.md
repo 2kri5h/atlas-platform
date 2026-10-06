@@ -47,6 +47,7 @@ This project has no configured test framework, linting, type-checking scripts, p
 |---|---|---|
 | 21001001 | password123 | 4th year, CS |
 | 21001002 | password123 | 3rd year, Electrical |
+| 25B3004 | password123 | Admin / Krish Tandel (CME) |
 
 ## Key Files
 

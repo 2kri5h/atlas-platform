@@ -3,7 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import api, { setAuthToken } from '../utils/api'
 import './Auth.css'
 
-const getErrorMessage = (detail: any): string => {
+const getErrorMessage = (err: any): string => {
+  const detail = err?.response?.data?.detail
   if (typeof detail === 'string') return detail
   if (Array.isArray(detail)) {
     return detail
@@ -13,7 +14,19 @@ const getErrorMessage = (detail: any): string => {
   if (detail && typeof detail === 'object') {
     return detail.msg || JSON.stringify(detail)
   }
-  return 'Login failed'
+  if (err?.response?.data?.message) {
+    return err.response.data.message
+  }
+  if (err?.code === 'ECONNABORTED' || err?.message?.includes('timeout')) {
+    return 'Server request timed out. Backend may be waking up from sleep, please try again in a moment.'
+  }
+  if (err?.response?.status === 502 || err?.response?.status === 503) {
+    return 'Backend server is starting up. Please wait 15-30 seconds and try again.'
+  }
+  if (err?.message === 'Network Error' || !err?.response) {
+    return 'Unable to connect to the server. Please check your connection or retry in a few seconds.'
+  }
+  return 'Login failed. Please check your credentials and try again.'
 }
 
 function Login() {
@@ -38,7 +51,7 @@ function Login() {
       const next = searchParams.get('next')
       navigate(next && next.startsWith('/') && !next.startsWith('//') ? next : '/')
     } catch (err: any) {
-      setError(getErrorMessage(err.response?.data?.detail))
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
