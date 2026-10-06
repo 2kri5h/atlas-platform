@@ -6,14 +6,23 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     ports:
-      - "0.0.0.0:8000:8000"
+      - "127.0.0.1:8000:8000"   # bind to localhost only — nginx is the public face
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data         # persist SQLite DB for local dev
     environment:
-      - DATABASE_URL=sqlite:///data/itsp.db
-      - SECRET_KEY=${SECRET_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Use absolute in-container path (4-slash = absolute with SQLite)
+      - DATABASE_URL=sqlite:////app/data/itsp.db
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-change-me-in-production}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY:-}
+      - ENVIRONMENT=development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
   frontend:
@@ -23,5 +32,6 @@ services:
     ports:
       - "0.0.0.0:3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy   # wait for backend health check to pass
     restart: unless-stopped

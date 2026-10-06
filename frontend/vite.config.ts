@@ -6,6 +6,7 @@ const target = process.env.BACKEND_URL || 'http://localhost:8000'
 
 export default defineConfig({
   plugins: [react()],
+
   server: {
     port,
     proxy: {
@@ -15,19 +16,41 @@ export default defineConfig({
       },
     },
   },
+
   build: {
-    // Capacitor loads from local assets — keep sourcemaps for debugging
+    // Source maps off in prod — errors go through Sentry/request_id
     sourcemap: false,
+
+    // Raise chunk warning threshold (AI markdown + katex are intentionally large)
+    chunkSizeWarningLimit: 600,
+
     rollupOptions: {
       output: {
+        /**
+         * Manual chunk strategy:
+         *  - vendor-react:    React + router — tiny, changes rarely → long browser cache
+         *  - vendor-markdown: react-markdown + remark/rehype + katex → rarely changes
+         *  - vendor-ui:       lucide-react icons → rarely changes
+         *  - Everything else: app code (frequent changes → short cache, small size)
+         */
         manualChunks(id) {
-          // Rolldown (Vite 8) accepts a resolver function here. Keep the
-          // framework runtime cacheable without pulling react-markdown into it.
           if (/node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/.test(id)) {
             return 'vendor-react'
+          }
+          if (/node_modules[\\/](react-markdown|remark|rehype|remark-gfm|remark-math|rehype-katex|katex|unified|micromark|mdast|hast|vfile|property-information|decode-named-character-reference)[\\/]/.test(id)) {
+            return 'vendor-markdown'
+          }
+          if (/node_modules[\\/]lucide-react[\\/]/.test(id)) {
+            return 'vendor-ui'
+          }
+          if (/node_modules[\\/]axios[\\/]/.test(id)) {
+            return 'vendor-http'
           }
         },
       },
     },
   },
+
+  // Inline small assets (< 4KB) as base64 to save round-trips
+  assetsInlineLimit: 4096,
 })

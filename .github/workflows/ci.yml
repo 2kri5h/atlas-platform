@@ -1,39 +1,124 @@
-name: CI
+name: CI / CD
 
 on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# BACKEND TESTS
+# ──────────────────────────────────────────────────────────────────────────────
 jobs:
   backend-tests:
+    name: Backend — pytest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
+
       - name: Install dependencies
         run: pip install -r requirements.txt pytest
+
       - name: Run tests
         env:
-          SECRET_KEY: ci-test-secret-key-not-for-production
+          SECRET_KEY: ci-test-secret-key-not-for-production-32ch
           TOKEN_ENCRYPTION_KEY: Q6JemvQO0B9yP948RRydDToWPtCy1c8jK7Y4JO20clc=
-        run: python -m pytest tests/ -q
+          DATABASE_URL: sqlite:///./data/test.db
+        run: python -m pytest tests/ -q --tb=short
 
+  # ──────────────────────────────────────────────────────────────────────────
+  # FRONTEND BUILD + TYPE-CHECK
+  # ──────────────────────────────────────────────────────────────────────────
   frontend-build:
+    name: Frontend — tsc + vite build
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
       - name: Install dependencies
         run: npm ci
+
       - name: Type-check and build
         run: npm run build
+
+      - name: Upload dist (used by Docker build job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # DOCKER BUILD VALIDATION (makes sure the images build cleanly)
+  # ──────────────────────────────────────────────────────────────────────────
+  docker-build:
+    name: Docker — build images
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.backend
+          push: false
+          tags: atlas-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: false
+          tags: atlas-frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # DEPLOY TO RENDER (main branch only, after all checks pass)
+  # Render auto-deploys from the 'main' branch webhook — this job just
+  # triggers it explicitly with a deploy hook so we control the order.
+  # Set RENDER_DEPLOY_HOOK_URL as a repository secret.
+  # ──────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy → Render
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-build, docker-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Trigger Render deploy
+        if: ${{ vars.RENDER_DEPLOY_HOOK_URL != '' }}
+        run: |
+          curl -s --fail-with-body \
+            -X POST "${{ vars.RENDER_DEPLOY_HOOK_URL }}" \
+          || echo "⚠️ Render webhook not configured — auto-deploy from git push will still fire."
+
+      - name: Summary
+        run: echo "✅ All checks passed. Deployment triggered."

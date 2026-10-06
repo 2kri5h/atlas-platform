@@ -49,7 +49,7 @@ services:
       - key: ENVIRONMENT
         value: "production"
       - key: TOKEN_ENCRYPTION_KEY
-        generateValue: true
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_API

@@ -24,6 +24,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+import time
+
+# Simple in-process TTL cache for overview: user_id -> (timestamp, payload)
+_OVERVIEW_CACHE: Dict[int, tuple[float, Dict[str, Any]]] = {}
+_OVERVIEW_TTL_SECONDS = 15.0
+
+
 @router.get("/today")
 def today_dashboard(
     horizon_hours: int = Query(
@@ -42,10 +49,17 @@ def today_dashboard(
 
 @router.get("/overview")
 def dashboard_overview(
+    nocache: bool = Query(False, description="Bypass in-process overview cache if true"),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
-    """Single authenticated payload for the initial home-screen render."""
+    """Single authenticated payload for the initial home-screen render with 15s TTL caching."""
+    now_ts = time.time()
+    if not nocache and current_user.id in _OVERVIEW_CACHE:
+        cached_ts, cached_data = _OVERVIEW_CACHE[current_user.id]
+        if now_ts - cached_ts < _OVERVIEW_TTL_SECONDS:
+            return cached_data
+
     now = datetime.utcnow()
     today = build_today_dashboard(db, current_user.id, now=now).to_dict()
     next_deadline = (
@@ -62,7 +76,39 @@ def dashboard_overview(
     )
     waking_hours = max(float(current_user.wakingHoursPerDay or 16), 1.0)
     load_pct = min(round(today["working_hours_today"] / waking_hours * 100), 100)
-    return {
+
+    degraded_sections = []
+
+    # Fault-tolerant fetch of auxiliary analytics
+    try:
+        working_hours = get_working_hours(current_user=current_user, db=db)
+    except Exception as exc:
+        logger.warning("Failed to fetch working_hours for user %s: %s", current_user.id, exc)
+        working_hours = {"hours_per_day": {}, "average": 0}
+        degraded_sections.append("working_hours")
+
+    try:
+        conflicts = get_conflict_radar(current_user=current_user, db=db).get("warnings", [])
+    except Exception as exc:
+        logger.warning("Failed to fetch conflicts for user %s: %s", current_user.id, exc)
+        conflicts = []
+        degraded_sections.append("conflicts")
+
+    try:
+        burnout = get_latest_burnout_score(current_user=current_user, db=db)
+    except Exception as exc:
+        logger.warning("Failed to fetch burnout for user %s: %s", current_user.id, exc)
+        burnout = None
+        degraded_sections.append("burnout")
+
+    try:
+        burnout_history = get_burnout_history(days=14, current_user=current_user, db=db).get("history", [])
+    except Exception as exc:
+        logger.warning("Failed to fetch burnout_history for user %s: %s", current_user.id, exc)
+        burnout_history = []
+        degraded_sections.append("burnout_history")
+
+    result = {
         "student": {
             "id": current_user.id,
             "roll_number": current_user.roll_number,
@@ -75,7 +121,7 @@ def dashboard_overview(
         },
         "today": today,
         "tasks": today["tasks"]["next_tasks"],
-        "working_hours": get_working_hours(current_user=current_user, db=db),
+        "working_hours": working_hours,
         "next_deadline": ({
             "id": next_deadline.id,
             "title": next_deadline.title,
@@ -87,8 +133,12 @@ def dashboard_overview(
             "loadPct": load_pct,
             "status": "max" if load_pct >= 90 else "high" if load_pct >= 70 else "medium" if load_pct >= 40 else "low",
         },
-        "conflicts": get_conflict_radar(current_user=current_user, db=db).get("warnings", []),
-        "burnout": get_latest_burnout_score(current_user=current_user, db=db),
-        "burnout_history": get_burnout_history(days=14, current_user=current_user, db=db).get("history", []),
-        "degraded_sections": [],
+        "conflicts": conflicts,
+        "burnout": burnout,
+        "burnout_history": burnout_history,
+        "degraded_sections": degraded_sections,
     }
+
+    _OVERVIEW_CACHE[current_user.id] = (now_ts, result)
+    return result
+
