@@ -1,185 +1,169 @@
-# ITSP Platform - IIT Bombay Student Productivity
+#ITSP Platform — AI-Powered Student Productivity
 
-AI-powered student productivity platform for personalized academic roadmaps and adaptive scheduling.
+An AI-powered B2B EdTech platform developed at IIT Bombay to help educational institutions deliver personalized academic planning, career guidance, and student productivity support.
 
-## Features
+IIT Bombay Summer Project — Among Top Teams | ₹30,000 Funding | IIT Bombay Groww Programme
 
-- **Personalized Academic Roadmaps** - AI-generated learning paths based on domain, goals, and weak subjects
-- **Smart Weekly Planner** - Task management with time tracking and workload balancing
-- **Resource Library** - Senior-curated content across domains (SDE, AI/ML, Finance, Core, Research, Consulting)
-- **Burnout Risk Scoring** - ML-based assessment of study patterns and workload
-- **Progress Dashboard** - Productivity analytics and consistency tracking
-- **Anonymous Portal** - Safe space for sensitive questions with mental health detection
-- **Senior Journeys** - Structured experiences from past students
-- **Events System** - Workshop and talk discovery with archives
+Overview
 
-## Tech Stack
+ITSP Platform is a full-stack student productivity and academic guidance platform designed to bridge the gap between students' academic goals and available institutional resources.
 
-- **Backend:** FastAPI + SQLAlchemy
-- **Frontend:** React + Vite + TypeScript
-- **Database:** SQLite (dev) / MySQL (prod)
-- **AI:** Scikit-learn for burnout scoring, rule-based roadmap generation
+The platform combines personalized learning roadmaps, intelligent scheduling, curated resources, productivity analytics, and student well-being support into a unified ecosystem.
 
-## Project Structure
+Initially developed as part of an IIT Bombay summer project, ITSP is now being developed further through IIT Bombay's Groww Programme, with a long-term vision of becoming a scalable B2B solution for educational institutions.
 
-```
+Recognition & Institutional Support
+
+- Top Summer Project Team: Recognized among the top-performing teams in an IIT Bombay summer project initiative.
+- ₹30,000 Funding: Received development funding through IIT Bombay's Groww Programme.
+- Institutional Collaboration: Currently working with IIT Bombay through the Groww Programme to further develop and refine the platform.
+- B2B Product Vision: Designed for institutional adoption, enabling universities to provide personalized academic guidance and student support at scale.
+
+Key Features
+
+Feature| Description
+Personalized Academic Roadmaps| AI-assisted learning paths based on student goals, interests, and weak subjects
+Smart Weekly Planner| Task scheduling, workload balancing, and time tracking
+Resource Library| Senior-curated resources for SDE, AI/ML, Finance, Research, Core, and Consulting
+Burnout Risk Assessment| ML-based analysis of study patterns and workload
+Progress Dashboard| Productivity insights, progress visualization, and consistency tracking
+Anonymous Student Portal| Anonymous discussions with keyword-based mental health concern detection
+Senior Journeys| Structured academic and career experiences shared by seniors
+Events & Workshops| Discovery of institutional events, workshops, and archived sessions
+
+Tech Stack
+
+Layer| Technologies
+Frontend| React, TypeScript, Vite
+Backend| Python, FastAPI, SQLAlchemy
+Database| SQLite (Development), MySQL (Planned Production)
+AI / ML| Scikit-learn, Rule-Based Recommendation Systems
+AI Integration| Google Gemini API
+Authentication| JWT
+Deployment| Docker, Docker Compose
+
+System Architecture
+
+                  Student / Institution
+                           |
+                  React + TypeScript
+                           |
+                      REST APIs
+                           |
+                        FastAPI
+                           |
+          +----------------+----------------+
+          |                |                |
+     Authentication    AI / ML Engine   Core Services
+          |                |                |
+          |           Roadmap Generator     |
+          |           Burnout Scoring       |
+          |                |                |
+          +----------------+----------------+
+                           |
+                       SQLAlchemy
+                           |
+                    SQLite / MySQL
+
+Project Structure
+
 itsp_project/
 ├── backend/
-│   ├── api/              # FastAPI routers
-│   │   ├── auth.py       # Authentication, registration
-│   │   ├── resources.py  # Resource library CRUD
-│   │   ├── events.py     # Events management
-│   │   ├── journeys.py    # Senior journeys
-│   │   ├── planner.py    # Task management
-│   │   ├── anonymous.py   # Anonymous posts & replies
-│   │   └── ai.py         # Roadmap generation, burnout scoring
-│   ├── core/             # Config, database
-│   └── models/           # SQLAlchemy models
+│   ├── api/              # REST API endpoints
+│   ├── core/             # Configuration and database
+│   └── models/           # Database models
 ├── frontend/
 │   └── src/
-│       ├── components/    # Layout
-│       └── pages/        # All page components
-├── data/                 # SQLite database
-├── docker-compose.yml     # Docker deployment
-└── init_db.py           # Database seeding
-```
+│       ├── components/   # Reusable UI components
+│       └── pages/        # Application pages
+├── data/                 # Development database
+├── init_db.py            # Database initialization
+├── requirements.txt      # Python dependencies
+└── docker-compose.yml    # Container configuration
 
-# ITSP Platform - IIT Bombay Student Productivity
+Getting Started
 
-AI-powered student productivity platform for personalized academic roadmaps and adaptive scheduling.
+Prerequisites
 
-## Features
+- Python 3.11
+- Node.js 20+
+- npm
+- Gemini API key (for Gemini-powered features)
 
-- **Personalized Academic Roadmaps** - AI-generated learning paths based on domain, goals, and weak subjects
-- **Smart Weekly Planner** - Task management with time tracking and workload balancing
-- **Resource Library** - Senior-curated content across domains (SDE, AI/ML, Finance, Core, Research, Consulting)
-- **Burnout Risk Scoring** - ML-based assessment of study patterns and workload
-- **Progress Dashboard** - Productivity analytics and consistency tracking
-- **Anonymous Portal** - Safe space for sensitive questions with mental health detection
-- **Senior Journeys** - Structured experiences from past students
-- **Events System** - Workshop and talk discovery with archives
+Local Development
 
-## Tech Stack
+1. Clone the repository
 
-- **Backend:** FastAPI + SQLAlchemy
-- **Frontend:** React + Vite + TypeScript
-- **Database:** SQLite (dev) / MySQL (prod)
-- **AI:** Scikit-learn for burnout scoring, rule-based roadmap generation
+git clone <repository-url>
+cd itsp_project
 
-## Project Structure
+2. Start the backend
 
-```
-itsp_project/
-├── backend/
-│   ├── api/              # FastAPI routers
-│   │   ├── auth.py       # Authentication, registration
-│   │   ├── resources.py  # Resource library CRUD
-│   │   ├── events.py     # Events management
-│   │   ├── journeys.py    # Senior journeys
-│   │   ├── planner.py    # Task management
-│   │   ├── anonymous.py   # Anonymous posts & replies
-│   │   └── ai.py         # Roadmap generation, burnout scoring
-│   ├── core/             # Config, database
-│   └── models/           # SQLAlchemy models
-├── frontend/
-│   └── src/
-│       ├── components/    # Layout
-│       └── pages/        # All page components
-├── data/                 # SQLite database
-├── docker-compose.yml     # Docker deployment
-└── init_db.py           # Database seeding
-```
-
-## Prerequisites
-
-- Python 3.11.x (required by the pinned backend dependencies; Python 3.14 is not supported)
-- Node.js 20+ and npm
-- A Gemini API key in `.env` as `GEMINI_API_KEY` for the AI mentor features
-
-The repository includes `.python-version` and the backend Docker image uses Python 3.11 to make the expected runtime explicit.
-
-## Quick Start
-
-### Option 1: Local Development
-
-```bash
-# Backend
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python init_db.py        # Initialize DB with sample data
+
+Activate the virtual environment and install dependencies:
+
+pip install -r requirements.txt
+python init_db.py
 uvicorn backend.api.main:app --reload --port 8000
 
-# Frontend (new terminal)
+3. Start the frontend
+
+Open another terminal:
+
 cd frontend
 npm install
 npm run dev
-```
 
-### Option 2: Docker
+4. Configure AI features
 
-```bash
+Add your Gemini API key to the project's ".env" file:
+
+GEMINI_API_KEY=your_api_key_here
+
+Alternatively, run the application using Docker:
+
 docker-compose up --build
-```
 
-## Test Accounts
+AI & Machine Learning
 
-After running `init_db.py`:
+ITSP incorporates AI-assisted features to improve student planning and productivity.
 
-| Roll Number | Password | Profile |
-|-------------|----------|---------|
-| 21001001 | password123 | 4th year, CS, SDE/AI-ML |
-| 21001002 | password123 | 3rd year, Electrical, Research/Core |
+- Academic Roadmap Generation: Personalized learning recommendations based on academic interests, goals, and identified weaknesses.
+- Burnout Risk Scoring: Scikit-learn-based assessment of workload and study patterns to estimate potential burnout risk.
+- Adaptive Planning: Workload-aware task organization and productivity tracking.
+- Student Support: Anonymous discussion functionality with keyword-based detection of potentially sensitive mental health concerns.
 
-## API Endpoints
+Note: Burnout scoring is intended as a productivity and well-being indicator, not a clinical diagnosis.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/auth/register | Register new student |
-| POST | /api/auth/token | Login |
-| GET | /api/auth/me | Get current user |
-| GET | /api/resources/ | List resources |
-| POST | /api/resources/ | Add resource |
-| GET | /api/events/ | List events |
-| GET | /api/journeys/ | List senior journeys |
-| GET | /api/planner/ | List tasks |
-| POST | /api/planner/ | Create task |
-| GET | /api/anonymous/ | List posts |
-| POST | /api/ai/roadmap | Generate roadmap |
-| POST | /api/ai/burnout-score | Calculate burnout |
+Development Roadmap
 
-## Team Tasks
+- [x] Full-stack application architecture
+- [x] Student authentication and profiles
+- [x] Resource library and events management
+- [x] Academic roadmap generation
+- [x] Weekly planner and productivity dashboard
+- [x] Burnout risk scoring
+- [x] Anonymous student discussion portal
+- [ ] Retrieval-Augmented Generation (RAG) assistant
+- [ ] Real-time notifications and reminders
+- [ ] Advanced institutional analytics
+- [ ] Production database migration
+- [ ] Multi-institution support and deployment
+- [ ] Mobile application
 
-| Member | Responsibilities |
-|--------|-----------------|
-| **1** | Backend: Auth, Student profiles, Database schema, API integration |
-| **2** | Frontend: Resources, Events, Journeys pages, upvote system |
-| **3** | AI Features: Roadmap generator, Burnout scoring, Weekly insights |
-| **4** | Frontend: Planner, Dashboard, Anonymous portal, Moderation |
+Vision & Impact
 
-## Phases
+ITSP is being developed with a B2B institutional model, where colleges and universities can provide students with a centralized platform for academic planning, career exploration, and productivity management.
 
-- **Phase 1 (Weeks 1-2):** Foundation - Auth, onboarding, domain pages
-- **Phase 2 (Weeks 3-6):** Domain Hub - Journeys, resources, events
-- **Phase 3 (Weeks 7-10):** AI Features - RAG assistant, roadmap, burnout
-- **Phase 4 (Weeks 11-14):** Anonymous Portal, polish, user testing
+Our goal is to transform fragmented academic resources and student support systems into a personalized, accessible, and scalable institutional solution.
 
-## Development Notes
+Project Status
 
-- Frontend runs on port 3000, proxies API to backend on 8000
-- CORS is enabled for all origins (configure for production)
-- JWT tokens expire in 30 minutes
-- Anonymous posts auto-detect mental health keywords
-- SQLite database is created automatically on first run
+Active Development — IIT Bombay Groww Programme
 
-## Future Improvements
+Originally developed as an IIT Bombay summer project, ITSP is currently undergoing further development and refinement with institutional support and ₹30,000 in development funding.
 
-- [ ] RAG-based AI assistant using actual platform data
-- [ ] Real-time notifications for events and reminders
-- [ ] Mobile app (React Native)
-- [ ] MySQL migration for production
-- [ ] Email reminders for upcoming tasks
-- [ ] Advanced analytics dashboard
-- [ ] Senior verification system for replies
+---
 
+Built at IIT Bombay | AI for Education | B2B EdTech
