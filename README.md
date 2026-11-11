@@ -1,4 +1,4 @@
-#ITSP Platform — AI-Powered Student Productivity
+#ITSP Platform — AI-Powered Student Productivity#
 
 An AI-powered B2B EdTech platform developed at IIT Bombay to help educational institutions deliver personalized academic planning, career guidance, and student productivity support.
 
