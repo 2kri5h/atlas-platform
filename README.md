@@ -1,169 +1,177 @@
-#ITSP Platform — AI-Powered Student Productivity#
+# ITSP Platform — AI-Powered Student Productivity
 
-An AI-powered B2B EdTech platform developed at IIT Bombay to help educational institutions deliver personalized academic planning, career guidance, and student productivity support.
+**An institution-focused B2B EdTech platform developed at IIT Bombay for personalized academic planning, career guidance, and student productivity.**
 
-IIT Bombay Summer Project — Among Top Teams | ₹30,000 Funding | IIT Bombay Groww Programme
+**Recognition:** Among the top teams in an IIT Bombay summer project · **Funding:** ₹30,000 · **Current programme:** IIT Bombay Groww Programme
 
-Overview
+## Overview
 
-ITSP Platform is a full-stack student productivity and academic guidance platform designed to bridge the gap between students' academic goals and available institutional resources.
+ITSP is a full-stack platform that brings academic planning, curated career resources, productivity tracking, and student support into one place. Originally developed as an IIT Bombay summer project, it is being refined through the **IIT Bombay Groww Programme** with a focus on a **B2B model for educational institutions**.
 
-The platform combines personalized learning roadmaps, intelligent scheduling, curated resources, productivity analytics, and student well-being support into a unified ecosystem.
+## Recognition & Institutional Support
 
-Initially developed as part of an IIT Bombay summer project, ITSP is now being developed further through IIT Bombay's Groww Programme, with a long-term vision of becoming a scalable B2B solution for educational institutions.
+- **Summer project recognition:** Selected among the top teams in an IIT Bombay summer project.
+- **₹30,000 funding:** Received development funding through the IIT Bombay Groww Programme.
+- **Institutional collaboration:** Currently working with IIT Bombay through the programme to develop and refine ITSP.
+- **B2B direction:** Building for adoption by colleges and universities, rather than only individual students.
 
-Recognition & Institutional Support
+## Features
 
-- Top Summer Project Team: Recognized among the top-performing teams in an IIT Bombay summer project initiative.
-- ₹30,000 Funding: Received development funding through IIT Bombay's Groww Programme.
-- Institutional Collaboration: Currently working with IIT Bombay through the Groww Programme to further develop and refine the platform.
-- B2B Product Vision: Designed for institutional adoption, enabling universities to provide personalized academic guidance and student support at scale.
+| Feature | What it does |
+| --- | --- |
+| Personalized Academic Roadmaps | Generates learning paths based on goals, domains, and weak subjects. |
+| Smart Weekly Planner | Organizes tasks, tracks time, and balances workloads. |
+| Resource Library | Provides senior-curated resources for SDE, AI/ML, Finance, Core, Research, and Consulting. |
+| Burnout Risk Scoring | Uses ML-based assessment of study patterns and workloads. |
+| Progress Dashboard | Visualizes productivity, progress, and consistency. |
+| Anonymous Portal | Supports anonymous questions and keyword-based detection of sensitive mental-health concerns. |
+| Senior Journeys | Shares structured academic and career experiences from seniors. |
+| Events System | Helps students discover workshops, talks, and archived events. |
 
-Key Features
+## Tech Stack
 
-Feature| Description
-Personalized Academic Roadmaps| AI-assisted learning paths based on student goals, interests, and weak subjects
-Smart Weekly Planner| Task scheduling, workload balancing, and time tracking
-Resource Library| Senior-curated resources for SDE, AI/ML, Finance, Research, Core, and Consulting
-Burnout Risk Assessment| ML-based analysis of study patterns and workload
-Progress Dashboard| Productivity insights, progress visualization, and consistency tracking
-Anonymous Student Portal| Anonymous discussions with keyword-based mental health concern detection
-Senior Journeys| Structured academic and career experiences shared by seniors
-Events & Workshops| Discovery of institutional events, workshops, and archived sessions
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React, TypeScript, Vite |
+| Backend | Python, FastAPI, SQLAlchemy |
+| Database | SQLite (development); MySQL (planned production) |
+| AI / ML | Scikit-learn, rule-based roadmap generation, Gemini API integration |
+| Authentication | JWT |
+| Deployment | Docker, Docker Compose |
 
-Tech Stack
+## Architecture
 
-Layer| Technologies
-Frontend| React, TypeScript, Vite
-Backend| Python, FastAPI, SQLAlchemy
-Database| SQLite (Development), MySQL (Planned Production)
-AI / ML| Scikit-learn, Rule-Based Recommendation Systems
-AI Integration| Google Gemini API
-Authentication| JWT
-Deployment| Docker, Docker Compose
+```text
+React + TypeScript (Frontend)
+            |
+         REST API
+            |
+       FastAPI Backend
+       /      |       \
+   Auth   AI / ML   Platform Services
+          |         (Planner, Resources,
+     Roadmaps &      Events, Journeys,
+     Risk Scoring    Anonymous Portal)
+       \      |       /
+          SQLAlchemy
+              |
+        SQLite / MySQL
+```
 
-System Architecture
+## Repository Structure
 
-                  Student / Institution
-                           |
-                  React + TypeScript
-                           |
-                      REST APIs
-                           |
-                        FastAPI
-                           |
-          +----------------+----------------+
-          |                |                |
-     Authentication    AI / ML Engine   Core Services
-          |                |                |
-          |           Roadmap Generator     |
-          |           Burnout Scoring       |
-          |                |                |
-          +----------------+----------------+
-                           |
-                       SQLAlchemy
-                           |
-                    SQLite / MySQL
-
-Project Structure
-
-itsp_project/
+```text
+atlas-platform/
 ├── backend/
-│   ├── api/              # REST API endpoints
-│   ├── core/             # Configuration and database
-│   └── models/           # Database models
+│   ├── api/             # Authentication and feature endpoints
+│   ├── core/            # Configuration and database
+│   └── models/          # SQLAlchemy models
 ├── frontend/
 │   └── src/
-│       ├── components/   # Reusable UI components
-│       └── pages/        # Application pages
-├── data/                 # Development database
-├── init_db.py            # Database initialization
-├── requirements.txt      # Python dependencies
-└── docker-compose.yml    # Container configuration
+│       ├── components/  # Shared UI components
+│       └── pages/       # Feature pages
+├── data/                # Local development database
+├── init_db.py           # Database initialization and seed data
+├── requirements.txt     # Python dependencies
+└── docker-compose.yml   # Container setup
+```
 
-Getting Started
+## Getting Started
 
-Prerequisites
+### Prerequisites
 
-- Python 3.11
-- Node.js 20+
-- npm
-- Gemini API key (for Gemini-powered features)
+- Python **3.11**
+- Node.js **20+** and npm
+- A Gemini API key for Gemini-powered features
 
-Local Development
+### Run locally
 
-1. Clone the repository
+1. Clone the repository:
 
-git clone <repository-url>
-cd itsp_project
+   ```bash
+   git clone https://github.com/2kri5h/atlas-platform.git
+   cd atlas-platform
+   ```
 
-2. Start the backend
+2. Create a virtual environment and install backend dependencies:
 
-python -m venv .venv
+   ```bash
+   python -m venv .venv
+   ```
 
-Activate the virtual environment and install dependencies:
+   Activate it on Windows (PowerShell):
 
-pip install -r requirements.txt
-python init_db.py
-uvicorn backend.api.main:app --reload --port 8000
+   ```powershell
+   .\.venv\Scripts\Activate.ps1
+   ```
 
-3. Start the frontend
+   Or on macOS/Linux:
 
-Open another terminal:
+   ```bash
+   source .venv/bin/activate
+   ```
 
-cd frontend
-npm install
-npm run dev
+   Then run:
 
-4. Configure AI features
+   ```bash
+   python -m pip install -r requirements.txt
+   python init_db.py
+   uvicorn backend.api.main:app --reload --port 8000
+   ```
 
-Add your Gemini API key to the project's ".env" file:
+3. In a separate terminal, start the frontend:
 
-GEMINI_API_KEY=your_api_key_here
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
-Alternatively, run the application using Docker:
+4. For Gemini-powered features, set the following in your local `.env` file (never commit a real API key):
 
-docker-compose up --build
+   ```dotenv
+   GEMINI_API_KEY=your_api_key_here
+   ```
 
-AI & Machine Learning
+### Docker alternative
 
-ITSP incorporates AI-assisted features to improve student planning and productivity.
+```bash
+docker compose up --build
+```
 
-- Academic Roadmap Generation: Personalized learning recommendations based on academic interests, goals, and identified weaknesses.
-- Burnout Risk Scoring: Scikit-learn-based assessment of workload and study patterns to estimate potential burnout risk.
-- Adaptive Planning: Workload-aware task organization and productivity tracking.
-- Student Support: Anonymous discussion functionality with keyword-based detection of potentially sensitive mental health concerns.
+## Selected API Endpoints
 
-Note: Burnout scoring is intended as a productivity and well-being indicator, not a clinical diagnosis.
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| POST | `/api/auth/register` | Register a student |
+| POST | `/api/auth/token` | Log in |
+| GET | `/api/resources/` | Browse resources |
+| GET | `/api/events/` | Browse events |
+| GET | `/api/journeys/` | Browse senior journeys |
+| GET / POST | `/api/planner/` | View or create tasks |
+| GET | `/api/anonymous/` | Browse anonymous posts |
+| POST | `/api/ai/roadmap` | Generate a roadmap |
+| POST | `/api/ai/burnout-score` | Estimate burnout risk |
 
-Development Roadmap
+## Roadmap
 
-- [x] Full-stack application architecture
-- [x] Student authentication and profiles
-- [x] Resource library and events management
-- [x] Academic roadmap generation
-- [x] Weekly planner and productivity dashboard
-- [x] Burnout risk scoring
-- [x] Anonymous student discussion portal
-- [ ] Retrieval-Augmented Generation (RAG) assistant
+**Current platform scope:** Student accounts, academic roadmaps, planning, resources, events, senior journeys, anonymous discussions, and productivity analytics.
+
+**Planned enhancements:**
+
+- [ ] RAG assistant grounded in platform resources
 - [ ] Real-time notifications and reminders
 - [ ] Advanced institutional analytics
-- [ ] Production database migration
-- [ ] Multi-institution support and deployment
+- [ ] Production MySQL migration
+- [ ] Multi-institution deployment and administration
 - [ ] Mobile application
 
-Vision & Impact
+## Vision
 
-ITSP is being developed with a B2B institutional model, where colleges and universities can provide students with a centralized platform for academic planning, career exploration, and productivity management.
+ITSP aims to help institutions offer personalized academic and career support through one scalable platform, combining student-facing planning tools with a foundation for institution-wide deployment.
 
-Our goal is to transform fragmented academic resources and student support systems into a personalized, accessible, and scalable institutional solution.
-
-Project Status
-
-Active Development — IIT Bombay Groww Programme
-
-Originally developed as an IIT Bombay summer project, ITSP is currently undergoing further development and refinement with institutional support and ₹30,000 in development funding.
+**Status:** Active development through the IIT Bombay Groww Programme.
 
 ---
 
-Built at IIT Bombay | AI for Education | B2B EdTech
+*Built at IIT Bombay · AI for Education · B2B EdTech*
